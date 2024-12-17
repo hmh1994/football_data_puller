@@ -1,0 +1,46 @@
+name: Tagged Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Fetch all tags
+        run: git fetch --tags
+
+      - name: Get the latest and release tag
+        run: |
+          TAGS=$(git describe --tags $(git rev-list --tags --max-count=2))
+          RELEASE_TAG=$(echo "$TAGS" | awk 'NR==1')
+          LATEST_TAG=$(echo "$TAGS" | awk 'NR==2')
+          echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
+          echo "RELEASE_TAG=$RELEASE_TAG" >> $GITHUB_ENV
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.12"
+
+      - name: Set up requirements
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[essential]"
+          python -m build
+
+      - name: Release the artifacts
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/*
+          body: |
+            `pip install asset-info-v2==${{ env.RELEASE_TAG }}`
+
+            **Full Changelog**: https://github.com/hmh1994/football_data_puller/compare/${{ env.LATEST_TAG }}...${{ env.RELEASE_TAG }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

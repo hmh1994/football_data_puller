@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "football-data-puller"
+description = "A simple football data puller"
+authors = [{ name = "jormal", email = "jormal@naver.com" }]
+license = { file = "LICENSE" }
+readme = "README.md"
+keywords = ["football", "data-pipeline", "cron-job"]
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+requires-python = ">=3.12"
+dynamic = ["version", "dependencies", "optional-dependencies"]
+
+[project.urls]
+Documentation = "https://github.com/hmh1994/football_data_puller/blob/docs"
+Source = "https://github.com/hmh1994/football_data_puller"
+Homepage = "TBA"
+
+[tool.setuptools.dynamic]
+version = { file = ["VERSION"] }
+dependencies = { file = ["requirements/essential.txt"] }
+
+[tool.setuptools.dynamic.optional-dependencies]
+all = { file = ["requirements/essential.txt", "requirements/dev.txt", "requirements/test.txt"] }
+dev = { file = ["requirements/essential.txt", "requirements/dev.txt"] }
+essential = { file = ["requirements/essential.txt"] }
+test = { file = ["requirements/essential.txt", "requirements/dev.txt", "requirements/test.txt"] }
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = []
+exclude = ["tests*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = ["--import-mode=importlib"]

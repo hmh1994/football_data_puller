@@ -1,0 +1,4 @@
+# Specifies the packages for testing the project.
+pytest==7.4.4
+pytest-asyncio==0.23.7
+pigar==2.1.6

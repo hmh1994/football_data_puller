@@ -1,0 +1,4 @@
+# Specifies the required packages for developing the project.
+setuptools==69.5.1
+requests==2.31.0
+yarl==1.9.4

@@ -1,3 +1,4 @@
 # Specifies the essential requirements of the project.
 build>=1.2.1
 pydantic>=2.5.3
+python-dotenv>=1.0.1

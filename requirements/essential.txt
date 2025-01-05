@@ -1,5 +1,7 @@
 # Specifies the essential requirements of the project.
+SQLAlchemy>=2.0.36
 build>=1.2.1
 dependency-injector>=4.44.0
+psycopg2-binary>=2.9.10
 pydantic>=2.5.3
 python-dotenv>=1.0.1

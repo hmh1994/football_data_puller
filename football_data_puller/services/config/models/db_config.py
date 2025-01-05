@@ -1,3 +1,5 @@
+from sqlalchemy import URL
+
 from football_data_puller.utils.pydantic_helper.config_model import ConfigModel
 
 

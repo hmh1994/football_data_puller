@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from typing import Generator
 
 from sqlalchemy import create_engine, Engine
@@ -22,12 +23,14 @@ class DbService:
         self.__session = sessionmaker(bind=self.__engine)
 
     def check_connection(self) -> bool:
+        # noinspection PyBroadException
         try:
             self.__engine.connect()
             return True
         except Exception:
             return False
 
+    @contextmanager
     def create_db_session(self) -> Generator[Session, None, None]:
         db = self.__session()
         try:

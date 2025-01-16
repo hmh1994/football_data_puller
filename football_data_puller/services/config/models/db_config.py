@@ -14,12 +14,12 @@ class DbConfig(ConfigModel):
     :ivar user_password: Password.
     """
 
-    database_name: str
-    database_host: str
-    database_port: int
-    driver_name: str
-    user_name: str
-    user_password: str
+    database_name: str | None = None
+    database_host: str | None = None
+    database_port: int | None = None
+    driver_name: str | None = None
+    user_name: str | None = None
+    user_password: str | None = None
 
     @property
     def sqlalchemy_url(self) -> URL:

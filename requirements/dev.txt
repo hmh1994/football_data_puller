@@ -1,2 +1,2 @@
 # Specifies the required packages for developing the project.
-setuptools==69.5.1
+setuptools==70.0.0

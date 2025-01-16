@@ -12,6 +12,7 @@ from tests.dependencies.utils import (
 class TestDependencies:
     """
     Tests the dependency status.
+    :ivar optional_package_paths: Optional package's target paths.
     """
 
     optional_package_paths = {

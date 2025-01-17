@@ -9,6 +9,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+
     steps:
       - uses: actions/checkout@v2
 
@@ -35,7 +38,7 @@ jobs:
           python -m build
 
       - name: Release the artifacts
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@7b4da11513bf3f43f9999e90eabced41ab8bb048
         with:
           files: dist/*
           body: |

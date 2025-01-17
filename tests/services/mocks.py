@@ -8,15 +8,15 @@ from tests.utils.random import random_string, random_url
 
 
 def gen_config_service_mock(
-        db_database_name: str | None = None,
-        db_database_host: str | None = None,
-        db_database_port: int | None = None,
-        db_driver_name: str = random_string(10),
-        db_user_name: str | None = None,
-        db_user_password: str | None = None,
-        api_pulselive_key: str | None = None,
-        api_pulselive_url: HttpUrl = random_url(20),
-        api_pulselive_agent: str | None = None,
+    db_database_name: str | None = None,
+    db_database_host: str | None = None,
+    db_database_port: int | None = None,
+    db_driver_name: str = random_string(10),
+    db_user_name: str | None = None,
+    db_user_password: str | None = None,
+    api_pulselive_key: str | None = None,
+    api_pulselive_url: HttpUrl = random_url(20),
+    api_pulselive_agent: str | None = None,
 ) -> ConfigService:
     """
     Generate a fake ConfigService object.

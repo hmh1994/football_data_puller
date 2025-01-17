@@ -37,7 +37,7 @@ class TestDependencies:
             ), f"Key {key} not found."
             # Assertion #3: The requirement file path exists.
             assert (
-                    len(read_requirements_paths(key)) != 0
+                len(read_requirements_paths(key)) != 0
             ), f"Requirements file not found for {key}."
 
     def test_requirements_alphabetical_order(self):

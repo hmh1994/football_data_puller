@@ -1,8 +1,9 @@
-from contextlib import contextmanager
-from typing import Generator
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
 
-from sqlalchemy import create_engine, Engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession, AsyncEngine, create_async_engine
+from sqlalchemy.orm import sessionmaker
 
 from football_data_puller.services.config.config_service import ConfigService
 
@@ -11,33 +12,46 @@ class DbService:
     """
     Database service class to handle database operations.
     :param config_service: Configuration service.
+    :ivar engine: Database engine.
     """
 
-    __engine: Engine
+    engine: AsyncEngine
     __session_maker: sessionmaker
 
     def __init__(self, config_service: ConfigService):
-        self.__engine = create_engine(
+        self.engine = create_async_engine(
             config_service.db.sqlalchemy_url, pool_pre_ping=True
         )
-        self.__session = sessionmaker(bind=self.__engine)
+        # noinspection PyTypeChecker
+        self.__session_maker = sessionmaker(
+            bind=self.engine, class_=AsyncSession, expire_on_commit=False
+        )
 
-    def check_connection(self) -> bool:
+    async def check_connection(self) -> bool:
+        """
+        Checks the database connection.
+        :return: True if the connection is successful, False otherwise.
+        """
         # noinspection PyBroadException
         try:
-            self.__engine.connect()
+            async with self.engine.connect() as conn:
+                await conn.execute(text("SELECT 1"))
             return True
         except Exception:
             return False
 
-    @contextmanager
-    def create_db_session(self) -> Generator[Session, None, None]:
-        db = self.__session()
-        try:
-            yield db
-            db.commit()
-        except Exception:
-            db.rollback()
-            raise
-        finally:
-            db.close()
+    @asynccontextmanager
+    async def create_db_session(self) -> AsyncGenerator[AsyncSession, None]:
+        """
+        Creates a database session.
+        :return: Database session.
+        """
+        async with self.__session_maker() as session:
+            try:
+                yield session
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
+            finally:
+                await session.close()

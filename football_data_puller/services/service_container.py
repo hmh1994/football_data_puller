@@ -10,6 +10,7 @@ class ServiceContainer(DeclarativeContainer):
     Service container for the application.
     :ivar container_config: Container's configuration.
     :ivar config_service: Configuration service.
+    :ivar db_service: Database service.
     """
 
     container_config = Configuration()

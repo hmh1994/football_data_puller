@@ -5,7 +5,7 @@ from tomllib import load
 from pigar.core import RequirementsAnalyzer
 from pigar.parser import DEFAULT_GLOB_EXCLUDE_PATTERNS
 
-from football_data_puller.utils.constants import PWD
+from football_data_manager.common.utils.constants import PWD
 
 
 def read_essential_packages() -> list[str]:

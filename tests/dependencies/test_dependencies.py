@@ -1,4 +1,4 @@
-from football_data_puller.utils.constants import PWD
+from football_data_manager.common.utils.constants import PWD
 from tests.dependencies.utils import (
     read_requirements_paths,
     read_dependencies,
@@ -17,7 +17,7 @@ class TestDependencies:
 
     optional_package_paths = {
         "all": PWD,
-        "dev": PWD / "football_data_puller",
+        "dev": PWD / "football_data_manager",
         "test": PWD / "tests",
     }
 

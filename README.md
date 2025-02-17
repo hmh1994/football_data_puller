@@ -1,11 +1,11 @@
-# Football Data Puller
+# Football Data Manager
 
 This is a Python script that pulls football data from the web and stores it into the PostgresSQL database.
 The script is designed to be run on regular cycles (e.g. every 5 minutes) to keep the database up to date.
 
 ## Table of Contents
 
-- [Football Data Puller](#football-data-puller)
+- [Football Data Manager](#football-data-manager)
     - [Table of Contents](#table-of-contents)
     - [Contributing](#contributing)
         - [Prerequisites](#prerequisites)
@@ -28,7 +28,7 @@ If you would like to contribute to this project, please follow the steps below:
 #### 1. Clone the repository
 
 ```bash
-$ git clone git@github.com:hmh1994/football_data_puller.git
+$ git clone git@github.com:hmh1994/football_data_manager.git
 ```
 
 #### 2. Set up the virtual environment

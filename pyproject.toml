@@ -3,8 +3,8 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "football-data-puller"
-description = "A simple football data puller"
+name = "football-data-manager"
+description = "A simple football data manager"
 authors = [{ name = "jormal", email = "jormal@naver.com" }]
 license = { file = "LICENSE" }
 readme = "README.md"
@@ -36,7 +36,7 @@ test = { file = ["requirements/essential.txt", "requirements/dev.txt", "requirem
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["football_data_puller*"]
+include = ["football_data_manager*"]
 exclude = ["tests*"]
 
 [tool.pytest.ini_options]

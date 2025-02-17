@@ -47,5 +47,6 @@ class TestConfigService:
         assert len(expect_values) == len(actual_values), "Config keys mismatched."
         for key, value in expect_values.items():
             assert value == actual_values[key], (
-                    f"Config value mismatched for {key}" +
-                    f" (expect: {value}, actual: {actual_values[key]}).")
+                f"Config value mismatched for {key}"
+                + f" (expect: {value}, actual: {actual_values[key]})."
+            )

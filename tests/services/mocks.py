@@ -4,19 +4,20 @@ from tempfile import NamedTemporaryFile
 from pydantic import HttpUrl
 
 from football_data_puller.services.config.config_service import ConfigService
+from football_data_puller.services.db.db_service import DbService
 from tests.utils.random import random_string, random_url
 
 
 def gen_config_service_mock(
-        db_database_name: str | None = None,
-        db_database_host: str | None = None,
-        db_database_port: int | None = None,
-        db_driver_name: str = random_string(10),
-        db_user_name: str | None = None,
-        db_user_password: str | None = None,
-        api_pulselive_key: str | None = None,
-        api_pulselive_url: HttpUrl = random_url(20),
-        api_pulselive_agent: str | None = None,
+    db_database_name: str | None = None,
+    db_database_host: str | None = None,
+    db_database_port: int | None = None,
+    db_driver_name: str = random_string(10),
+    db_user_name: str | None = None,
+    db_user_password: str | None = None,
+    api_pulselive_key: str | None = None,
+    api_pulselive_url: HttpUrl = random_url(20),
+    api_pulselive_agent: str | None = None,
 ) -> ConfigService:
     """
     Generate a fake ConfigService object.
@@ -47,3 +48,32 @@ def gen_config_service_mock(
         fp.flush()
         config_service = ConfigService(Path(fp.name))
     return config_service
+
+
+def gen_db_service_mock(
+    db_database_name: str | None = ":memory:",
+    db_database_host: str | None = None,
+    db_database_port: int | None = None,
+    db_driver_name: str = "sqlite+aiosqlite",
+    db_user_name: str | None = None,
+    db_user_password: str | None = None,
+) -> DbService:
+    """
+    Generate a fake DbService object.
+    :param db_database_name: Database name (default: random string.)
+    :param db_database_host: Database host (default: random string.)
+    :param db_database_port: Database port (default: random number.)
+    :param db_driver_name: Database driver name (default: random string.)
+    :param db_user_name: Database username (default: random string.)
+    :param db_user_password: Database password (default: random string.)
+    :return: A fake DbService object.
+    """
+    config_service = gen_config_service_mock(
+        db_database_name=db_database_name,
+        db_database_host=db_database_host,
+        db_database_port=db_database_port,
+        db_driver_name=db_driver_name,
+        db_user_name=db_user_name,
+        db_user_password=db_user_password,
+    )
+    return DbService(config_service)

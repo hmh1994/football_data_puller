@@ -1,0 +1,76 @@
+from abc import ABCMeta
+from typing import Any
+
+from httpx import AsyncClient, Timeout
+from yarl import URL
+
+
+class AbstractWebClientService(metaclass=ABCMeta):
+    """
+    Abstract class for web client services.
+    :param base_url: Base URL of the API.
+    :param timeout: Timeout for the requests.
+    """
+
+    base_url: URL
+    timeout: Timeout
+    __client: AsyncClient
+
+    def __init__(self, base_url: URL, timeout: Timeout = Timeout(10)):
+        self.base_url = base_url
+        self.timeout = timeout
+        self.__client = AsyncClient(base_url=base_url)
+
+    def __del__(self):
+        if self.__client:
+            self.__client.aclose()
+
+    async def get(
+        self,
+        path: URL,
+        query: dict[str, str] | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> dict:
+        """
+        Sends a GET request to the API.
+        :param path: Sub-path of the API.
+        :param query: Query parameters.
+        :param headers: Headers.
+        :return: Response from the API.
+        """
+        response = await self.__client.get(
+            url=self.base_url.join(path),
+            params=query if query else {},
+            headers=headers if headers else {},
+            timeout=self.timeout,
+        )
+        response.raise_for_status()
+        return response.json()
+
+    async def post(
+        self,
+        path: URL,
+        query: dict[str, str] | None = None,
+        data: Any = None,
+        json: dict | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> dict:
+        """
+        Sends a POST request to the API.
+        :param path: Sub-path of the API.
+        :param query: Query parameters.
+        :param data: Data to send.
+        :param json: JSON data to send.
+        :param headers: Headers.
+        :return: Response from the API.
+        """
+        response = await self.__client.post(
+            url=self.base_url.join(path),
+            params=query if query else {},
+            data=data,
+            json=json,
+            headers=headers if headers else {},
+            timeout=self.timeout,
+        )
+        response.raise_for_status()
+        return response.json()

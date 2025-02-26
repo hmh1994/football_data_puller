@@ -19,10 +19,27 @@ class GroundEntity(Base):
     __tablename__ = "grounds"
 
     id = Column(String, primary_key=True)
-    capacity = Column(Integer)
+    capacity = Column(Integer, nullable=True)
     city_name_en = Column(String)
     city_name_kr = Column(String, nullable=True)
-    location_latitude = Column(Double)
-    location_longitude = Column(Double)
+    location_latitude = Column(Double, nullable=True)
+    location_longitude = Column(Double, nullable=True)
     name_en = Column(String)
     name_kr = Column(String, nullable=True)
+
+    @staticmethod
+    def get_id(pulselive_id: int) -> str:
+        """
+        Get the ID of the ground.
+        :param pulselive_id: Pulselive ID.
+        :return: Ground ID.
+        """
+        return f"PULSELIVE_GROUND_{pulselive_id}"
+
+    @property
+    def pulselive_id(self) -> int:
+        """
+        Get the Pulselive ID of the ground.
+        :return: Pulselive ID.
+        """
+        return int(self.id.removeprefix("PULSELIVE_GROUND_"))

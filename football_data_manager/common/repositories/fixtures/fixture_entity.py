@@ -37,7 +37,7 @@ class FixtureEntity(Base):
     attendance = Column(Integer, nullable=True)
     clock = Column(Integer, nullable=True)
     game_week = Column(Integer)
-    ground_id = Column(String, ForeignKey(GroundEntity.id))
+    ground_id = Column(String, ForeignKey(GroundEntity.id), nullable=True)
     ground = relationship(GroundEntity, lazy="joined", foreign_keys=[ground_id])
     home_team_id = Column(String, ForeignKey(TeamEntity.id))
     home_team = relationship(TeamEntity, lazy="joined", foreign_keys=[home_team_id])
@@ -46,3 +46,20 @@ class FixtureEntity(Base):
     kickoff_time = Column(DateTime)
     season_id = Column(String, ForeignKey(SeasonEntity.id))
     season = relationship(SeasonEntity, lazy="joined", foreign_keys=[season_id])
+
+    @staticmethod
+    def get_id(pulselive_id: int) -> str:
+        """
+        Get the ID of the fixture.
+        :param pulselive_id: Pulselive ID.
+        :return: Fixture ID.
+        """
+        return f"PULSELIVE_FIXTURE_{pulselive_id}"
+
+    @property
+    def pulselive_id(self) -> int:
+        """
+        Get the Pulselive ID of the fixture.
+        :return: Pulselive ID.
+        """
+        return int(self.id.removeprefix("PULSELIVE_FIXTURE_"))

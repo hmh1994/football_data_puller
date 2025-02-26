@@ -1,3 +1,4 @@
+from asyncio import gather
 from typing import TypeVar, Generic, Type, Callable, Coroutine
 
 from sqlalchemy import select
@@ -55,6 +56,34 @@ class BaseRepository(Generic[TEntity, TId]):
         return entity
 
     @with_db_session
+    async def create_all(
+        self,
+        session: AsyncSession,
+        entities: list[TEntity],
+        primary_key: Callable[[TEntity], TId] | None = None,
+    ) -> list[TEntity]:
+        """
+        Creates multiple entities in the database.
+        :param session: Database session.
+        :param entities: Entities to create.
+        :param primary_key: Function to get the primary key of the entity.
+        If None, the duplicate entities will cause an error.
+        :return: Created entities.
+        """
+        if primary_key is not None:
+            sieved_entities = await gather(
+                *[
+                    self.__sieve_duplication(entity, primary_key(entity))
+                    for entity in entities
+                ]
+            )
+            entities = [e for e in sieved_entities if e is not None]
+        if len(entities) > 0:
+            session.add_all(entities)
+            await session.flush()
+        return entities
+
+    @with_db_session
     async def read_all(self, session: AsyncSession) -> list[TEntity]:
         """
         Reads all entities from the database.
@@ -98,3 +127,19 @@ class BaseRepository(Generic[TEntity, TId]):
         if real_entity is not None:
             await session.delete(real_entity)
             await session.flush()
+
+    @with_db_session
+    async def __sieve_duplication(
+        self, session: AsyncSession, entity: TEntity, pkey: TId
+    ) -> TEntity | None:
+        """
+        Sieves the duplication of the entity.
+        :param session: Database session.
+        :param entity: Entity to sieve.
+        :param pkey: Primary key.
+        :return: Entity if not duplicated, None otherwise.
+        """
+        if await session.get(self.model, pkey):
+            return None
+        else:
+            return entity

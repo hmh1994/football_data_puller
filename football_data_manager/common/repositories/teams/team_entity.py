@@ -23,10 +23,27 @@ class TeamEntity(Base):
 
     id = Column(String, primary_key=True)
     abbreviation = Column(String)
-    ground_id = Column(String, ForeignKey(GroundEntity.id))
+    ground_id = Column(String, ForeignKey(GroundEntity.id), nullable=True)
     ground = relationship(GroundEntity, lazy="joined", foreign_keys=[ground_id])
     icon_url = Column(String, nullable=True)
     name_en = Column(String)
     name_kr = Column(String, nullable=True)
     short_name_en = Column(String)
     short_name_kr = Column(String, nullable=True)
+
+    @staticmethod
+    def get_id(pulselive_id: int) -> str:
+        """
+        Get the ID of the team.
+        :param pulselive_id: Pulselive ID.
+        :return: Team ID.
+        """
+        return f"PULSELIVE_TEAM_{pulselive_id}"
+
+    @property
+    def pulselive_id(self) -> int:
+        """
+        Get the Pulselive ID of the team.
+        :return: Pulselive ID.
+        """
+        return int(self.id.removeprefix("PULSELIVE_TEAM_"))

@@ -1,8 +1,7 @@
 from abc import ABCMeta
 from typing import Any
 
-from httpx import AsyncClient, Timeout
-from yarl import URL
+from httpx import AsyncClient, Timeout, URL
 
 
 class AbstractWebClientService(metaclass=ABCMeta):
@@ -21,9 +20,12 @@ class AbstractWebClientService(metaclass=ABCMeta):
         self.timeout = timeout
         self.__client = AsyncClient(base_url=base_url)
 
-    def __del__(self):
+    async def close(self):
+        """
+        Closes the web client.
+        """
         if self.__client:
-            self.__client.aclose()
+            await self.__client.aclose()
 
     async def get(
         self,

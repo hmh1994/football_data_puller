@@ -1,7 +1,37 @@
 from argparse import ArgumentParser
+from asyncio import run
 
-OPERATION_DICT = {"health": lambda: print("I'm healthy!")}
+from football_data_manager.common.repositories import Base
+from football_data_manager.common.services.common_service_container import (
+    CommonServiceContainer,
+)
+from football_data_manager.puller.services.puller_service_container import (
+    PullerServiceContainer,
+)
+
+OPERATION_DICT = {"health": lambda: print("I'm healthy!"), "test": lambda: run(test())}
 """The dictionary of operations application supports."""
+
+
+async def test():
+    common_service_container = CommonServiceContainer()
+    common_service_container.container_config.from_dict(
+        {"config_path": "./configs/.env"}
+    )
+    config_service = common_service_container.config_service()
+    db_service = common_service_container.db_service()
+    async with db_service.engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    puller_service_container = PullerServiceContainer()
+    puller_service_container.container_config.from_dict(
+        {
+            "pulselive_config": config_service.api_list.pulselive,
+            "db_service": db_service,
+        }
+    )
+    pulselive_service = puller_service_container.pulselive_service()
+    await pulselive_service.pull_data()
+    await pulselive_service.close()
 
 
 if __name__ == "__main__":

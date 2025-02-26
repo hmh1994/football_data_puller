@@ -32,3 +32,20 @@ class SeasonEntity(Base):
     date_start = Column(DateTime)
     year_end = Column(Integer)
     year_start = Column(Integer)
+
+    @staticmethod
+    def get_id(pulselive_id: int) -> str:
+        """
+        Get the ID of the season.
+        :param pulselive_id: Pulselive ID.
+        :return: Season ID.
+        """
+        return f"PULSELIVE_SEASON_{pulselive_id}"
+
+    @property
+    def pulselive_id(self) -> int:
+        """
+        Get the Pulselive ID of the season.
+        :return: Pulselive ID.
+        """
+        return int(self.id.removeprefix("PULSELIVE_SEASON_"))

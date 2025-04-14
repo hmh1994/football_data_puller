@@ -6,6 +6,9 @@ from football_data_manager.puller.services.pulselive.services.pulselive_competit
 from football_data_manager.puller.services.pulselive.services.pulselive_fixture_service import (
     PulseliveFixturesService,
 )
+from football_data_manager.puller.services.pulselive.services.pulselive_standings_service import (
+    PulseliveStandingsService,
+)
 from football_data_manager.puller.services.pulselive.services.pulselive_teams_per_compseason_service import (
     PulseliveTeamsPerCompSeasonService,
 )
@@ -17,6 +20,7 @@ from football_data_manager.puller.services.pulselive.services.pulselive_web_clie
 class PulselivePullerService:
     __competition_service: PulseliveCompetitionsService
     __fixture_service: PulseliveFixturesService
+    __standings_service: PulseliveStandingsService
     __teams_per_comp_season_service: PulseliveTeamsPerCompSeasonService
     __web_client: PulseliveWebClientService
 
@@ -27,6 +31,9 @@ class PulselivePullerService:
             db_service, self.__web_client
         )
         self.__fixture_service = PulseliveFixturesService(db_service, self.__web_client)
+        self.__standings_service = PulseliveStandingsService(
+            db_service, self.__web_client
+        )
         self.__teams_per_comp_season_service = PulseliveTeamsPerCompSeasonService(
             db_service, self.__web_client
         )
@@ -42,7 +49,11 @@ class PulselivePullerService:
         Pulls data from the Pulselive API.
         """
         # 1st job
-        await self.__competition_service.pull_competitions()
+        # await self.__competition_service.pull_competitions()
         # 2nd job
-        await self.__teams_per_comp_season_service.pull_players()
-        await self.__fixture_service.pull_fixtures()
+        # await gather(
+        #     self.__teams_per_comp_season_service.pull_players(),
+        #     self.__fixture_service.pull_fixtures(),
+        # )
+        # 3rd job
+        await self.__standings_service.pull_standings()

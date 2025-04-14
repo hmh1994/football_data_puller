@@ -63,3 +63,33 @@ class FixtureEntity(Base):
         :return: Pulselive ID.
         """
         return int(self.id.removeprefix("PULSELIVE_FIXTURE_"))
+
+    @property
+    def away_point(self) -> int | None:
+        """
+        Get the away team point.
+        :return: Away team point.
+        """
+        if self.away_team_score is None or self.home_team_score is None:
+            return None
+        elif self.away_team_score > self.home_team_score:
+            return 3
+        elif self.away_team_score == self.home_team_score:
+            return 1
+        else:
+            return 0
+
+    @property
+    def home_point(self) -> int | None:
+        """
+        Get the home team point.
+        :return: Home team point.
+        """
+        if self.home_team_score is None or self.away_team_score is None:
+            return None
+        elif self.home_team_score > self.away_team_score:
+            return 3
+        elif self.home_team_score == self.away_team_score:
+            return 1
+        else:
+            return 0

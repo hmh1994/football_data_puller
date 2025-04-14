@@ -22,6 +22,9 @@ from football_data_manager.puller.services.pulselive.models.responses.pulselive_
 from football_data_manager.puller.services.pulselive.models.responses.pulselive_paginated_response import (
     PulselivePaginatedResponse,
 )
+from football_data_manager.puller.services.pulselive.models.responses.standings.pulselive_standings_response import (
+    PulseliveStandingsResponse,
+)
 from football_data_manager.puller.services.pulselive.models.responses.teams.compseasons.pulselive_teams_compseasons_staff_response import (
     PulseliveTeamsCompseasonsStaffResponse,
 )
@@ -109,6 +112,26 @@ class PulseliveWebClientService(AbstractWebClientService):
             .model_validate(response)
             .content
         )
+
+    async def get_football_standings(
+        self, comp_season_id: int, competition_id: int
+    ) -> PulseliveStandingsResponse:
+        """
+        Get the standings of a competition season.
+        :param comp_season_id: Competition season ID.
+        :param competition_id: Competition ID.
+        :return: Standings.
+        """
+        response = await self.get(
+            path=URL(f"/football/standings"),
+            query={
+                "FOOTBALL_COMPETITION": competition_id,
+                "compSeasons": comp_season_id,
+                "altIds": True,
+                "detail": 2,
+            },
+        )
+        return PulseliveStandingsResponse.model_validate(response)
 
     async def get_football_team_compseason_staff(
         self,

@@ -1,3 +1,5 @@
+from asyncio import gather
+
 from football_data_manager.common.services.config.models.api_config import ApiConfig
 from football_data_manager.common.services.db.db_service import DbService
 from football_data_manager.puller.services.pulselive.services.pulselive_competitions_service import (
@@ -51,9 +53,9 @@ class PulselivePullerService:
         # 1st job
         # await self.__competition_service.pull_competitions()
         # 2nd job
-        # await gather(
-        #     self.__teams_per_comp_season_service.pull_players(),
-        #     self.__fixture_service.pull_fixtures(),
-        # )
+        await gather(
+            self.__teams_per_comp_season_service.pull_players(),
+            self.__fixture_service.pull_fixtures(),
+        )
         # 3rd job
-        await self.__standings_service.pull_standings()
+        # await self.__standings_service.pull_standings()

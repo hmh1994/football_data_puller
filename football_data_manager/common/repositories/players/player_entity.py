@@ -27,6 +27,7 @@ class PlayerEntity(Base):
     id = Column(String, primary_key=True)
     birth_country = Column(String)
     birth_date = Column(DateTime)
+    birth_country_flag_icon_url = Column(String, nullable=True)
     birth_place = Column(String, nullable=True)
     display_name_en = Column(String)
     display_name_kr = Column(String, nullable=True)

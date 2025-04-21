@@ -4,6 +4,12 @@ from itertools import product
 
 from httpx import HTTPStatusError
 
+from football_data_manager.common.repositories.player_stats.player_stat_entity import (
+    PlayerStatEntity,
+)
+from football_data_manager.common.repositories.player_stats.player_stat_repository import (
+    PlayerStatRepository,
+)
 from football_data_manager.common.repositories.players.player_entity import PlayerEntity
 from football_data_manager.common.repositories.players.player_repository import (
     PlayerRepository,
@@ -27,6 +33,7 @@ from football_data_manager.puller.services.pulselive.services.pulselive_web_clie
 
 class PulseliveTeamsPerCompSeasonService:
     __player_repository: PlayerRepository
+    __player_stats_repository: PlayerStatRepository
     __season_repository: SeasonRepository
     __team_repository: TeamRepository
     __web_client: PulseliveWebClientService
@@ -41,6 +48,7 @@ class PulseliveTeamsPerCompSeasonService:
         pulselive_service: PulseliveWebClientService,
     ):
         self.__player_repository = PlayerRepository(db_service)
+        self.__player_stats_repository = PlayerStatRepository(db_service)
         self.__season_repository = SeasonRepository(db_service)
         self.__team_repository = TeamRepository(db_service)
         self.__web_client = pulselive_service
@@ -55,16 +63,19 @@ class PulseliveTeamsPerCompSeasonService:
         # TODO: Filtering team by comp season
         teams: list[TeamEntity] = await self.__team_repository.read_all()
         for season, team in product(seasons, teams):
-            players: list[PlayerEntity] = await self.__get_player(season, team)
-            if len(players) == 0:
-                continue
-            await self.__player_repository.create_all(
-                players, primary_key=lambda x: x.id
-            )
+            player_list = await self.__get_player(season, team)
+            if player_list:
+                players, player_stats = zip(*player_list)
+                await self.__player_repository.create_all(
+                    players, primary_key=lambda x: x.id
+                )
+                await self.__player_stats_repository.create_all(
+                    player_stats, primary_key=lambda x: x.id
+                )
 
     async def __get_player(
         self, season: SeasonEntity, team: TeamEntity
-    ) -> list[PlayerEntity]:
+    ) -> list[tuple[PlayerEntity, PlayerStatEntity]]:
         try:
             response = await self.__web_client.get_football_team_compseason_staff(
                 comp_season_id=season.pulselive_id,
@@ -72,7 +83,11 @@ class PulseliveTeamsPerCompSeasonService:
             )
             return list(
                 filter(
-                    None, [self.__convert_player(player) for player in response.players]
+                    None,
+                    [
+                        self.__convert_player(season, team, player)
+                        for player in response.players
+                    ],
                 )
             )
         except HTTPStatusError as e:
@@ -83,15 +98,21 @@ class PulseliveTeamsPerCompSeasonService:
 
     @staticmethod
     def __convert_player(
+        season: SeasonEntity,
+        team: TeamEntity,
         response: PulseliveTeamsCompseasonsStaffPlayerResponse,
-    ) -> PlayerEntity | None:
+    ) -> tuple[PlayerEntity, PlayerStatEntity] | None:
         if response.info.shirt_num is None or response.birth.date is None:
             return None
         else:
-            return PlayerEntity(
-                id=PlayerEntity.get_id(response.id),
+            player_id = PlayerEntity.get_id(response.id)
+            player = PlayerEntity(
+                id=player_id,
                 birth_country=response.birth.country.country,
                 birth_date=datetime.fromtimestamp(response.birth.date.millis / 1000.0),
+                birth_country_flag_icon_url=f"https://resources.premierleague.com/premierleague/flags/{response.birth.country.iso_code}.png"
+                if response.birth.country.iso_code is not None
+                else None,
                 birth_place=response.birth.place,
                 display_name_en=response.name.display,
                 full_name=" ".join(
@@ -111,3 +132,28 @@ class PulseliveTeamsPerCompSeasonService:
                 position_info_en=response.info.position_info,
                 weight=response.weight,
             )
+            player_stat = PlayerStatEntity(
+                id=PlayerStatEntity.get_id(f"{season.pulselive_id}_{response.id}"),
+                appearances=response.appearances
+                if response.appearances is not None
+                else 0,
+                assists=response.assists if response.assists is not None else 0,
+                clean_sheets=response.clean_sheets
+                if response.clean_sheets is not None
+                else 0,
+                goals=response.goals if response.goals is not None else 0,
+                goals_conceded=response.goals_conceded
+                if response.goals_conceded is not None
+                else 0,
+                key_passes=response.key_passes
+                if response.key_passes is not None
+                else 0,
+                number=response.info.shirt_num,
+                player_id=player_id,
+                saves=response.saves if response.saves is not None else 0,
+                season_id=season.id,
+                shots=response.shots if response.shots is not None else 0,
+                tackles=response.tackles if response.tackles is not None else 0,
+                team_id=team.id,
+            )
+            return player, player_stat

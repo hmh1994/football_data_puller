@@ -25,13 +25,17 @@ async def test():
     puller_service_container = PullerServiceContainer()
     puller_service_container.container_config.from_dict(
         {
+            "openai_config": config_service.api_list.open_ai,
+            "the_athletic_config": config_service.api_list.the_athletic,
             "pulselive_config": config_service.api_list.pulselive,
             "db_service": db_service,
         }
     )
-    pulselive_service = puller_service_container.pulselive_service()
-    await pulselive_service.pull_data()
-    await pulselive_service.close()
+    # pulselive_service = puller_service_container.pulselive_service()
+    # await pulselive_service.pull_data()
+    # await pulselive_service.close()
+    the_athletic_service = puller_service_container.the_athletic_service()
+    await the_athletic_service.pull_news()
 
 
 if __name__ == "__main__":

@@ -1,9 +1,9 @@
 from httpx import URL
 
-from football_data_manager.common.services.config.models.api_config import ApiConfig
-from football_data_manager.common.services.web_client.web_client_service import (
+from football_data_manager.common.services.client.web_client_service import (
     AbstractWebClientService,
 )
+from football_data_manager.common.services.config.models.api_config import ApiConfig
 from football_data_manager.puller.services.pulselive.models.responses.competitions.pulselive_competition_response import (
     PulseliveCompetitionResponse,
 )
@@ -39,7 +39,7 @@ class PulseliveWebClientService(AbstractWebClientService):
         super().__init__(URL(config.url.unicode_string()))
 
     async def get_football_competitions(
-        self,
+            self,
     ) -> list[PulseliveCompetitionResponse]:
         """
         Get the competitions.
@@ -56,7 +56,7 @@ class PulseliveWebClientService(AbstractWebClientService):
         )
 
     async def get_football_compseasons_gameweeks(
-        self, compseason_id: int
+            self, compseason_id: int
     ) -> PulseliveCompSeasonGameweekResponse:
         response = await self.get(
             path=URL(f"/football/compseasons/{compseason_id}/gameweeks"),
@@ -64,7 +64,7 @@ class PulseliveWebClientService(AbstractWebClientService):
         return PulseliveCompSeasonGameweekResponse.model_validate(response)
 
     async def get_football_compseasons_teams(
-        self, compseason_id: int
+            self, compseason_id: int
     ) -> list[PulseliveCompseasonTeamResponse]:
         """
         Get the teams of a competition season.
@@ -84,7 +84,7 @@ class PulseliveWebClientService(AbstractWebClientService):
         )
 
     async def get_football_fixtures(
-        self, competition_id: int, comp_season_id: int, page: int = 0
+            self, competition_id: int, comp_season_id: int, page: int = 0
     ) -> list[PulseliveFixtureResponse]:
         """
         Gets the fixtures of a competition season.
@@ -114,7 +114,7 @@ class PulseliveWebClientService(AbstractWebClientService):
         )
 
     async def get_football_standings(
-        self, comp_season_id: int, competition_id: int
+            self, comp_season_id: int, competition_id: int
     ) -> PulseliveStandingsResponse:
         """
         Get the standings of a competition season.
@@ -134,9 +134,9 @@ class PulseliveWebClientService(AbstractWebClientService):
         return PulseliveStandingsResponse.model_validate(response)
 
     async def get_football_team_compseason_staff(
-        self,
-        comp_season_id: int,
-        team_id: int,
+            self,
+            comp_season_id: int,
+            team_id: int,
     ) -> PulseliveTeamsCompseasonsStaffResponse:
         response = await self.get(
             path=URL(f"/football/teams/{team_id}/compseasons/{comp_season_id}/staff"),

@@ -50,9 +50,9 @@ class PulseliveCompetitionsService:
     target_competition_abbr = ["EN_PR"]
 
     def __init__(
-        self,
-        db_service: DbService,
-        pulselive_service: PulseliveWebClientService,
+            self,
+            db_service: DbService,
+            pulselive_service: PulseliveWebClientService,
     ):
         self.__competition_repository = CompetitionRepository(db_service)
         self.__ground_repository = GroundRepository(db_service)
@@ -92,8 +92,8 @@ class PulseliveCompetitionsService:
         await self.__team_repository.create_all(teams, primary_key=lambda x: x.id)
 
     async def __process_competition(
-        self,
-        response: PulseliveCompetitionResponse,
+            self,
+            response: PulseliveCompetitionResponse,
     ) -> tuple[
         CompetitionEntity, list[SeasonEntity], list[TeamEntity], list[GroundEntity]
     ]:
@@ -119,9 +119,9 @@ class PulseliveCompetitionsService:
         )
 
     async def __process_season(
-        self,
-        season_response: PulseliveCompetitionSeasonResponse,
-        competition: CompetitionEntity,
+            self,
+            season_response: PulseliveCompetitionSeasonResponse,
+            competition: CompetitionEntity,
     ) -> tuple[SeasonEntity, list[TeamEntity], list[GroundEntity]]:
         gameweek_response = await self.__web_client.get_football_compseasons_gameweeks(
             season_response.id
@@ -156,7 +156,7 @@ class PulseliveCompetitionsService:
 
     @staticmethod
     async def __process_team(
-        team_response: PulseliveCompseasonTeamResponse,
+            team_response: PulseliveCompseasonTeamResponse,
     ) -> tuple[TeamEntity, list[GroundEntity]]:
         grounds = [
             GroundEntity(

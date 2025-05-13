@@ -12,7 +12,13 @@ class ApiListConfig(BaseModel):
     :ivar pulselive: Pulselive API configuration.
     """
 
+    open_ai: ApiConfig
     pulselive: ApiConfig
+    the_athletic: ApiConfig
 
     def __init__(self, **data):
-        super().__init__(pulselive=ApiConfig(**extract_without_key("PULSELIVE", data)))
+        super().__init__(
+            open_ai=ApiConfig(**extract_without_key("OPEN_AI", data)),
+            pulselive=ApiConfig(**extract_without_key("PULSELIVE", data)),
+            the_athletic=ApiConfig(**extract_without_key("THE_ATHLETIC", data))
+        )

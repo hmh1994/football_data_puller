@@ -13,4 +13,4 @@ class ApiConfig(ConfigModel):
 
     agent: str | None = None
     key: str | None = None
-    url: HttpUrl
+    url: HttpUrl | None = None

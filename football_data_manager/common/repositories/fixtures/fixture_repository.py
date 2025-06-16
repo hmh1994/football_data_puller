@@ -31,7 +31,7 @@ class FixtureRepository(BaseRepository[FixtureEntity, str]):
         :param season_id: The season ID to filter fixtures.
         :param home_team_id: If provided, filters fixtures by the home team ID.
         :param away_team_id: If provided, filters fixtures by the away team ID.
-        :return:
+        :return: List of fixture entities sorted by game week.
         """
         assert (
             home_team_id or away_team_id

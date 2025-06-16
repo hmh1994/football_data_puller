@@ -39,3 +39,11 @@ def create_utc_datetime(
         .astimezone(UTC)
         .replace(tzinfo=None)
     )
+
+
+def create_utc_now() -> datetime:
+    """
+    Create a UTC datetime object for the current time.
+    :return: A datetime object in UTC.
+    """
+    return datetime.now(UTC).replace(tzinfo=None)

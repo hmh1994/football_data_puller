@@ -1,30 +1,26 @@
-from abc import ABCMeta, abstractmethod
+from typing import Self
 
+from football_data_manager.common.enums.source_enum import SourceEnum
 from football_data_manager.common.repositories.base_entity import BaseEntity
-from football_data_manager.common.utils.class_helper.class_property import classproperty
 
 
-class PulseliveEntity(BaseEntity, metaclass=ABCMeta):
+class PulseliveEntity(BaseEntity):
     """
     Pulselive entity model.
+    :ivar id: Unique identifier for the entity.
+    :ivar source: Source of the entity data, set to PULSELIVE.
+    :param source_id: Unique identifier from the source.
     """
 
     __abstract__ = True
 
-    @classproperty
-    @abstractmethod
-    def entity_type(cls) -> str:
+    def __init__(self, source_id: str) -> Self:
         """
-        Get the prefix of the entity.
-        :return: Entity prefix.
+        Initialize the Pulselive entity.
+        :param source_id: Unique identifier from the source.
+        :return: Instance of the PulseliveEntity.
         """
-        pass
-
-    @classproperty
-    def prefix(cls) -> str:
-        """
-        Get the prefix of the entity.
-        :return: Entity prefix.
-        """
-        assert cls.entity_type is not None, "Entity type is not set."
-        return f"PULSELIVE_{cls.entity_type}"
+        super().__init__(
+            source=SourceEnum.PULSELIVE,
+            source_id=source_id,
+        )

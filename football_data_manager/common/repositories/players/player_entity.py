@@ -1,13 +1,16 @@
-from sqlalchemy import Column, String, Integer, CHAR, DateTime
+from sqlalchemy import Column, String, Integer, CHAR, DateTime, ARRAY
 
-from football_data_manager.common.repositories import Base
+from football_data_manager.common.repositories.pulselive_entity import PulseliveEntity
+from football_data_manager.common.repositories.seasons.season_entity import SeasonEntity
 
 
-class PlayerEntity(Base):
+class PlayerEntity(PulseliveEntity):
     """
     Player entity model.
-    :param id: Player ID.
-    :param birth_country: Player birth country.
+    :ivar id: Unique identifier for the player.
+    :ivar source: Source of the entity data, set to PULSELIVE.
+    :param birth_country_en: Birth country in English.
+    :param birth_country_kr: Birth country in Korean.
     :param birth_date: Player birthdate.
     :param birth_place: Player birthplace.
     :param display_name_en: Player display name in English.
@@ -24,35 +27,64 @@ class PlayerEntity(Base):
 
     __tablename__ = "players"
 
-    id = Column(String, primary_key=True)
-    birth_country = Column(String)
-    birth_date = Column(DateTime)
-    birth_country_flag_icon_url = Column(String, nullable=True)
+    birth_country_en = Column(String, nullable=False)
+    birth_country_kr = Column(String, nullable=False)
+    birth_date = Column(DateTime, nullable=False)
+    birth_country_flag_icon_url = Column(String, nullable=False)
     birth_place = Column(String, nullable=True)
-    display_name_en = Column(String)
-    display_name_kr = Column(String, nullable=True)
-    full_name = Column(String)
+    championships = Column(ARRAY(String), nullable=True)
+    display_name_en = Column(String, nullable=False)
+    display_name_kr = Column(String, nullable=False)
+    full_name = Column(String, nullable=False)
     height = Column(Integer, nullable=True)
     national_team = Column(String, nullable=True)
-    photo_url = Column(String, nullable=True)
-    position = Column(CHAR)
-    position_info_en = Column(String)
-    position_info_kr = Column(String, nullable=True)
+    photo_url = Column(String, nullable=False)
+    position = Column(CHAR, nullable=False)
+    position_info_en = Column(String, nullable=False)
+    position_info_kr = Column(String, nullable=False)
     weight = Column(Integer, nullable=True)
 
-    @staticmethod
-    def get_id(pulselive_id: int) -> str:
-        """
-        Get the ID of the player.
-        :param pulselive_id: Pulselive ID.
-        :return: Player ID.
-        """
-        return f"PULSELIVE_PLAYER_{pulselive_id}"
+    def __init__(
+        self,
+        birth_country_en: str,
+        birth_country_kr: str,
+        birth_date: str,
+        birth_country_flag_icon_url: str,
+        display_name_en: str,
+        display_name_kr: str,
+        full_name: str,
+        position: str,
+        position_info_en: str,
+        position_info_kr: str,
+        source_id: str,
+        birth_place: str = None,
+        height: int = None,
+        national_team: str = None,
+        photo_url: str = None,
+        weight: int = None,
+    ) -> None:
+        super().__init__(source_id=source_id)
+        self.birth_country_en = birth_country_en
+        self.birth_country_kr = birth_country_kr
+        self.birth_date = birth_date
+        self.birth_country_flag_icon_url = birth_country_flag_icon_url
+        self.championships = []
+        self.display_name_en = display_name_en
+        self.display_name_kr = display_name_kr
+        self.full_name = full_name
+        self.position = position
+        self.position_info_en = position_info_en
+        self.position_info_kr = position_info_kr
+        self.birth_place = birth_place
+        self.height = height
+        self.national_team = national_team
+        self.photo_url = photo_url
+        self.weight = weight
 
-    @property
-    def pulselive_id(self) -> int:
+    async def add_championship(self, season: SeasonEntity):
         """
-        Get the Pulselive ID of the player.
-        :return: Pulselive ID.
+        Add a championship to the player.
+        :param season: Season entity to add.
         """
-        return int(self.id.removeprefix("PULSELIVE_PLAYER_"))
+        if season.id not in self.championships:
+            self.championships.append(season.id)

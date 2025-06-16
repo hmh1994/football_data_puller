@@ -1,7 +1,7 @@
 from openai import AsyncOpenAI
 
 
-class OpenAIClientService:
+class OpenAiClientService:
     """
     OpenAI client services using the openAI package.
 
@@ -38,10 +38,10 @@ class OpenAIClientService:
     ) -> list[str]:
         """
         Create a response using OpenAI API.
-        :param system_messages:
-        :param user_messages:
-        :param model:
-        :return:
+        :param system_messages: List of system messages.
+        :param user_messages: List of user messages.
+        :param model: Name of the model to use (default is the default model).
+        :return: List of response messages from the OpenAI API.
         """
         model_to_use = model or self.default_model
         response = await self.__client.with_options(

@@ -4,10 +4,14 @@ from typing import TypeVar, Generic, Type, Callable, Coroutine
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from football_data_manager.common.repositories import Base
+from football_data_manager.common.enums.source_enum import SourceEnum
+from football_data_manager.common.repositories.base_entity import BaseEntity
 from football_data_manager.common.services.db.db_service import DbService
+from football_data_manager.common.utils.type_helper.datetime_helper import (
+    create_utc_now,
+)
 
-TEntity = TypeVar("TEntity", bound=Base)
+TEntity = TypeVar("TEntity", bound=BaseEntity)
 TId = TypeVar("TId")
 
 
@@ -104,6 +108,25 @@ class BaseRepository(Generic[TEntity, TId]):
         return await session.get(self.model, entity_id)
 
     @with_db_session
+    async def read_by_source_id(
+        self, session: AsyncSession, source: SourceEnum, source_id: str
+    ) -> TEntity | None:
+        """
+        Reads an entity by source ID from the database.
+        :param session: Database session.
+        :param source: Source of the entity.
+        :param source_id: Source ID.
+        :return: An entity or None if not found.
+        """
+        stmt = (
+            select(self.model)
+            .filter_by(source=source.value.upper())
+            .filter_by(source_id=source_id)
+        )
+        result = await session.execute(stmt)
+        return result.scalars().first()
+
+    @with_db_session
     async def update(self, session: AsyncSession, entity: TEntity) -> TEntity:
         """
         Updates an entity in the database.
@@ -111,6 +134,8 @@ class BaseRepository(Generic[TEntity, TId]):
         :param entity: Entity to update.
         :return: Updated entity.
         """
+        now = create_utc_now()
+        entity.updated_at = now
         merged_entity = await session.merge(entity)
         await session.flush()
         await session.refresh(merged_entity)

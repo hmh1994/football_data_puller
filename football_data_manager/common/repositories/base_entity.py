@@ -1,44 +1,56 @@
-from abc import abstractmethod
+from typing import Self
+from uuid import uuid4
+from xmlrpc.client import DateTime
 
 from sqlalchemy import Column, String
 
+from football_data_manager.common.enums.source_enum import SourceEnum
 from football_data_manager.common.repositories import Base
-from football_data_manager.common.utils.class_helper.class_property import classproperty
+from football_data_manager.common.utils.type_helper.datetime_helper import (
+    create_utc_now,
+)
 
 
 class BaseEntity(Base):
     """
     Base entity model.
+    :ivar id: Unique identifier for the entity.
+    :param source: Source of the entity data.
+    :param source_id: Unique identifier from the source.
     """
 
     __abstract__ = True
 
-    id = Column(String, primary_key=True)
+    id = Column(String, nullable=False, primary_key=True)
+    source = Column(String, nullable=False)
+    source_id = Column(String, nullable=False)
+    created_at = Column(DateTime, nullable=False)
+    updated_at = Column(DateTime, nullable=False)
 
-    @classproperty
-    @abstractmethod
-    def prefix(cls) -> str:
+    def __init__(
+        self,
+        source: SourceEnum,
+        source_id: str,
+        **kwargs,
+    ) -> Self:
         """
-        Get the prefix of the entity.
-        :return: Entity prefix.
+        Initialize the base entity.
+        :param source: Source of the entity data.
+        :param source_id: Unique identifier from the source.
+        :param kwargs: Additional keyword arguments for the entity.
+        :return: Instance of the BaseEntity.
         """
-        pass
+        now = create_utc_now()
+        super().__init__(**kwargs)
+        self.id = str(uuid4())
+        self.created_at = now
+        self.source = source.value.upper()
+        self.source_id = source_id
+        self.updated_at = now
 
-    @classmethod
-    def get_id(cls, api_id: str) -> str:
+    def get_id(self) -> str:
         """
-        Get the ID of the entity.
-        :param api_id: The ID of the entity from the API.
-        :return: Entity ID.
+        Get the unique identifier of the entity.
+        :return: Unique identifier as a string.
         """
-        assert cls.prefix is not None, "Entity prefix is not set."
-        return f"{cls.prefix}_{api_id}"
-
-    @property
-    def api_id(self) -> str:
-        """
-        Get the API ID of the entity.
-        :return: API ID.
-        """
-        assert self.prefix is not None, "Entity prefix is not set."
-        return self.id.removeprefix(f"{self.prefix}_")
+        return self.id

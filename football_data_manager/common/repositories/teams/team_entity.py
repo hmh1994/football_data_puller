@@ -1,49 +1,45 @@
-from sqlalchemy import Column, String, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, String
 
-from football_data_manager.common.repositories import Base
-from football_data_manager.common.repositories.grounds.ground_entity import GroundEntity
+from football_data_manager.common.repositories.pulselive_entity import PulseliveEntity
 
 
-class TeamEntity(Base):
+class TeamEntity(PulseliveEntity):
     """
     Team entity model.
-    :param id: Team ID.
+    :ivar id: Unique identifier for the entity.
+    :ivar source: Source of the entity data, set to PULSELIVE.
     :param abbreviation: Team abbreviation.
-    :param ground_id: Ground ID.
-    :param ground: Ground entity.
     :param icon_url: Team icon URL.
     :param name_en: Team name in English.
     :param name_kr: Team name in Korean.
     :param short_name_en: Team short name in English.
     :param short_name_kr: Team short name in Korean.
+    :param source_id: Unique identifier from the source.
     """
 
     __tablename__ = "teams"
 
-    id = Column(String, primary_key=True)
-    abbreviation = Column(String)
-    ground_id = Column(String, ForeignKey(GroundEntity.id), nullable=True)
-    ground = relationship(GroundEntity, lazy="joined", foreign_keys=[ground_id])
+    abbreviation = Column(String, nullable=False)
     icon_url = Column(String, nullable=True)
-    name_en = Column(String)
-    name_kr = Column(String, nullable=True)
-    short_name_en = Column(String)
-    short_name_kr = Column(String, nullable=True)
+    name_en = Column(String, nullable=False)
+    name_kr = Column(String, nullable=False)
+    short_name_en = Column(String, nullable=False)
+    short_name_kr = Column(String, nullable=False)
 
-    @staticmethod
-    def get_id(pulselive_id: int) -> str:
-        """
-        Get the ID of the team.
-        :param pulselive_id: Pulselive ID.
-        :return: Team ID.
-        """
-        return f"PULSELIVE_TEAM_{pulselive_id}"
-
-    @property
-    def pulselive_id(self) -> int:
-        """
-        Get the Pulselive ID of the team.
-        :return: Pulselive ID.
-        """
-        return int(self.id.removeprefix("PULSELIVE_TEAM_"))
+    def __init__(
+        self,
+        abbreviation: str,
+        icon_url: str,
+        name_en: str,
+        name_kr: str,
+        short_name_en: str,
+        short_name_kr: str,
+        source_id: str,
+    ) -> None:
+        super().__init__(source_id=source_id)
+        self.abbreviation = abbreviation
+        self.icon_url = icon_url
+        self.name_en = name_en
+        self.name_kr = name_kr
+        self.short_name_en = short_name_en
+        self.short_name_kr = short_name_kr

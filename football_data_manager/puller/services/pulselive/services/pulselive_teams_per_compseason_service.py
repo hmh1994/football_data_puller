@@ -108,11 +108,13 @@ class PulseliveTeamsPerCompSeasonService:
             player_id = PlayerEntity.get_id(response.id)
             player = PlayerEntity(
                 id=player_id,
-                birth_country=response.birth.country.country,
+                birth_country_en=response.birth.country.country,
                 birth_date=datetime.fromtimestamp(response.birth.date.millis / 1000.0),
-                birth_country_flag_icon_url=f"https://resources.premierleague.com/premierleague/flags/{response.birth.country.iso_code}.png"
-                if response.birth.country.iso_code is not None
-                else None,
+                birth_country_flag_icon_url=(
+                    f"https://resources.premierleague.com/premierleague/flags/{response.birth.country.iso_code}.png"
+                    if response.birth.country.iso_code is not None
+                    else None
+                ),
                 birth_place=response.birth.place,
                 display_name_en=response.name.display,
                 full_name=" ".join(
@@ -122,32 +124,36 @@ class PulseliveTeamsPerCompSeasonService:
                     )
                 ),
                 height=response.height,
-                national_team=response.national_team.country
-                if response.national_team
-                else None,
-                photo_url=f"https://resources.premierleague.com/premierleague/photos/players/40x40/{response.alt_ids['opta']}.png"
-                if "opta" in response.alt_ids
-                else None,
+                national_team=(
+                    response.national_team.country if response.national_team else None
+                ),
+                photo_url=(
+                    f"https://resources.premierleague.com/premierleague/photos/players/40x40/{response.alt_ids['opta']}.png"
+                    if "opta" in response.alt_ids
+                    else None
+                ),
                 position=response.info.position,
                 position_info_en=response.info.position_info,
                 weight=response.weight,
             )
             player_stat = PlayerStatEntity(
                 id=PlayerStatEntity.get_id(f"{season.pulselive_id}_{response.id}"),
-                appearances=response.appearances
-                if response.appearances is not None
-                else 0,
+                appearances=(
+                    response.appearances if response.appearances is not None else 0
+                ),
                 assists=response.assists if response.assists is not None else 0,
-                clean_sheets=response.clean_sheets
-                if response.clean_sheets is not None
-                else 0,
+                clean_sheets=(
+                    response.clean_sheets if response.clean_sheets is not None else 0
+                ),
                 goals=response.goals if response.goals is not None else 0,
-                goals_conceded=response.goals_conceded
-                if response.goals_conceded is not None
-                else 0,
-                key_passes=response.key_passes
-                if response.key_passes is not None
-                else 0,
+                goals_conceded=(
+                    response.goals_conceded
+                    if response.goals_conceded is not None
+                    else 0
+                ),
+                key_passes=(
+                    response.key_passes if response.key_passes is not None else 0
+                ),
                 number=response.info.shirt_num,
                 player_id=player_id,
                 saves=response.saves if response.saves is not None else 0,

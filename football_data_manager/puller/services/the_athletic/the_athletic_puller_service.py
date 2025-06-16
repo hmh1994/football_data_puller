@@ -15,7 +15,7 @@ from football_data_manager.common.repositories.teams.team_repository import (
     TeamRepository,
 )
 from football_data_manager.common.services.client.openai_client_service import (
-    OpenAIClientService,
+    OpenAiClientService,
 )
 from football_data_manager.common.services.config.models.api_config import ApiConfig
 from football_data_manager.common.services.db.db_service import DbService
@@ -36,7 +36,7 @@ from football_data_manager.puller.services.the_athletic.services.the_athletic_gr
 
 class TheAthleticPullerService:
     __graphql_service: TheAthleticGraphQLService
-    __openai_service: OpenAIClientService
+    __openai_service: OpenAiClientService
     __news_repository: NewsRepository
     __team_repository: TeamRepository
 
@@ -53,7 +53,7 @@ class TheAthleticPullerService:
         self.__news_repository = NewsRepository(db_service)
         self.__team_repository = TeamRepository(db_service)
         self.__graphql_service = TheAthleticGraphQLService(the_athletic_config)
-        self.__openai_service = OpenAIClientService(
+        self.__openai_service = OpenAiClientService(
             api_key=openai_config.key, default_model="o4-mini"
         )
 

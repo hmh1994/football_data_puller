@@ -1,30 +1,29 @@
 from asyncio import gather
 from datetime import datetime, timedelta
 
-from football_data_manager.common.old_repositories.competitions.competition_entity import (
+from football_data_manager.common.new_repositories.competitions.competition_entity import (
     CompetitionEntity,
 )
-from football_data_manager.common.old_repositories.competitions.competition_repository import (
+from football_data_manager.common.new_repositories.competitions.competition_repository import (
     CompetitionRepository,
 )
-from football_data_manager.common.old_repositories.grounds.ground_entity import (
+from football_data_manager.common.new_repositories.grounds.ground_entity import (
     GroundEntity,
 )
-from football_data_manager.common.old_repositories.grounds.ground_repository import (
+from football_data_manager.common.new_repositories.grounds.ground_repository import (
     GroundRepository,
 )
-from football_data_manager.common.old_repositories.seasons.season_entity import (
+from football_data_manager.common.new_repositories.seasons.season_entity import (
     SeasonEntity,
 )
-from football_data_manager.common.old_repositories.seasons.season_repository import (
+from football_data_manager.common.new_repositories.seasons.season_repository import (
     SeasonRepository,
 )
-from football_data_manager.common.old_repositories.teams.team_entity import TeamEntity
-from football_data_manager.common.old_repositories.teams.team_repository import (
+from football_data_manager.common.new_repositories.teams.team_entity import TeamEntity
+from football_data_manager.common.new_repositories.teams.team_repository import (
     TeamRepository,
 )
 from football_data_manager.common.services.db.db_service import DbService
-from football_data_manager.common.utils.type_helper.list_helper import remove_duplicates
 from football_data_manager.puller.services.pulselive.models.responses.competitions.pulselive_competition_response import (
     PulseliveCompetitionResponse,
 )
@@ -85,24 +84,16 @@ class PulseliveCompetitionsService:
             ]
         )
         competitions, seasons_list, teams_list, grounds_list = zip(*results)
-        competitions = list(competitions)
-        seasons = remove_duplicates(
-            [season for seasons in seasons_list for season in seasons],
-            key=lambda x: x.id,
+        await self.__season_repository.create_all(
+            [season for seasons in seasons_list for season in seasons]
         )
-        teams = remove_duplicates(
-            [team for teams in teams_list for team in teams], key=lambda x: x.id
+        await self.__competition_repository.create_all(competitions)
+        await self.__ground_repository.create_all(
+            [ground for grounds in grounds_list for ground in grounds]
         )
-        grounds = remove_duplicates(
-            [ground for grounds in grounds_list for ground in grounds],
-            key=lambda x: x.id,
+        await self.__team_repository.create_all(
+            [team for teams in teams_list for team in teams]
         )
-        await self.__season_repository.create_all(seasons, primary_key=lambda x: x.id)
-        await self.__competition_repository.create_all(
-            competitions, primary_key=lambda x: x.id
-        )
-        await self.__ground_repository.create_all(grounds, primary_key=lambda x: x.id)
-        await self.__team_repository.create_all(teams, primary_key=lambda x: x.id)
 
     async def __process_competition(
         self,
@@ -124,7 +115,7 @@ class PulseliveCompetitionsService:
                 abbreviation=response.abbreviation,
                 name_en=response.description,
                 name_kr=name_kr,
-                source_id=response.id,
+                source_id=str(response.id),
                 icon_url=f"https://resources.premierleague.com/premierleague/competitions/competition_{response.id}_small.png",
             )
             results = await gather(
@@ -162,7 +153,7 @@ class PulseliveCompetitionsService:
             competition=competition,
             date_end=end_datetime,
             date_start=start_datetime,
-            source_id=season_response.id,
+            source_id=str(season_response.id),
             year_end=end_datetime.year,
             year_start=start_datetime.year,
         )
@@ -178,7 +169,9 @@ class PulseliveCompetitionsService:
         self,
         team_response: PulseliveCompseasonTeamResponse,
     ) -> tuple[TeamEntity, list[GroundEntity]]:
-        grounds = [self.__process_grounds(g) for g in team_response.grounds]
+        grounds = await gather(
+            *[self.__process_grounds(g) for g in team_response.grounds]
+        )
         team = await self.__team_repository.read_by_source_id(team_response.id)
         if team is not None:
             return team, grounds
@@ -199,7 +192,7 @@ class PulseliveCompetitionsService:
                     name_kr=name_kr,
                     short_name_en=team_response.short_name,
                     short_name_kr=short_name_kr,
-                    source_id=team_response.id,
+                    source_id=str(team_response.id),
                 ),
                 grounds,
             )
@@ -232,5 +225,5 @@ class PulseliveCompetitionsService:
                 ),
                 name_en=ground_response.name,
                 name_kr=name_kr,
-                source_id=ground_response.id,
+                source_id=str(ground_response.id),
             )

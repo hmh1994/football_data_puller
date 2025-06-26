@@ -6,12 +6,12 @@ from aiohttp import request
 from bs4 import BeautifulSoup
 from regex import compile
 
-from football_data_manager.common.old_repositories.news.news_entity import NewsEntity
-from football_data_manager.common.old_repositories.news.news_repository import (
+from football_data_manager.common.new_repositories.news.news_entity import NewsEntity
+from football_data_manager.common.new_repositories.news.news_repository import (
     NewsRepository,
 )
-from football_data_manager.common.old_repositories.teams.team_entity import TeamEntity
-from football_data_manager.common.old_repositories.teams.team_repository import (
+from football_data_manager.common.new_repositories.teams.team_entity import TeamEntity
+from football_data_manager.common.new_repositories.teams.team_repository import (
     TeamRepository,
 )
 from football_data_manager.common.services.client.openai_client_service import (
@@ -19,7 +19,6 @@ from football_data_manager.common.services.client.openai_client_service import (
 )
 from football_data_manager.common.services.config.models.api_config import ApiConfig
 from football_data_manager.common.services.db.db_service import DbService
-from football_data_manager.common.utils.type_helper.list_helper import remove_duplicates
 from football_data_manager.puller.services.the_athletic.models.responses.news_translate_response import (
     NewsTranslateResponse,
 )
@@ -66,12 +65,9 @@ class TheAthleticPullerService:
                 for abbr in self.target_competition_abbr
             ]
         )
-        news_list = remove_duplicates(
-            [n for sublist in news_list for n in sublist],
-            lambda x: x.id,
-        )
-        print(f"News entities count: {len(news_list)}")
-        await self.__news_repository.create_all(news_list, primary_key=lambda x: x.id)
+        newses = [n for sublist in news_list for n in sublist]
+        print(f"News entities count: {len(newses)}")
+        await self.__news_repository.create_all(newses)
 
     async def __pull_league_news_list(self, league_abbr: str) -> list[NewsEntity]:
         """

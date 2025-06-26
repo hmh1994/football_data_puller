@@ -4,7 +4,7 @@ T = TypeVar("T")
 K = TypeVar("K")
 
 
-def remove_duplicates(entities: T, key: Callable[[T], K]) -> T:
+def remove_duplicates(entities: list[T], key: Callable[[T], K]) -> list[T]:
     """
     Remove duplicates from a list of entities based on a key.
     :param entities: An iterable object of entities.
@@ -21,7 +21,27 @@ def remove_duplicates(entities: T, key: Callable[[T], K]) -> T:
     seen_keys = set()
     unique_entities = []
     for entity in entities:
-        if (k := key(entity)) not in seen_keys:
+        if entity is not None and (k := key(entity)) not in seen_keys:
             seen_keys.add(k)
             unique_entities.append(entity)
     return unique_entities
+
+
+def partition(
+    iterable: list[T], predicate: Callable[[T], bool]
+) -> tuple[list[T], list[T]]:
+    """
+    Iterates through an iterable and partitions its elements into two lists based on a predicate function.
+    :param iterable: An iterable object containing elements to be partitioned.
+    :param predicate: A function that takes an element and returns True or False.
+    :return: (first, second) where `first` contains elements for which the predicate is True,
+             and `second` contains elements for which the predicate is False.
+    """
+    first = []
+    second = []
+    for item in iterable:
+        if predicate(item):
+            first.append(item)
+        else:
+            second.append(item)
+    return first, second

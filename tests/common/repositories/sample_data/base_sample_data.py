@@ -1,7 +1,8 @@
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import declarative_base
 
-from football_data_manager.common.old_repositories.base_repository import BaseRepository
+from football_data_manager.common.new_repositories.base_entity import BaseEntity
+from football_data_manager.common.new_repositories.base_repository import BaseRepository
 from football_data_manager.common.services.db.db_service import DbService
 from tests.common.repositories.sample_data.abstract_sample_data import (
     AbstractSampleData,
@@ -11,7 +12,7 @@ from tests.common.utils.random import random_number
 FakeBase = declarative_base()
 
 
-class EntityMock(FakeBase):
+class EntityMock(BaseEntity):
     """
     Fake entity class for testing
     :ivar id: Entity ID.
@@ -24,9 +25,7 @@ class EntityMock(FakeBase):
     name = Column(String)
 
 
-class BaseSampleData(
-    AbstractSampleData[BaseRepository[EntityMock, int], EntityMock, int]
-):
+class BaseSampleData(AbstractSampleData[BaseRepository[EntityMock], EntityMock, int]):
     """
     Sample data for CompetitionRepository.
     """
@@ -45,7 +44,7 @@ class BaseSampleData(
 
     @staticmethod
     def repository_instance(db_service: DbService) -> BaseRepository:
-        return BaseRepository(db_service, EntityMock)
+        return BaseRepository(db_service)
 
     @staticmethod
     def random_id() -> int:

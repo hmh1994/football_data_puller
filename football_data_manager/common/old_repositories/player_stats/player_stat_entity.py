@@ -1,11 +1,6 @@
-from typing import Self
-
-from sqlalchemy import Column, String, ForeignKey, Integer, ARRAY
+from sqlalchemy import Column, String, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 
-from football_data_manager.common.old_repositories.awards.award_entity import (
-    AwardEntity,
-)
 from football_data_manager.common.old_repositories.players.player_entity import (
     PlayerEntity,
 )
@@ -26,9 +21,9 @@ class PlayerStatEntity(PulseliveEntity):
     :ivar season_id: Season ID associated with the stats.
     :ivar team_id: Team ID associated with the stats.
     :ivar source: Source of the entity data, set to PULSELIVE.
+    :ivar source_id: Unique identifier from the source.
     :param appearances: Number of appearances.
     :param assists: Number of assists.
-    :param awards: List of awards.
     :param clean_sheets: Number of clean sheets.
     :param goals: Number of goals scored.
     :param goals_conceded: Number of goals conceded.
@@ -40,34 +35,31 @@ class PlayerStatEntity(PulseliveEntity):
     :param shots: Number of shots taken.
     :param tackles: Number of tackles made.
     :param team: Team entity associated with the stats.
-    :param source_id: Unique identifier from the source.
     """
 
     __tablename__ = "player_stats"
 
     appearances = Column(Integer, nullable=False)
     assists = Column(Integer, nullable=False)
-    awards = Column(ARRAY(String), nullable=False)
     clean_sheets = Column(Integer, nullable=False)
     goals = Column(Integer, nullable=False)
     goals_conceded = Column(Integer, nullable=False)
     key_passes = Column(Integer, nullable=False)
     number = Column(Integer, nullable=False)
     player_id = Column(String, ForeignKey(PlayerEntity.id), nullable=False)
-    player = relationship(PlayerEntity, lazy="joined", foreign_keys=[player_id])
+    player = relationship(PlayerEntity, lazy="joined", foreign_keys=player_id)
     saves = Column(Integer, nullable=False)
     season_id = Column(String, ForeignKey(SeasonEntity.id), nullable=False)
-    season = relationship(SeasonEntity, lazy="joined", foreign_keys=[season_id])
+    season = relationship(SeasonEntity, lazy="joined", foreign_keys=season_id)
     shots = Column(Integer, nullable=False)
     tackles = Column(Integer, nullable=False)
     team_id = Column(String, ForeignKey(TeamEntity.id), nullable=False)
-    team = relationship(TeamEntity, lazy="joined", foreign_keys=[team_id])
+    team = relationship(TeamEntity, lazy="joined", foreign_keys=team_id)
 
     def __init__(
         self,
         appearances: int,
         assists: int,
-        awards: list[AwardEntity],
         clean_sheets: int,
         goals: int,
         goals_conceded: int,
@@ -79,12 +71,12 @@ class PlayerStatEntity(PulseliveEntity):
         shots: int,
         tackles: int,
         team: TeamEntity,
-        source_id: str,
-    ) -> Self:
-        super().__init__(source_id=source_id)
+    ):
+        super().__init__(source_id=self.get_source_id(season, player))
         self.appearances = appearances
         self.assists = assists
-        self.awards = [award.id for award in awards]
+        self.award_ids = []
+        self.awards = []
         self.clean_sheets = clean_sheets
         self.goals = goals
         self.goals_conceded = goals_conceded
@@ -96,3 +88,13 @@ class PlayerStatEntity(PulseliveEntity):
         self.shots = shots
         self.tackles = tackles
         self.team_id = team.id
+
+    @staticmethod
+    def get_source_id(season: SeasonEntity, player: PlayerEntity) -> str:
+        """
+        Generates a unique source ID for the player stat entity based on the season and player.
+        :param season: Season entity.
+        :param player: Player entity.
+        :return: Unique source ID.
+        """
+        return f"{season.source_id}_{player.source_id}"

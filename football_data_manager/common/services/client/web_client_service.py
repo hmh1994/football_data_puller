@@ -30,8 +30,8 @@ class AbstractWebClientService(metaclass=ABCMeta):
     async def get(
         self,
         path: URL,
-        query: dict[str, str] | None = None,
-        headers: dict[str, str] | None = None,
+        query: dict[str, Any] | None = None,
+        headers: dict[str, Any] | None = None,
     ) -> dict:
         """
         Sends a GET request to the API.
@@ -52,10 +52,10 @@ class AbstractWebClientService(metaclass=ABCMeta):
     async def post(
         self,
         path: URL,
-        query: dict[str, str] | None = None,
+        query: dict[str, Any] | None = None,
         data: Any = None,
         json: dict | None = None,
-        headers: dict[str, str] | None = None,
+        headers: dict[str, Any] | None = None,
     ) -> dict:
         """
         Sends a POST request to the API.

@@ -1,5 +1,3 @@
-from typing import Self
-
 from football_data_manager.common.enums.source_enum import SourceEnum
 from football_data_manager.common.old_repositories.base_entity import BaseEntity
 
@@ -14,7 +12,7 @@ class PulseliveEntity(BaseEntity):
 
     __abstract__ = True
 
-    def __init__(self, source_id: str) -> Self:
+    def __init__(self, source_id: str):
         """
         Initialize the Pulselive entity.
         :param source_id: Unique identifier from the source.

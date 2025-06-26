@@ -1,10 +1,9 @@
-from sqlalchemy import Column, String, Integer, CHAR, DateTime, ARRAY
+from datetime import datetime
+
+from sqlalchemy import Column, String, Integer, CHAR, DateTime
 
 from football_data_manager.common.old_repositories.pulselive_entity import (
     PulseliveEntity,
-)
-from football_data_manager.common.old_repositories.seasons.season_entity import (
-    SeasonEntity,
 )
 
 
@@ -36,7 +35,6 @@ class PlayerEntity(PulseliveEntity):
     birth_date = Column(DateTime, nullable=False)
     birth_country_flag_icon_url = Column(String, nullable=False)
     birth_place = Column(String, nullable=True)
-    championships = Column(ARRAY(String), nullable=True)
     display_name_en = Column(String, nullable=False)
     display_name_kr = Column(String, nullable=False)
     full_name = Column(String, nullable=False)
@@ -52,7 +50,7 @@ class PlayerEntity(PulseliveEntity):
         self,
         birth_country_en: str,
         birth_country_kr: str,
-        birth_date: str,
+        birth_date: datetime,
         birth_country_flag_icon_url: str,
         display_name_en: str,
         display_name_kr: str,
@@ -72,7 +70,6 @@ class PlayerEntity(PulseliveEntity):
         self.birth_country_kr = birth_country_kr
         self.birth_date = birth_date
         self.birth_country_flag_icon_url = birth_country_flag_icon_url
-        self.championships = []
         self.display_name_en = display_name_en
         self.display_name_kr = display_name_kr
         self.full_name = full_name
@@ -84,11 +81,3 @@ class PlayerEntity(PulseliveEntity):
         self.national_team = national_team
         self.photo_url = photo_url
         self.weight = weight
-
-    async def add_championship(self, season: SeasonEntity):
-        """
-        Add a championship to the player.
-        :param season: Season entity to add.
-        """
-        if season.id not in self.championships:
-            self.championships.append(season.id)

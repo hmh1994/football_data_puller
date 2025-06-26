@@ -1,8 +1,8 @@
 from abc import ABCMeta, abstractmethod
 from typing import Generic, TypeVar, Self
 
-from football_data_manager.common.old_repositories import Base
-from football_data_manager.common.old_repositories.base_repository import BaseRepository
+from football_data_manager.common.new_repositories import Base
+from football_data_manager.common.new_repositories.base_repository import BaseRepository
 from football_data_manager.common.services.db.db_service import DbService
 
 TRepository = TypeVar("TRepository", bound=BaseRepository)

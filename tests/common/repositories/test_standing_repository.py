@@ -1,13 +1,13 @@
-from football_data_manager.common.old_repositories.standings.standing_entity import (
+from football_data_manager.common.new_repositories.standings.standing_entity import (
     StandingEntity,
 )
-from football_data_manager.common.old_repositories.standings.standing_repository import (
+from football_data_manager.common.new_repositories.standings.standing_repository import (
     StandingRepository,
 )
 from pytest import mark
 from sqlalchemy.orm import DeclarativeBase
 
-from football_data_manager.common.old_repositories import Base
+from football_data_manager.common.new_repositories import Base
 from football_data_manager.common.services.db.db_service import DbService
 from tests.common.repositories.abstract_test_repository import AbstractTestRepository
 from tests.common.repositories.sample_data.season_sample_data import SeasonSampleData

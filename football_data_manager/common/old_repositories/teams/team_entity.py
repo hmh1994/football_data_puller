@@ -9,6 +9,8 @@ class TeamEntity(PulseliveEntity):
     """
     Team entity model.
     :ivar id: Unique identifier for the entity.
+    :ivar championship_season_ids: List of season IDs for championships related to the team.
+    :ivar championship_seasons: List of championship seasons entities related to the team.
     :ivar source: Source of the entity data, set to PULSELIVE.
     :param abbreviation: Team abbreviation.
     :param icon_url: Team icon URL.

@@ -1,5 +1,3 @@
-from typing import Self
-
 from sqlalchemy import Column, String
 
 from football_data_manager.common.old_repositories.pulselive_entity import (
@@ -39,7 +37,7 @@ class CompetitionEntity(PulseliveEntity):
         icon_url: str | None = None,
         description_en: str | None = None,
         description_kr: str | None = None,
-    ) -> Self:
+    ):
         super().__init__(source_id=source_id)
         self.abbreviation = abbreviation
         self.name_en = name_en

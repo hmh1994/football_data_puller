@@ -1,11 +1,11 @@
 from pytest import mark
 from sqlalchemy.orm import DeclarativeBase
 
-from football_data_manager.common.old_repositories import Base
-from football_data_manager.common.old_repositories.players.player_entity import (
+from football_data_manager.common.new_repositories import Base
+from football_data_manager.common.new_repositories.players.player_entity import (
     PlayerEntity,
 )
-from football_data_manager.common.old_repositories.players.player_repository import (
+from football_data_manager.common.new_repositories.players.player_repository import (
     PlayerRepository,
 )
 from football_data_manager.common.services.db.db_service import DbService

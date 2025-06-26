@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 
@@ -29,7 +31,7 @@ class SeasonEntity(PulseliveEntity):
     abbreviation = Column(String, nullable=False)
     competition_id = Column(String, ForeignKey(CompetitionEntity.id), nullable=False)
     competition = relationship(
-        CompetitionEntity, lazy="joined", foreign_keys=[competition_id]
+        CompetitionEntity, lazy="joined", foreign_keys=competition_id
     )
     date_end = Column(DateTime, nullable=False)
     date_start = Column(DateTime, nullable=False)
@@ -40,8 +42,8 @@ class SeasonEntity(PulseliveEntity):
         self,
         abbreviation: str,
         competition: CompetitionEntity,
-        date_end: DateTime,
-        date_start: DateTime,
+        date_end: datetime,
+        date_start: datetime,
         source_id: str,
         year_end: int,
         year_start: int,

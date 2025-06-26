@@ -1,5 +1,3 @@
-from typing import Self
-
 from sqlalchemy import Column, String, ARRAY, DateTime
 
 from football_data_manager.common.enums.news_type import NewsTypeEnum
@@ -12,6 +10,7 @@ class NewsEntity(BaseEntity):
     """
     News entity model.
     :ivar id: Unique identifier for the entity.
+    :ivar team_ids: List of team IDs related to the news.
     :param author_en: List of authors in English.
     :param author_kr: List of authors in Korean.
     :param content_en: News content in English.
@@ -57,7 +56,7 @@ class NewsEntity(BaseEntity):
         title_en: str,
         title_kr: str,
         typ: NewsTypeEnum,
-    ) -> Self:
+    ):
         super().__init__(source=source, source_id=source_id)
         self.author_en = author_en
         self.author_kr = author_kr
@@ -66,7 +65,8 @@ class NewsEntity(BaseEntity):
         self.publish_date = publish_date
         self.url = url
         self.source = source
-        self.teams = [team.id for team in teams]
+        self.team_ids = [team.id for team in teams]
+        self.teams = teams
         self.thumbnail_url = thumbnail_url
         self.title_en = title_en
         self.title_kr = title_kr

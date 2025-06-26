@@ -1,7 +1,7 @@
-from football_data_manager.common.old_repositories.seasons.season_entity import (
+from football_data_manager.common.new_repositories.seasons.season_entity import (
     SeasonEntity,
 )
-from football_data_manager.common.old_repositories.seasons.season_repository import (
+from football_data_manager.common.new_repositories.seasons.season_repository import (
     SeasonRepository,
 )
 from football_data_manager.common.services.db.db_service import DbService

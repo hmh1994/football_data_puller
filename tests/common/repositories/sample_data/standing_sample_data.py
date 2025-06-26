@@ -1,7 +1,7 @@
-from football_data_manager.common.old_repositories.standings.standing_entity import (
+from football_data_manager.common.new_repositories.standings.standing_entity import (
     StandingEntity,
 )
-from football_data_manager.common.old_repositories.standings.standing_repository import (
+from football_data_manager.common.new_repositories.standings.standing_repository import (
     StandingRepository,
 )
 

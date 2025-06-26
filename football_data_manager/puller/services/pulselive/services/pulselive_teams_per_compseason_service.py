@@ -1,61 +1,92 @@
 from asyncio import gather
 from datetime import datetime
-from itertools import product
 
 from httpx import HTTPStatusError
 
-from football_data_manager.common.old_repositories.player_stats.player_stat_entity import (
+from football_data_manager.common.new_repositories.awards.award_entity import (
+    AwardEntity,
+)
+from football_data_manager.common.new_repositories.awards.award_repository import (
+    AwardRepository,
+)
+from football_data_manager.common.new_repositories.player_stats.player_stat_entity import (
     PlayerStatEntity,
 )
-from football_data_manager.common.old_repositories.player_stats.player_stat_repository import (
+from football_data_manager.common.new_repositories.player_stats.player_stat_repository import (
     PlayerStatRepository,
 )
-from football_data_manager.common.old_repositories.players.player_entity import (
+from football_data_manager.common.new_repositories.players.player_entity import (
     PlayerEntity,
 )
-from football_data_manager.common.old_repositories.players.player_repository import (
+from football_data_manager.common.new_repositories.players.player_repository import (
     PlayerRepository,
 )
-from football_data_manager.common.old_repositories.seasons.season_entity import (
+from football_data_manager.common.new_repositories.seasons.season_entity import (
     SeasonEntity,
 )
-from football_data_manager.common.old_repositories.seasons.season_repository import (
+from football_data_manager.common.new_repositories.seasons.season_repository import (
     SeasonRepository,
 )
-from football_data_manager.common.old_repositories.teams.team_entity import TeamEntity
-from football_data_manager.common.old_repositories.teams.team_repository import (
+from football_data_manager.common.new_repositories.team_stats.team_stat_entity import (
+    TeamStatEntity,
+)
+from football_data_manager.common.new_repositories.team_stats.team_stat_repository import (
+    TeamStatRepository,
+)
+from football_data_manager.common.new_repositories.teams.team_entity import TeamEntity
+from football_data_manager.common.new_repositories.teams.team_repository import (
     TeamRepository,
 )
 from football_data_manager.common.services.db.db_service import DbService
+from football_data_manager.common.utils.type_helper.datetime_helper import (
+    create_utc_datetime,
+)
+from football_data_manager.puller.services.pulselive.models.responses.teams.compseasons.pulselive_teams_compseasons_staff_player_award_response import (
+    PulseliveTeamsCompseasonsStaffPlayerAwardResponse,
+)
 from football_data_manager.puller.services.pulselive.models.responses.teams.compseasons.pulselive_teams_compseasons_staff_player_response import (
     PulseliveTeamsCompseasonsStaffPlayerResponse,
+)
+from football_data_manager.puller.services.pulselive.models.responses.teams.compseasons.pulselive_teams_compseasons_staff_response import (
+    PulseliveTeamsCompseasonsStaffResponse,
 )
 from football_data_manager.puller.services.pulselive.services.pulselive_web_client_service import (
     PulseliveWebClientService,
 )
+from football_data_manager.puller.services.utils.translatorService import (
+    TranslatorService,
+)
 
 
 class PulseliveTeamsPerCompSeasonService:
+    __award_repository: AwardRepository
     __player_repository: PlayerRepository
     __player_stats_repository: PlayerStatRepository
     __season_repository: SeasonRepository
     __team_repository: TeamRepository
+    __team_stats_repository: TeamStatRepository
     __web_client: PulseliveWebClientService
+    __translator: TranslatorService
 
     target_season_id = [
         "PULSELIVE_SEASON_719",
     ]
+    championship_key = "CHAMPIONS"
 
     def __init__(
         self,
         db_service: DbService,
         pulselive_service: PulseliveWebClientService,
+        translator_service: TranslatorService,
     ):
+        self.__award_repository = AwardRepository(db_service)
         self.__player_repository = PlayerRepository(db_service)
         self.__player_stats_repository = PlayerStatRepository(db_service)
         self.__season_repository = SeasonRepository(db_service)
         self.__team_repository = TeamRepository(db_service)
+        self.__team_stats_repository = TeamStatRepository(db_service)
         self.__web_client = pulselive_service
+        self.__translator = translator_service
 
     async def pull_players(self):
         seasons: list[SeasonEntity] = await gather(
@@ -64,55 +95,115 @@ class PulseliveTeamsPerCompSeasonService:
                 for season_id in self.target_season_id
             ]
         )
-        # TODO: Filtering team by comp season
-        teams: list[TeamEntity] = await self.__team_repository.read_all()
-        for season, team in product(seasons, teams):
-            player_list = await self.__get_player(season, team)
-            if player_list:
-                players, player_stats = zip(*player_list)
-                await self.__player_repository.create_all(
-                    players, primary_key=lambda x: x.id
-                )
-                await self.__player_stats_repository.create_all(
-                    player_stats, primary_key=lambda x: x.id
-                )
+        for season in seasons:
+            team_stats: list[TeamStatEntity] = (
+                await self.__team_stats_repository.read_by_season(season)
+            )
+            teams = [team_stat.team for team_stat in team_stats]
+            for team in teams:
+                try:
+                    response = (
+                        await self.__web_client.get_football_team_compseason_staff(
+                            comp_season_id=int(season.source_id),
+                            team_id=int(team.source_id),
+                        )
+                    )
+                    awards = await self.__get_awards(season, response)
+                    await self.__award_repository.create_all(awards)
+                    player_infos = await self.__get_player(season, team, response)
+                    players, player_stats = zip(*player_infos)
+                    await self.__player_repository.create_all(players)
+                    await self.__player_stats_repository.create_all(player_stats)
+                except HTTPStatusError as e:
+                    if e.response.status_code == 404:
+                        continue
+                    else:
+                        raise e
+
+    async def __get_awards(
+        self,
+        season: SeasonEntity,
+        response: PulseliveTeamsCompseasonsStaffResponse,
+    ) -> list[AwardEntity]:
+        award_info = [
+            (key, info)
+            for player in response.players
+            for key, lst in player.awards.items()
+            if key != self.championship_key
+            for info in lst
+            if str(info.comp_season.id) == season.source_id
+        ]
+        return await gather(
+            *[self.__process_award(season, key, info) for key, info in award_info]
+        )
 
     async def __get_player(
-        self, season: SeasonEntity, team: TeamEntity
+        self,
+        season: SeasonEntity,
+        team: TeamEntity,
+        response: PulseliveTeamsCompseasonsStaffResponse,
     ) -> list[tuple[PlayerEntity, PlayerStatEntity]]:
-        try:
-            response = await self.__web_client.get_football_team_compseason_staff(
-                comp_season_id=season.pulselive_id,
-                team_id=team.pulselive_id,
-            )
-            return list(
-                filter(
-                    None,
-                    [
-                        self.__convert_player(season, team, player)
-                        for player in response.players
-                    ],
-                )
-            )
-        except HTTPStatusError as e:
-            if e.response.status_code == 404:
-                return []
-            else:
-                raise e
+        player_info = [
+            player
+            for player in response.players
+            if player.info.shirt_num is not None and player.birth.date is not None
+        ]
+        return await gather(
+            *[self.__convert_player(season, team, player) for player in player_info]
+        )
 
-    @staticmethod
-    def __convert_player(
+    async def __process_award(
+        self,
+        season: SeasonEntity,
+        key: str,
+        info: PulseliveTeamsCompseasonsStaffPlayerAwardResponse,
+    ) -> AwardEntity:
+        name_en = key.lower().replace("_", " ").title()
+        date = create_utc_datetime(info.date.year, info.date.month, info.date.day)
+        award = self.__award_repository.read_by_source_id(
+            AwardEntity.get_source_id(season, name_en, date)
+        )
+        if award is not None:
+            return award
+        else:
+            name_kr, (description_en, description_kr), icon_url = await gather(
+                self.__get_award_name_kr(name_en),
+                self.__get_award_description(name_en=name_en),
+                self.__award_repository.get_icon_url(name_en=name_en),
+            )
+            return AwardEntity(
+                date=date,
+                name_en=name_en,
+                name_kr=name_kr,
+                season=season,
+                description_en=description_en,
+                description_kr=description_kr,
+                icon_url=icon_url,
+            )
+
+    async def __convert_player(
+        self,
         season: SeasonEntity,
         team: TeamEntity,
         response: PulseliveTeamsCompseasonsStaffPlayerResponse,
-    ) -> tuple[PlayerEntity, PlayerStatEntity] | None:
-        if response.info.shirt_num is None or response.birth.date is None:
-            return None
+    ) -> tuple[PlayerEntity, PlayerStatEntity]:
+        player = await self.__process_player(response)
+        player_stat = await self.__process_player_stat(player, season, team, response)
+        return player, player_stat
+
+    async def __process_player(
+        self,
+        response: PulseliveTeamsCompseasonsStaffPlayerResponse,
+    ) -> PlayerEntity:
+        player = await self.__player_repository.read_by_source_id(response.id)
+        if player is not None:
+            return player
         else:
-            player_id = PlayerEntity.get_id(response.id)
-            player = PlayerEntity(
-                id=player_id,
+            return PlayerEntity(
                 birth_country_en=response.birth.country.country,
+                birth_country_kr=await self.__get_country_name_kr(
+                    response.birth.country.country
+                ),
                 birth_date=datetime.fromtimestamp(response.birth.date.millis / 1000.0),
                 birth_country_flag_icon_url=(
                     f"https://resources.premierleague.com/premierleague/flags/{response.birth.country.iso_code}.png"
@@ -121,6 +212,9 @@ class PulseliveTeamsPerCompSeasonService:
                 ),
                 birth_place=response.birth.place,
                 display_name_en=response.name.display,
+                display_name_kr=await self.__translator.translate_word(
+                    response.name.display
+                ),
                 full_name=" ".join(
                     filter(
                         None,
@@ -138,10 +232,37 @@ class PulseliveTeamsPerCompSeasonService:
                 ),
                 position=response.info.position,
                 position_info_en=response.info.position_info,
+                position_info_kr=await self.__get_position_info_kr(
+                    response.info.position_info
+                ),
                 weight=response.weight,
+                source_id=str(response.id),
+            )
+
+    async def __process_player_stat(
+        self,
+        player: PlayerEntity,
+        season: SeasonEntity,
+        team: TeamEntity,
+        response: PulseliveTeamsCompseasonsStaffPlayerResponse,
+    ) -> PlayerStatEntity:
+        player_stat = await self.__player_stats_repository.read_by_source_id(
+            PlayerStatEntity.get_source_id(season, player)
+        )
+        if player_stat is not None:
+            awards, championship = await self.__pickup_awards_of_player(
+                season, response.awards
+            )
+            for award in awards:
+                player_stat.add_award(award)
+            if championship:
+                player.add_championship(season)
+            return player_stat
+        else:
+            awards, championship = await self.__pickup_awards_of_player(
+                season, response.awards
             )
             player_stat = PlayerStatEntity(
-                id=PlayerStatEntity.get_id(f"{season.pulselive_id}_{response.id}"),
                 appearances=(
                     response.appearances if response.appearances is not None else 0
                 ),
@@ -159,11 +280,80 @@ class PulseliveTeamsPerCompSeasonService:
                     response.key_passes if response.key_passes is not None else 0
                 ),
                 number=response.info.shirt_num,
-                player_id=player_id,
+                player=player,
                 saves=response.saves if response.saves is not None else 0,
-                season_id=season.id,
+                season=season,
                 shots=response.shots if response.shots is not None else 0,
                 tackles=response.tackles if response.tackles is not None else 0,
-                team_id=team.id,
+                team=team,
             )
-            return player, player_stat
+            for award in awards:
+                player_stat.add_award(award)
+            if championship:
+                player.add_championship(season)
+            return player_stat
+
+    async def __pickup_awards_of_player(
+        self,
+        season: SeasonEntity,
+        awards: dict[str, list[PulseliveTeamsCompseasonsStaffPlayerAwardResponse]],
+    ) -> tuple[list[AwardEntity], bool]:
+        award_info = [
+            (key, info)
+            for key, lst in awards.items()
+            for info in lst
+            if str(info.comp_season.id) == season.source_id
+        ]
+        championship = any(key == self.championship_key for key, _ in award_info)
+        awards = await gather(
+            *[
+                self.__award_repository.read_by_source_id(
+                    AwardEntity.get_source_id(
+                        season,
+                        name_en=key.lower().replace("_", " ").title(),
+                        date=create_utc_datetime(
+                            info.date.year, info.date.month, info.date.day
+                        ),
+                    )
+                )
+                for key, info in award_info
+                if key != self.championship_key
+            ]
+        )
+        return sorted(awards, key=lambda a: a.date), championship
+
+    async def __get_country_name_kr(self, birth_country_en: str) -> str:
+        previous_name = await self.__player_repository.get_birth_country_kr(
+            birth_country_en=birth_country_en
+        )
+        if previous_name is not None:
+            return previous_name
+        else:
+            return await self.__translator.translate_word(birth_country_en)
+
+    async def __get_position_info_kr(self, position_info_en: str) -> str:
+        previous_name = await self.__player_repository.get_position_info_kr(
+            position_info_en=position_info_en
+        )
+        if previous_name is not None:
+            return previous_name
+        else:
+            return await self.__translator.translate_word(position_info_en)
+
+    async def __get_award_name_kr(self, name_en: str) -> str:
+        previous_name = await self.__award_repository.get_award_name_kr(name_en=name_en)
+        if previous_name is not None:
+            return previous_name
+        else:
+            return await self.__translator.translate_word(name_en)
+
+    async def __get_award_description(
+        self, name_en: str
+    ) -> tuple[str | None, str | None]:
+        previous_description = await self.__award_repository.get_award_description(
+            name_en=name_en
+        )
+        if previous_description is not None:
+            return previous_description
+        else:
+            return None, None

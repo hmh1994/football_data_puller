@@ -1,5 +1,7 @@
-from football_data_manager.common.repositories.grounds.ground_entity import GroundEntity
-from football_data_manager.common.repositories.grounds.ground_repository import (
+from football_data_manager.common.old_repositories.grounds.ground_entity import (
+    GroundEntity,
+)
+from football_data_manager.common.old_repositories.grounds.ground_repository import (
     GroundRepository,
 )
 from football_data_manager.common.services.db.db_service import DbService

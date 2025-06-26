@@ -1,9 +1,9 @@
 from asyncio import run
 
-from football_data_manager.common.repositories.team_stats.team_stat_entity import (
+from football_data_manager.common.old_repositories.team_stats.team_stat_entity import (
     TeamStatEntity,
 )
-from football_data_manager.common.repositories.team_stats.team_stat_repository import (
+from football_data_manager.common.old_repositories.team_stats.team_stat_repository import (
     TeamStatRepository,
 )
 from football_data_manager.common.services.config.config_service import ConfigService

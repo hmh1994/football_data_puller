@@ -4,22 +4,26 @@ from itertools import product
 
 from httpx import HTTPStatusError
 
-from football_data_manager.common.repositories.player_stats.player_stat_entity import (
+from football_data_manager.common.old_repositories.player_stats.player_stat_entity import (
     PlayerStatEntity,
 )
-from football_data_manager.common.repositories.player_stats.player_stat_repository import (
+from football_data_manager.common.old_repositories.player_stats.player_stat_repository import (
     PlayerStatRepository,
 )
-from football_data_manager.common.repositories.players.player_entity import PlayerEntity
-from football_data_manager.common.repositories.players.player_repository import (
+from football_data_manager.common.old_repositories.players.player_entity import (
+    PlayerEntity,
+)
+from football_data_manager.common.old_repositories.players.player_repository import (
     PlayerRepository,
 )
-from football_data_manager.common.repositories.seasons.season_entity import SeasonEntity
-from football_data_manager.common.repositories.seasons.season_repository import (
+from football_data_manager.common.old_repositories.seasons.season_entity import (
+    SeasonEntity,
+)
+from football_data_manager.common.old_repositories.seasons.season_repository import (
     SeasonRepository,
 )
-from football_data_manager.common.repositories.teams.team_entity import TeamEntity
-from football_data_manager.common.repositories.teams.team_repository import (
+from football_data_manager.common.old_repositories.teams.team_entity import TeamEntity
+from football_data_manager.common.old_repositories.teams.team_repository import (
     TeamRepository,
 )
 from football_data_manager.common.services.db.db_service import DbService

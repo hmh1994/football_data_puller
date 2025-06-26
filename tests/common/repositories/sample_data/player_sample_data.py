@@ -1,5 +1,7 @@
-from football_data_manager.common.repositories.players.player_entity import PlayerEntity
-from football_data_manager.common.repositories.players.player_repository import (
+from football_data_manager.common.old_repositories.players.player_entity import (
+    PlayerEntity,
+)
+from football_data_manager.common.old_repositories.players.player_repository import (
     PlayerRepository,
 )
 from football_data_manager.common.utils.type_helper.datetime_helper import (

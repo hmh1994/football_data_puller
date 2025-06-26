@@ -1,7 +1,7 @@
-from football_data_manager.common.repositories.fixtures.fixture_entity import (
+from football_data_manager.common.old_repositories.fixtures.fixture_entity import (
     FixtureEntity,
 )
-from football_data_manager.common.repositories.fixtures.fixture_repository import (
+from football_data_manager.common.old_repositories.fixtures.fixture_repository import (
     FixtureRepository,
 )
 from football_data_manager.common.services.db.db_service import DbService

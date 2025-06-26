@@ -1,9 +1,10 @@
-from football_data_manager.common.repositories.standings.standing_entity import (
+from football_data_manager.common.old_repositories.standings.standing_entity import (
     StandingEntity,
 )
-from football_data_manager.common.repositories.standings.standing_repository import (
+from football_data_manager.common.old_repositories.standings.standing_repository import (
     StandingRepository,
 )
+
 from football_data_manager.common.services.db.db_service import DbService
 from tests.common.repositories.sample_data.abstract_sample_data import (
     AbstractSampleData,

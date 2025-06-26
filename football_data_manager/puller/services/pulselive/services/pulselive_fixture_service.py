@@ -1,24 +1,28 @@
 from asyncio import gather
 from datetime import datetime
 
-from football_data_manager.common.repositories.competitions.competition_repository import (
+from football_data_manager.common.old_repositories.competitions.competition_repository import (
     CompetitionRepository,
 )
-from football_data_manager.common.repositories.fixtures.fixture_entity import (
+from football_data_manager.common.old_repositories.fixtures.fixture_entity import (
     FixtureEntity,
 )
-from football_data_manager.common.repositories.fixtures.fixture_repository import (
+from football_data_manager.common.old_repositories.fixtures.fixture_repository import (
     FixtureRepository,
 )
-from football_data_manager.common.repositories.grounds.ground_entity import GroundEntity
-from football_data_manager.common.repositories.grounds.ground_repository import (
+from football_data_manager.common.old_repositories.grounds.ground_entity import (
+    GroundEntity,
+)
+from football_data_manager.common.old_repositories.grounds.ground_repository import (
     GroundRepository,
 )
-from football_data_manager.common.repositories.seasons.season_entity import SeasonEntity
-from football_data_manager.common.repositories.seasons.season_repository import (
+from football_data_manager.common.old_repositories.seasons.season_entity import (
+    SeasonEntity,
+)
+from football_data_manager.common.old_repositories.seasons.season_repository import (
     SeasonRepository,
 )
-from football_data_manager.common.repositories.teams.team_entity import TeamEntity
+from football_data_manager.common.old_repositories.teams.team_entity import TeamEntity
 from football_data_manager.common.services.db.db_service import DbService
 from football_data_manager.puller.services.pulselive.models.responses.fixtures.pulselive_fixture_response import (
     PulseliveFixtureResponse,
@@ -119,8 +123,12 @@ class PulseliveFixturesService:
             home_team_id=TeamEntity.get_id(response.teams[0].team.id),
             home_team_score=response.teams[0].score,
             neutral_ground=response.neutral_ground,
-            kickoff_time=datetime.fromtimestamp(response.kickoff.millis / 1000.0)
-            if response.kickoff.completeness
-            else datetime.fromtimestamp(response.provisional_kickoff.millis / 1000.0),
+            kickoff_time=(
+                datetime.fromtimestamp(response.kickoff.millis / 1000.0)
+                if response.kickoff.completeness
+                else datetime.fromtimestamp(
+                    response.provisional_kickoff.millis / 1000.0
+                )
+            ),
             season_id=season.id,
         )

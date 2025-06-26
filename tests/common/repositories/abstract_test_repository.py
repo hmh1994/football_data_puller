@@ -8,8 +8,8 @@ from pytest_asyncio import fixture
 from sqlalchemy import String
 from sqlalchemy.orm import DeclarativeBase
 
-from football_data_manager.common.repositories import Base
-from football_data_manager.common.repositories.base_repository import BaseRepository
+from football_data_manager.common.old_repositories import Base
+from football_data_manager.common.old_repositories.base_repository import BaseRepository
 from football_data_manager.common.services.db.db_service import DbService
 from tests.common.repositories.sample_data.abstract_sample_data import (
     AbstractSampleData,

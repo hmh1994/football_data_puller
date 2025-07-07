@@ -68,9 +68,7 @@ class PulseliveTeamsPerCompSeasonService:
     __web_client: PulseliveWebClientService
     __translator: TranslatorService
 
-    target_season_id = [
-        "PULSELIVE_SEASON_719",
-    ]
+    target_season_id = ["719", "777"]
     championship_key = "CHAMPIONS"
 
     def __init__(
@@ -91,7 +89,7 @@ class PulseliveTeamsPerCompSeasonService:
     async def pull_players(self):
         seasons: list[SeasonEntity] = await gather(
             *[
-                self.__season_repository.read_by_id(season_id)
+                self.__season_repository.read_by_source_id(season_id)
                 for season_id in self.target_season_id
             ]
         )

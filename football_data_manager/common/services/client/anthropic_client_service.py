@@ -1,4 +1,5 @@
 from anthropic import AsyncAnthropic
+from anthropic.types import MessageParam, TextBlockParam, CacheControlEphemeralParam
 
 
 class AnthropicClientService:
@@ -10,13 +11,13 @@ class AnthropicClientService:
     :ivar __client: Instance of AsyncAnthropic client.
     """
 
-    default_model: str = "claude-3-5-haiku-latest"
+    default_model: str
     __client: AsyncAnthropic
 
     def __init__(
         self,
         api_key: str,
-        default_model: str,
+        default_model: str = "claude-3-5-haiku-latest",
         timeout: float = 900.0,
     ):
         self.default_model = default_model
@@ -39,16 +40,18 @@ class AnthropicClientService:
         """
         model_to_use = model or self.default_model
         system_messages = [
-            (
-                {"type": "text", "text": msg, "cache_control": {"type": "ephemeral"}}
-                if is_cached
-                else {"type": "text", "text": msg}
+            TextBlockParam(
+                text=msg,
+                type="text",
+                cache_control=(
+                    CacheControlEphemeralParam(type="ephemeral") if is_cached else None
+                ),
             )
             for is_cached, msg in system_messages
         ]
         response = await self.__client.messages.create(
             max_tokens=max_tokens,
-            messages=[{"role": "user", "content": msg} for msg in user_messages],
+            messages=[MessageParam(content=msg, role="user") for msg in user_messages],
             model=model_to_use,
             system=system_messages,
         )

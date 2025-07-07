@@ -12,4 +12,5 @@ class NewsTranslateResponse(BaseModel):
     article: int
     authors: list[NewsTranslateObjectResponse]
     title: NewsTranslateObjectResponse
-    summaries: list[NewsTranslateSummaryResponse]
+    summary: NewsTranslateSummaryResponse
+    teams: list[str] = []

@@ -16,7 +16,7 @@ class AbstractGraphQLClientService(metaclass=ABCMeta):
 
     base_url: str
     headers: dict[str, str]
-    timeout: float
+    timeout: int
     __transport: AIOHTTPTransport
     __client: Client
 
@@ -25,7 +25,7 @@ class AbstractGraphQLClientService(metaclass=ABCMeta):
         endpoint: str,
         fetch_schema_from_transport: bool = False,
         headers: dict[str, str] | None = None,
-        timeout: float = 10.0,
+        timeout: int = 10,
     ):
         self.endpoint = endpoint
         self.headers = headers or {}

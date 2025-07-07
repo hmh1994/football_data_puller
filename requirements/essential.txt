@@ -1,5 +1,6 @@
 # Specifies the essential requirements of the project.
 SQLAlchemy==2.0.36
+anthropic==0.57.1
 asyncpg==0.30.0
 beautifulsoup4==4.13.4
 build==1.2.1

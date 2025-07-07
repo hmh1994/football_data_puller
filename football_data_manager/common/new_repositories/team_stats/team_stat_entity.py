@@ -1,6 +1,7 @@
 from typing import Self
 
-from sqlalchemy import Column, String, ForeignKey, Integer, ARRAY, func
+from sqlalchemy import Column, String, ForeignKey, Integer, ARRAY
+from sqlalchemy.ext.orderinglist import ordering_list
 from sqlalchemy.orm import relationship
 
 from football_data_manager.common.new_repositories.fixtures.fixture_entity import (
@@ -15,7 +16,17 @@ from football_data_manager.common.new_repositories.pulselive_entity import (
 from football_data_manager.common.new_repositories.seasons.season_entity import (
     SeasonEntity,
 )
+from football_data_manager.common.new_repositories.team_stats.team_stat_away_fixture_association import (
+    TeamStatAwayFixtureAssociation,
+)
+from football_data_manager.common.new_repositories.team_stats.team_stat_home_fixture_association import (
+    TeamStatHomeFixtureAssociation,
+)
+from football_data_manager.common.new_repositories.team_stats.team_stat_overall_fixture_association import (
+    TeamStatOverallFixtureAssociation,
+)
 from football_data_manager.common.new_repositories.teams.team_entity import TeamEntity
+from football_data_manager.common.services.db.db_service import DbService
 from football_data_manager.common.utils.type_helper.int_helper import compare_ints
 
 
@@ -71,15 +82,20 @@ class TeamStatEntity(PulseliveEntity):
     __tablename__ = "team_stats_new"
 
     away_cumulative_points = Column(ARRAY(Integer), nullable=False)
-    away_fixture_ids = Column(ARRAY(String), nullable=False)
+    away_fixture_associations = relationship(
+        TeamStatAwayFixtureAssociation,
+        back_populates="team_stat",
+        cascade="all, delete-orphan",
+        single_parent=True,
+        lazy="select",
+        collection_class=ordering_list("kickoff_time"),
+        order_by=TeamStatAwayFixtureAssociation.kickoff_time,
+    )
     away_fixtures = relationship(
         FixtureEntity,
-        primaryjoin=lambda: TeamStatEntity.away_fixture_ids.any(FixtureEntity.id),
-        lazy="joined",
+        secondary=TeamStatAwayFixtureAssociation.__table__,
         viewonly=True,
-        order_by=lambda: func.array_position(
-            TeamStatEntity.away_fixture_ids, FixtureEntity.id
-        ),
+        lazy="select",
     )
     away_goals_against = Column(Integer, nullable=False)
     away_goals_for = Column(Integer, nullable=False)
@@ -91,17 +107,22 @@ class TeamStatEntity(PulseliveEntity):
     away_points = Column(Integer, nullable=False)
     away_position = Column(Integer, nullable=True)
     ground_id = Column(String, ForeignKey(GroundEntity.id), nullable=False)
-    ground = relationship(GroundEntity, lazy="joined", foreign_keys=ground_id)
+    ground = relationship(GroundEntity, lazy="select", foreign_keys=ground_id)
     home_cumulative_points = Column(ARRAY(Integer), nullable=False)
-    home_fixture_ids = Column(ARRAY(String), nullable=False)
+    home_fixture_associations = relationship(
+        TeamStatHomeFixtureAssociation,
+        back_populates="team_stat",
+        cascade="all, delete-orphan",
+        single_parent=True,
+        lazy="select",
+        collection_class=ordering_list("kickoff_time"),
+        order_by=TeamStatHomeFixtureAssociation.kickoff_time,
+    )
     home_fixtures = relationship(
         FixtureEntity,
-        primaryjoin=lambda: TeamStatEntity.home_fixture_ids.any(FixtureEntity.id),
-        lazy="joined",
+        secondary=TeamStatHomeFixtureAssociation.__table__,
         viewonly=True,
-        order_by=lambda: func.array_position(
-            TeamStatEntity.home_fixture_ids, FixtureEntity.id
-        ),
+        lazy="select",
     )
     home_goals_against = Column(Integer, nullable=False)
     home_goals_for = Column(Integer, nullable=False)
@@ -113,15 +134,20 @@ class TeamStatEntity(PulseliveEntity):
     home_points = Column(Integer, nullable=False)
     home_position = Column(Integer, nullable=True)
     overall_cumulative_points = Column(ARRAY(Integer), nullable=False)
-    overall_fixture_ids = Column(ARRAY(String), nullable=False)
+    overall_fixture_associations = relationship(
+        TeamStatOverallFixtureAssociation,
+        back_populates="team_stat",
+        cascade="all, delete-orphan",
+        single_parent=True,
+        lazy="select",
+        collection_class=ordering_list("kickoff_time"),
+        order_by=TeamStatOverallFixtureAssociation.kickoff_time,
+    )
     overall_fixtures = relationship(
         FixtureEntity,
-        primaryjoin=lambda: TeamStatEntity.overall_fixture_ids.any(FixtureEntity.id),
-        lazy="joined",
+        secondary=TeamStatOverallFixtureAssociation.__table__,
         viewonly=True,
-        order_by=lambda: func.array_position(
-            TeamStatEntity.overall_fixture_ids, FixtureEntity.id
-        ),
+        lazy="select",
     )
     overall_goals_against = Column(Integer, nullable=False)
     overall_goals_for = Column(Integer, nullable=False)
@@ -133,9 +159,9 @@ class TeamStatEntity(PulseliveEntity):
     overall_points = Column(Integer, nullable=False)
     overall_position = Column(Integer, nullable=False)
     season_id = Column(String, ForeignKey(SeasonEntity.id), nullable=False)
-    season = relationship(SeasonEntity, lazy="joined", foreign_keys=season_id)
+    season = relationship(SeasonEntity, lazy="select", foreign_keys=season_id)
     team_id = Column(String, ForeignKey(TeamEntity.id), nullable=False)
-    team = relationship(TeamEntity, lazy="joined", foreign_keys=team_id)
+    team = relationship(TeamEntity, lazy="select", foreign_keys=team_id)
 
     def __init__(
         self,
@@ -159,6 +185,7 @@ class TeamStatEntity(PulseliveEntity):
         """
         return f"{season.source_id}_{team.source_id}"
 
+    # TODO: apply to update
     def apply_fixture(self, fixture: FixtureEntity):
         """
         Applies fixture result data to the team stat entity.
@@ -182,31 +209,33 @@ class TeamStatEntity(PulseliveEntity):
         else:
             self.__process_fixture(fixture)
 
-    def apply_position(self, team_stats: list[Self]):
+    # TODO: apply to update
+    async def apply_position(self, db_service: DbService, team_stats: list[Self]):
         """
         Applies the position of the team in the standings based on the metrics of other teams.
+        :param db_service: Database service to fetch team stats.
         :param team_stats: List of team stats entities to compare against.
         """
-        other_overall_metrics, other_home_metrics, other_away_metrics = zip(
-            *[
-                team_stat.__get_standing_metric(self)
-                for team_stat in team_stats
-                if team_stat.team_id != self.team_id
-            ]
-        )
-        self.overall_position = (
-            sum(other >= (0, 0, 0, 0, 0) for other in other_overall_metrics) + 1
-        )
-        self.home_position = (
-            sum(other >= (0, 0, 0, 0, 0) for other in other_home_metrics) + 1
-        )
-        self.away_position = (
-            sum(other >= (0, 0, 0, 0, 0) for other in other_away_metrics) + 1
-        )
+        other_overall_metrics, other_home_metrics, other_away_metrics = [], [], []
+        for team_stat in team_stats:
+            if (
+                team_stat.team_id == self.team_id
+                or team_stat.season_id != self.season_id
+            ):
+                continue
+
+            other_overall_metrics.append(
+                await team_stat.__compare_overall_standing(db_service, self)
+            )
+            other_home_metrics.append(team_stat.__compare_home_standing(self))
+            other_away_metrics.append(team_stat.__compare_away_standing(self))
+        self.overall_position = sum(other >= 0 for other in other_overall_metrics) + 1
+        self.home_position = sum(other >= 0 for other in other_home_metrics) + 1
+        self.away_position = sum(other >= 0 for other in other_away_metrics) + 1
 
     def __initialize(self):
         self.away_cumulative_points = []
-        self.away_fixture_ids = []
+        self.away_fixture_associations = []
         self.away_goals_against = 0
         self.away_goals_for = 0
         self.away_goals_difference = 0
@@ -217,7 +246,7 @@ class TeamStatEntity(PulseliveEntity):
         self.away_points = 0
         self.away_position = None
         self.home_cumulative_points = []
-        self.home_fixture_ids = []
+        self.home_fixture_associations = []
         self.home_goals_against = 0
         self.home_goals_for = 0
         self.home_goals_difference = 0
@@ -228,7 +257,7 @@ class TeamStatEntity(PulseliveEntity):
         self.home_points = 0
         self.home_position = None
         self.overall_cumulative_points = []
-        self.overall_fixture_ids = []
+        self.overall_fixture_associations = []
         self.overall_goals_against = 0
         self.overall_goals_for = 0
         self.overall_goals_difference = 0
@@ -264,8 +293,13 @@ class TeamStatEntity(PulseliveEntity):
             )
         goal_difference = goal_for - goal_against
         self.__append_point(self.overall_cumulative_points, point)
-        self.overall_fixture_ids.append(fixture.id)
-        self.overall_fixtures.append(fixture)
+        self.overall_fixture_associations.append(
+            TeamStatOverallFixtureAssociation(
+                team_stat_id=self.id,
+                fixture_id=fixture.id,
+                kickoff_time=fixture.kickoff_time,
+            )
+        )
         self.overall_goals_against += goal_against
         self.overall_goals_for += goal_for
         self.overall_goals_difference += goal_difference
@@ -276,8 +310,13 @@ class TeamStatEntity(PulseliveEntity):
         self.overall_points += point
         if is_home:
             self.__append_point(self.home_cumulative_points, point)
-            self.home_fixture_ids.append(fixture.id)
-            self.home_fixtures.append(fixture.id)
+            self.home_fixture_associations.append(
+                TeamStatHomeFixtureAssociation(
+                    team_stat_id=self.id,
+                    fixture_id=fixture.id,
+                    kickoff_time=fixture.kickoff_time,
+                )
+            )
             self.home_goals_against += goal_against
             self.home_goals_for += goal_for
             self.home_goals_difference += goal_difference
@@ -288,8 +327,13 @@ class TeamStatEntity(PulseliveEntity):
             self.home_points += point
         else:
             self.__append_point(self.away_cumulative_points, point)
-            self.away_fixture_ids.append(fixture.id)
-            self.away_fixtures.append(fixture.id)
+            self.away_fixture_associations.append(
+                TeamStatAwayFixtureAssociation(
+                    team_stat_id=self.id,
+                    fixture_id=fixture.id,
+                    kickoff_time=fixture.kickoff_time,
+                )
+            )
             self.away_goals_against += goal_against
             self.away_goals_for += goal_for
             self.away_goals_difference += goal_difference
@@ -304,79 +348,71 @@ class TeamStatEntity(PulseliveEntity):
         last_point = points[-1] if points else 0
         points.append(last_point + point)
 
-    def __get_standing_metric(self, target: Self) -> (
-        (int, int, int, int, int),
-        (int, int, int, int, int),
-        (int, int, int, int, int),
-    ):
-        home_match: FixtureEntity | None = next(
-            filter(
-                lambda fixture: fixture.away_team_id == target.team_id,
-                self.home_fixtures,
-            ),
-            None,
+    async def __compare_overall_standing(
+        self, db_service: DbService, target: Self
+    ) -> int:
+        points = compare_ints(self.overall_points, target.overall_points)
+        if points != 0:
+            return points
+        goal_difference = compare_ints(
+            self.overall_goals_difference, target.overall_goals_difference
         )
-        away_match: FixtureEntity | None = next(
-            filter(
-                lambda fixture: fixture.home_team_id == target.team_id,
-                self.away_fixtures,
-            ),
-            None,
+        if goal_difference != 0:
+            return goal_difference
+        goals_scored = compare_ints(self.overall_goals_for, target.overall_goals_for)
+        if goals_scored != 0:
+            return goals_scored
+        async with db_service.create_db_session() as session:
+            merged_entity = await session.merge(self)
+            await session.refresh(merged_entity, ["home_fixtures", "away_fixtures"])
+            home_match: FixtureEntity | None = next(
+                filter(
+                    lambda fixture: fixture.away_team_id == target.team_id,
+                    merged_entity.home_fixtures,
+                ),
+                None,
+            )
+            away_match: FixtureEntity | None = next(
+                filter(
+                    lambda fixture: fixture.home_team_id == target.team_id,
+                    merged_entity.away_fixtures,
+                ),
+                None,
+            )
+            self_home_point = home_match.home_point if home_match else 0
+            self_away_point = away_match.away_point if away_match else 0
+            target_home_point = home_match.away_point if home_match else 0
+            target_away_point = away_match.home_point if away_match else 0
+        head_to_head_points = compare_ints(
+            self_home_point + self_away_point,
+            target_home_point + target_away_point,
         )
-        self_home_point = home_match.home_point if home_match else 0
-        self_away_point = away_match.away_point if away_match else 0
-        target_home_point = home_match.away_point if home_match else 0
-        target_away_point = away_match.home_point if away_match else 0
-        overall_metric = (
-            # Point
-            compare_ints(self.overall_points, target.overall_points),
-            # Goal Difference
-            compare_ints(
-                self.overall_goals_difference, target.overall_goals_difference
-            ),
-            # Goals Scored
-            compare_ints(self.overall_goals_for, target.overall_goals_for),
-            # Head-to-Head Points
-            compare_ints(
-                self_home_point + self_away_point, target_home_point + target_away_point
-            ),
-            # Head-to-Head Away Goals
-            (
-                compare_ints(away_match.away_team_score, home_match.away_team_score)
-                if home_match is not None and away_match is not None
-                else (home_match is None) - (away_match is None)
-            ),
+        if head_to_head_points != 0:
+            return head_to_head_points
+        return (
+            compare_ints(away_match.away_team_score, home_match.away_team_score)
+            if home_match is not None and away_match is not None
+            else (home_match is None) - (away_match is None)
         )
-        home_metric = (
-            # Point
-            compare_ints(self.home_points, target.home_points),
-            # Goal Difference
-            compare_ints(self.home_goals_difference, target.home_goals_difference),
-            # Goals Scored
-            compare_ints(self.home_goals_for, target.home_goals_for),
-            # Head-to-Head Points
-            compare_ints(self_home_point, target_home_point),
-            # Head-to-Head Goals
-            (
-                compare_ints(home_match.home_team_score, away_match.home_team_score)
-                if home_match is not None and away_match is not None
-                else (away_match is None) - (home_match is None)
-            ),
+
+    def __compare_home_standing(self, target: Self) -> int:
+        points = compare_ints(self.home_points, target.home_points)
+        if points != 0:
+            return points
+        goal_difference = compare_ints(
+            self.home_goals_difference, target.home_goals_difference
         )
-        away_metric = (
-            # Point
-            compare_ints(self.away_points, target.away_points),
-            # Goal Difference
-            compare_ints(self.away_goals_difference, target.away_goals_difference),
-            # Goals Scored
-            compare_ints(self.away_goals_for, target.away_goals_for),
-            # Head-to-Head Points
-            compare_ints(self_away_point, target_away_point),
-            # Head-to-Head Goals
-            (
-                compare_ints(away_match.away_team_score, home_match.away_team_score)
-                if home_match is not None and away_match is not None
-                else (home_match is None) - (away_match is None)
-            ),
+        if goal_difference != 0:
+            return goal_difference
+        return compare_ints(self.home_goals_for, target.home_goals_for)
+
+    def __compare_away_standing(self, target: Self) -> int:
+        points = compare_ints(self.away_points, target.away_points)
+        if points != 0:
+            return points
+        goal_difference = compare_ints(
+            self.away_goals_difference, target.away_goals_difference
         )
-        return overall_metric, home_metric, away_metric
+        if goal_difference != 0:
+            return goal_difference
+        return compare_ints(self.away_goals_for, target.away_goals_for)

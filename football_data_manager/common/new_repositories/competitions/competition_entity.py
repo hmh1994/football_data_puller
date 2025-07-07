@@ -1,5 +1,8 @@
 from sqlalchemy import Column, String
 
+from football_data_manager.common.new_repositories.constants import (
+    COMPETITIONS_TABLE_NAME,
+)
 from football_data_manager.common.new_repositories.pulselive_entity import (
     PulseliveEntity,
 )
@@ -7,7 +10,7 @@ from football_data_manager.common.new_repositories.pulselive_entity import (
 
 class CompetitionEntity(PulseliveEntity):
     """
-    Competition entity model.
+    Entity model for a football competition.
     :ivar id: Unique identifier for the entity.
     :ivar source: Source of the entity data, set to PULSELIVE.
     :param abbreviation: Competition abbreviation.
@@ -19,7 +22,7 @@ class CompetitionEntity(PulseliveEntity):
     :param source_id: Unique identifier from the source.
     """
 
-    __tablename__ = "competitions_new"
+    __tablename__ = COMPETITIONS_TABLE_NAME
 
     abbreviation = Column(String, nullable=False)
     description_en = Column(String, nullable=True)

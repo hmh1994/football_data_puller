@@ -120,7 +120,13 @@ class BaseRepository(Generic[TEntity, TId]):
         """
         stmt = (
             select(self.model)
-            .filter_by(source=source.value.upper())
+            .filter_by(
+                source=(
+                    source.value.upper()
+                    if isinstance(source, SourceEnum)
+                    else source.upper()
+                )
+            )
             .filter_by(source_id=source_id)
         )
         result = await session.execute(stmt)

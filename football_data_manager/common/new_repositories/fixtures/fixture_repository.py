@@ -39,4 +39,4 @@ class FixtureRepository(BaseRepository[FixtureEntity]):
             ),
         )
         result = await session.execute(stmt)
-        return sorted(list(result.scalars().all()), key=lambda x: x.game_week)
+        return sorted(list(result.unique().scalars().all()), key=lambda x: x.game_week)

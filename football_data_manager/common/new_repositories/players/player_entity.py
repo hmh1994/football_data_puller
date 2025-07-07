@@ -1,8 +1,13 @@
 from datetime import datetime
 
-from sqlalchemy import Column, String, Integer, CHAR, DateTime, ARRAY, func
+from sqlalchemy import Column, String, Integer, CHAR, DateTime
+from sqlalchemy.ext.orderinglist import ordering_list
 from sqlalchemy.orm import relationship
 
+from football_data_manager.common.new_repositories.constants import PLAYERS_TABLE_NAME
+from football_data_manager.common.new_repositories.players.player_championship_association import (
+    PlayerChampionshipAssociation,
+)
 from football_data_manager.common.new_repositories.pulselive_entity import (
     PulseliveEntity,
 )
@@ -34,22 +39,27 @@ class PlayerEntity(PulseliveEntity):
     :param weight: Player weight.
     """
 
-    __tablename__ = "players_new"
+    __tablename__ = PLAYERS_TABLE_NAME
 
     birth_country_en = Column(String, nullable=False)
     birth_country_kr = Column(String, nullable=False)
     birth_date = Column(DateTime, nullable=False)
     birth_country_flag_icon_url = Column(String, nullable=False)
     birth_place = Column(String, nullable=True)
-    championship_season_ids = Column(ARRAY(String), nullable=True)
+    championship_season_associations = relationship(
+        PlayerChampionshipAssociation,
+        back_populates="player",
+        cascade="all, delete-orphan",
+        single_parent=True,
+        lazy="joined",
+        collection_class=ordering_list("date_end"),
+        order_by=PlayerChampionshipAssociation.date_end,
+    )
     championship_seasons = relationship(
         SeasonEntity,
-        primaryjoin=lambda: PlayerEntity.championship_season_ids.any(SeasonEntity.id),
-        lazy="joined",
+        secondary=PlayerChampionshipAssociation.__table__,
         viewonly=True,
-        order_by=lambda: func.array_position(
-            PlayerEntity.championship_season_ids, SeasonEntity.id
-        ),
+        lazy="select",
     )
     display_name_en = Column(String, nullable=False)
     display_name_kr = Column(String, nullable=False)
@@ -86,8 +96,7 @@ class PlayerEntity(PulseliveEntity):
         self.birth_country_kr = birth_country_kr
         self.birth_date = birth_date
         self.birth_country_flag_icon_url = birth_country_flag_icon_url
-        self.championship_season_ids = []
-        self.championship_seasons = []
+        self.championship_season_associations = []
         self.display_name_en = display_name_en
         self.display_name_kr = display_name_kr
         self.full_name = full_name
@@ -105,7 +114,11 @@ class PlayerEntity(PulseliveEntity):
         Add a championship to the player.
         :param season: Season entity to add.
         """
-        if season.id not in self.championship_season_ids:
-            self.championship_seasons.append(season)
-            self.championship_seasons.sort(key=lambda x: x.date_end)
-            self.championship_season_ids = [s.id for s in self.championship_seasons]
+        if all(
+            association.season_id != season.id
+            for association in self.championship_season_associations
+        ):
+            association = PlayerChampionshipAssociation(
+                player_id=self.id, season_id=season.id, date_end=season.date_end
+            )
+            self.championship_season_associations.append(association)

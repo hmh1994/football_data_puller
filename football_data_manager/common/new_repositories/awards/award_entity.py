@@ -1,8 +1,9 @@
 from datetime import datetime
 
-from sqlalchemy import Column, String, DateTime
+from sqlalchemy import Column, String, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 
+from football_data_manager.common.new_repositories.constants import AWARDS_TABLE_NAME
 from football_data_manager.common.new_repositories.pulselive_entity import (
     PulseliveEntity,
 )
@@ -13,7 +14,7 @@ from football_data_manager.common.new_repositories.seasons.season_entity import 
 
 class AwardEntity(PulseliveEntity):
     """
-    Award entity model.
+    Entity model for football awards.
     :ivar id: Unique identifier for the award.
     :ivar season_id: Season ID associated with the award.
     :ivar source: Source of the entity data, set to PULSELIVE.
@@ -21,14 +22,13 @@ class AwardEntity(PulseliveEntity):
     :param date: Date of the award.
     :param description_en: Award description in English.
     :param description_kr: Award description in Korean.
-    :param key: Unique key for the award.
     :param name_en: Award name in English.
     :param name_kr: Award name in Korean.
     :param icon_url: URL of the award icon.
     :param season: Season entity associated with the award.
     """
 
-    __tablename__ = "awards_new"
+    __tablename__ = AWARDS_TABLE_NAME
 
     date = Column(DateTime, nullable=False)
     description_en = Column(String, nullable=True)
@@ -36,7 +36,7 @@ class AwardEntity(PulseliveEntity):
     name_en = Column(String, nullable=False)
     name_kr = Column(String, nullable=False)
     icon_url = Column(String, nullable=True)
-    season_id = Column(String, nullable=False)
+    season_id = Column(String, ForeignKey(SeasonEntity.id), nullable=False)
     season = relationship(SeasonEntity, lazy="joined", foreign_keys=season_id)
 
     def __init__(

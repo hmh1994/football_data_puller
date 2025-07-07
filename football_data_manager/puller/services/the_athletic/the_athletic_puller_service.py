@@ -2,10 +2,12 @@ from asyncio import sleep, gather
 from datetime import datetime, UTC
 from json import loads, dumps
 
-from aiohttp import request
+from aiohttp import ClientSession
 from bs4 import BeautifulSoup
 from regex import compile
 
+from football_data_manager.common.enums.news_type import NewsTypeEnum
+from football_data_manager.common.enums.source_enum import SourceEnum
 from football_data_manager.common.new_repositories.news.news_entity import NewsEntity
 from football_data_manager.common.new_repositories.news.news_repository import (
     NewsRepository,
@@ -14,8 +16,8 @@ from football_data_manager.common.new_repositories.teams.team_entity import Team
 from football_data_manager.common.new_repositories.teams.team_repository import (
     TeamRepository,
 )
-from football_data_manager.common.services.client.openai_client_service import (
-    OpenAiClientService,
+from football_data_manager.common.services.client.anthropic_client_service import (
+    AnthropicClientService,
 )
 from football_data_manager.common.services.config.models.api_config import ApiConfig
 from football_data_manager.common.services.db.db_service import DbService
@@ -34,27 +36,33 @@ from football_data_manager.puller.services.the_athletic.services.the_athletic_gr
 
 
 class TheAthleticPullerService:
+    __http_client: ClientSession
     __graphql_service: TheAthleticGraphQLService
-    __openai_service: OpenAiClientService
+    __anthropic_service: AnthropicClientService
     __news_repository: NewsRepository
     __team_repository: TeamRepository
 
     target_competition_abbr = ["EN_PR"]
     teams: list[TeamEntity]
-    translate_instruction: str
+    translate_instruction: list[tuple[bool, str]]
 
     def __init__(
         self,
-        openai_config: ApiConfig,
-        the_athletic_config: ApiConfig,
+        anthropic_config: ApiConfig,
+        the_athletic_graphql_config: ApiConfig,
         db_service: DbService,
     ):
+        self.__http_client = ClientSession()
         self.__news_repository = NewsRepository(db_service)
         self.__team_repository = TeamRepository(db_service)
-        self.__graphql_service = TheAthleticGraphQLService(the_athletic_config)
-        self.__openai_service = OpenAiClientService(
-            api_key=openai_config.key, default_model="o4-mini"
-        )
+        self.__graphql_service = TheAthleticGraphQLService(the_athletic_graphql_config)
+        self.__anthropic_service = AnthropicClientService(api_key=anthropic_config.key)
+
+    async def close(self):
+        """
+        Closes the HTTP client session.
+        """
+        await self.__http_client.close()
 
     async def pull_news(self):
         self.teams = await self.__team_repository.read_all()
@@ -78,39 +86,27 @@ class TheAthleticPullerService:
         print(f"Pulling league news list for {league_abbr}")
         contents = await self.__pull_news_list(league_abbr)
         print(f"News pulled from The Athletic: {len(contents)}")
-        news: list[list[NewsEntity]] = await gather(
+        news: list[NewsEntity] = await gather(
             *[self.__pull_news_entity(c) for c in contents]
         )
-        return [n for sublist in news for n in sublist]
+        return list(filter(None, news))
 
     async def __pull_news_entity(
         self, content: TheAthleticLeagueFeedMulliganLayoutContentResponse
-    ) -> list[NewsEntity]:
-        """
-        Pulls news entity from The Athletic API.
-        :param content: The content object.
-        :return: The news entity.
-        """
+    ) -> NewsEntity | None:
         article = await self.__pull_news_body(content)
         if article is None:
-            return []
+            return None
         print(f"News entity pulled: [{content.consumable_id}] {article.headline}")
         translate_response = await self.__translate_article(article)
         if translate_response is None:
-            return []
-        print(
-            f"News entity translated: [{content.consumable_id}] {article.headline} - {len(translate_response.summaries)} summaries"
-        )
+            return None
+        print(f"News entity translated: [{content.consumable_id}] {article.headline}")
         return self.__process_news(content, article, translate_response)
 
     async def __pull_news_list(
         self, league_abbr: str
     ) -> list[TheAthleticLeagueFeedMulliganLayoutContentResponse]:
-        """
-        Pulls news list from The Athletic API.
-        :param league_abbr: League abbreviation.
-        :return: List of news items.
-        """
         contents = []
         page = 0
         while page < 5:
@@ -133,16 +129,11 @@ class TheAthleticPullerService:
             page += 1
         return contents
 
-    @staticmethod
     async def __pull_news_body(
+        self,
         content: TheAthleticLeagueFeedMulliganLayoutContentResponse,
     ) -> TheAthleticArticleResponse | None:
-        """
-        Pulls the body of a news item from The Athletic API.
-        :param content: The content object.
-        :return: The article response.
-        """
-        async with request("GET", content.permalink) as resp:
+        async with self.__http_client.get(content.permalink) as resp:
             if resp.status != 200:
                 return None
             body = await resp.text()
@@ -166,15 +157,17 @@ class TheAthleticPullerService:
         try_count = 0
         while try_count < 5:
             try:
-                response = await self.__openai_service.request_by_flex_processing(
-                    instructions=self.translate_instruction,
-                    message=f"Here is the article to process. Please apply the above rules and return the JSON-formatted summaries only:\n```\n{dumps(body)}\n```",
-                    model="o4-mini",
+                responses = await self.__anthropic_service.request(
+                    system_messages=self.translate_instruction,
+                    user_messages=["", dumps(body)],
                 )
+                jsons = [
+                    obj
+                    for resp in responses
+                    for obj in compile(r"\{(?:[^{}]|(?R))*\}").findall(resp)
+                ]
                 return NewsTranslateResponse.model_validate(
-                    loads(
-                        max(compile(r"\{(?:[^{}]|(?R))*\}").findall(response), key=len)
-                    )
+                    loads(str(max(jsons, key=len)))
                 )
             except Exception as e:
                 print(f"Translation error: {e}")
@@ -187,15 +180,7 @@ class TheAthleticPullerService:
         content: TheAthleticLeagueFeedMulliganLayoutContentResponse,
         article: TheAthleticArticleResponse,
         translate_response: NewsTranslateResponse,
-    ) -> list[NewsEntity]:
-        """
-        Processes the news item and creates a NewsEntity object.
-        :param content: The content object.
-        :param article: The article response.
-        :param translate_response: The translation response.
-        :return: The NewsEntity object.
-        """
-        news_list = []
+    ) -> NewsEntity:
         author_en = [a.en for a in translate_response.authors]
         author_kr = [a.ko for a in translate_response.authors]
         publish_date = (
@@ -204,88 +189,76 @@ class TheAthleticPullerService:
             .replace(tzinfo=None)
         )
         url = content.permalink
-        source = "The Athletic"
         thumbnail_url = article.thumbnailUrl
         title_en = translate_response.title.en
         title_kr = translate_response.title.ko
-        typ = "FULL_ARTICLE"
-        for idx, summary in enumerate(translate_response.summaries):
-            teams = [
-                team.id for team in self.teams if team.abbreviation in summary.teams
-            ]
-            news_list.append(
-                NewsEntity(
-                    id=NewsEntity.get_the_athletic_id(content.consumable_id, idx),
-                    author_en=author_en,
-                    author_kr=author_kr,
-                    content_en=" ".join(summary.en),
-                    content_kr=" ".join(summary.ko),
-                    publish_date=publish_date,
-                    url=url,
-                    source=source,
-                    teams=teams,
-                    thumbnail_url=thumbnail_url,
-                    title_en=title_en,
-                    title_kr=title_kr,
-                    type=typ,
-                )
-            )
-        return news_list
+        teams = [
+            team for team in self.teams if team.abbreviation in translate_response.teams
+        ]
+        return NewsEntity(
+            author_en=author_en,
+            author_kr=author_kr,
+            content_en=" ".join(translate_response.summary.en),
+            content_kr=" ".join(translate_response.summary.ko),
+            publish_date=publish_date,
+            url=url,
+            source=SourceEnum.THE_ATHLETIC,
+            source_id=content.consumable_id,
+            teams=teams,
+            thumbnail_url=thumbnail_url,
+            title_en=title_en,
+            title_kr=title_kr,
+            typ=NewsTypeEnum.FULL_ARTICLE,
+        )
 
     async def __check_if_news_exists(self, news_id: str) -> bool:
-        """
-        Checks if the news already exists in the database.
-        :param news_id: News ID.
-        :return: True if exists, False otherwise.
-        """
         return (
-            await self.__news_repository.read_by_id(
-                NewsEntity.get_the_athletic_id(news_id, 1)
+            await self.__news_repository.read_by_source_id(
+                SourceEnum.THE_ATHLETIC, news_id
             )
         ) is not None
 
-    async def __get_openai_instruction(self) -> str:
+    async def __get_openai_instruction(self) -> list[tuple[bool, str]]:
         """
         Gets the OpenAI instruction for the news item.
         :return: The instruction.
         """
         abbrs = {team.short_name_en: team.abbreviation for team in self.teams}
-        return f"""You are an expert sports‐news summarization assistant.
-When given one or more JSON objects each containing an article, a title and an authors, you will:
-- Read each object’s author array and translate each "name" from English into Korean.
-- Read the articleBody text.
-- Produce 3–5 concise bullet summaries of the article’s main points.
+        return [
+            (
+                True,
+                """You are an expert sports‐news translator. When given a JSON object containing an article, a title and an authors, you will:
+- Read each object's author array and translate each 'name' from English into Korean.
+- Read body of the article text and summarize it in 3–5 concise bullet points.
 - For each bullet, provide both the original English sentence and its Korean translation.
-- Identify any team names mentioned and include their official three‐letter abbreviations only for teams very closely related to the article’s content in a "teams" list.
-  Below is the list of teams and their abbreviations:
-  ```
-{dumps(abbrs)}
-  ```
-- If the article covers multiple distinct topics, break your summaries into separate sections accordingly.
-- Do not create multiple sections with very similar content; group related points into a single section.
-- Provide all summaries in a concise, to-the-point tone.
+- Identify any team names mentioned and include their official three‐letter abbreviations only for teams very closely related to the article’s content in a 'teams' list.
 - Whenever monetary amounts appear, normalize them to ￡00m or €00m notation.
-- Do not translate English acronyms (e.g., FA, PSR)—leave those as-is.
-- Output a single JSON object with this structure:
-  ```
-  {{
+- Do not translate English acronyms (e.g., FA, PSR)—leave those as-is.""",
+            ),
+            (
+                True,
+                f"- Below is the list of teams and their abbreviations:\n```\n{dumps(abbrs)}\n```",
+            ),
+            (True, "- Output a single JSON object with this structure:"),
+            (
+                True,
+                f"""```
+{{
     "article": <article_index>,
     "authors": [
-      {{ "en": "<Original English name>", "ko": "<Translated Korean name>" }},
-      ...
+        {{ "en": "<Original English name>", "ko": "<Translated Korean name>" }},
+        ...
     ],
     "title": {{
         "en": "<Original article title>",
         "ko": "<Translated Korean title>"
     }},
-    "summaries": [
-      {{
-        "summary": <section_index>,
+    "summary": {{
         "en": [ "<English summary point 1>", ... ],
         "ko": [ "<Korean translation 1>", ... ],
-        "teams": [ "<Team 1>", ... ]
-      }},
-      ...
-    ]
-  }}
-  ```"""
+    }},
+    "teams": [ "<Team 1>", ... ]
+}}
+```""",
+            ),
+        ]

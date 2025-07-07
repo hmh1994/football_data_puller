@@ -1,8 +1,7 @@
 from dependency_injector.containers import DeclarativeContainer
 from dependency_injector.providers import (
-    Configuration,
-    DependenciesContainer,
     Singleton,
+    Dependency,
 )
 
 from football_data_manager.common.new_repositories.awards.award_repository import (
@@ -35,13 +34,12 @@ from football_data_manager.common.new_repositories.team_stats.team_stat_reposito
 from football_data_manager.common.new_repositories.teams.team_repository import (
     TeamRepository,
 )
+from football_data_manager.common.services.db.db_service import DbService
 
 
 class CommonRepositoryContainer(DeclarativeContainer):
     """
     Common repository container for the application.
-    :ivar container_config: Container's configuration.
-    :ivar services: Services container.
     :ivar award_repository: Award repository.
     :ivar competition_repository: Competition repository.
     :ivar fixture_repository: Fixture repository.
@@ -54,20 +52,15 @@ class CommonRepositoryContainer(DeclarativeContainer):
     :ivar team_repository: Team repository.
     """
 
-    container_config = Configuration()
-    services = DependenciesContainer()
+    db_service = Dependency(instance_of=DbService)
 
-    award_repository = Singleton(AwardRepository, db_service=services.db_service)
-    competition_repository = Singleton(
-        CompetitionRepository, db_service=services.db_service
-    )
-    fixture_repository = Singleton(FixtureRepository, db_service=services.db_service)
-    ground_repository = Singleton(GroundRepository, db_service=services.db_service)
-    news_repository = Singleton(NewsRepository, db_service=services.db_service)
-    player_stat_repository = Singleton(
-        PlayerStatRepository, db_service=services.db_service
-    )
-    player_repository = Singleton(PlayerRepository, db_service=services.db_service)
-    season_repository = Singleton(SeasonRepository, db_service=services.db_service)
-    team_stat_repository = Singleton(TeamStatRepository, db_service=services.db_service)
-    team_repository = Singleton(TeamRepository, db_service=services.db_service)
+    award_repository = Singleton(AwardRepository, db_service=db_service)
+    competition_repository = Singleton(CompetitionRepository, db_service=db_service)
+    fixture_repository = Singleton(FixtureRepository, db_service=db_service)
+    ground_repository = Singleton(GroundRepository, db_service=db_service)
+    news_repository = Singleton(NewsRepository, db_service=db_service)
+    player_stat_repository = Singleton(PlayerStatRepository, db_service=db_service)
+    player_repository = Singleton(PlayerRepository, db_service=db_service)
+    season_repository = Singleton(SeasonRepository, db_service=db_service)
+    team_stat_repository = Singleton(TeamStatRepository, db_service=db_service)
+    team_repository = Singleton(TeamRepository, db_service=db_service)

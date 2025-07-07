@@ -1,17 +1,23 @@
-from sqlalchemy import Column, String, ARRAY, DateTime, func
-from sqlalchemy.orm import relationship
+from datetime import datetime
+
+from sqlalchemy import Column, String, ARRAY, DateTime
+from sqlalchemy.ext.associationproxy import association_proxy
 
 from football_data_manager.common.enums.news_type import NewsTypeEnum
 from football_data_manager.common.enums.source_enum import SourceEnum
 from football_data_manager.common.new_repositories.base_entity import BaseEntity
-from football_data_manager.common.new_repositories.teams.team_entity import TeamEntity
+from football_data_manager.common.new_repositories.constants import NEWS_TABLE_NAME
+from football_data_manager.common.new_repositories.news.news_team_association import (
+    NewsTeamAssociation,
+)
 
 
 class NewsEntity(BaseEntity):
     """
-    News entity model.
+    Entity model for news articles.
     :ivar id: Unique identifier for the entity.
-    :ivar team_ids: List of team IDs related to the news.
+    :ivar team_associations: List of associations between news and teams.
+    :ivar teams: List of teams related to the news.
     :param author_en: List of authors in English.
     :param author_kr: List of authors in Korean.
     :param content_en: News content in English.
@@ -20,14 +26,13 @@ class NewsEntity(BaseEntity):
     :param url: URL of the news article.
     :param source: Source of the news article.
     :param source_id: Unique identifier from the source.
-    :param teams: List of teams related to the news.
     :param thumbnail_url: URL of the news thumbnail image.
     :param title_en: Title of the news in English.
     :param title_kr: Title of the news in Korean.
-    :param type: Type of the news article.
+    :param typ: Type of the news article.
     """
 
-    __tablename__ = "news_new"
+    __tablename__ = NEWS_TABLE_NAME
 
     author_en = Column(ARRAY(String), nullable=False)
     author_kr = Column(ARRAY(String), nullable=False)
@@ -36,13 +41,10 @@ class NewsEntity(BaseEntity):
     publish_date = Column(DateTime, nullable=False)
     url = Column(String, nullable=False)
     source = Column(String, nullable=False)
-    team_ids = Column(ARRAY(String), nullable=False)
-    teams = relationship(
-        TeamEntity,
-        primaryjoin=lambda: NewsEntity.team_ids.any(TeamEntity.id),
-        lazy="joined",
-        viewonly=True,
-        order_by=lambda: func.array_position(NewsEntity.team_ids, TeamEntity.id),
+    teams = association_proxy(
+        target_collection=NewsTeamAssociation.TEAM_COLLECTION_NAME,
+        attr=NewsTeamAssociation.team,
+        creator=lambda team: NewsTeamAssociation(team=team, date=team.date),  # type: ignore[arg-type]
     )
     thumbnail_url = Column(String, nullable=False)
     title_en = Column(String, nullable=False)
@@ -55,11 +57,10 @@ class NewsEntity(BaseEntity):
         author_kr: list[str],
         content_en: str,
         content_kr: str,
-        publish_date: DateTime,
+        publish_date: datetime,
         url: str,
         source: SourceEnum,
         source_id: str,
-        teams: list[TeamEntity],
         thumbnail_url: str,
         title_en: str,
         title_kr: str,
@@ -72,9 +73,6 @@ class NewsEntity(BaseEntity):
         self.content_kr = content_kr
         self.publish_date = publish_date
         self.url = url
-        self.source = source
-        self.team_ids = [team.id for team in teams]
-        self.teams = teams
         self.thumbnail_url = thumbnail_url
         self.title_en = title_en
         self.title_kr = title_kr

@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import Column, String, ForeignKey, Integer, DateTime, Boolean
 from sqlalchemy.orm import relationship
 
+from football_data_manager.common.new_repositories.constants import FIXTURES_TABLE_NAME
 from football_data_manager.common.new_repositories.grounds.ground_entity import (
     GroundEntity,
 )
@@ -17,7 +18,7 @@ from football_data_manager.common.new_repositories.teams.team_entity import Team
 
 class FixtureEntity(PulseliveEntity):
     """
-    Fixture entity model.
+    Entity model for a football fixture.
     :ivar id: Unique identifier for the entity.
     :ivar away_team_id: Away team ID associated with the fixture.
     :ivar ground_id: Ground ID associated with the fixture.
@@ -38,10 +39,10 @@ class FixtureEntity(PulseliveEntity):
     :param source_id: Unique identifier from the source.
     """
 
-    __tablename__ = "fixtures_new"
+    __tablename__ = FIXTURES_TABLE_NAME
 
     away_team_id = Column(String, ForeignKey(TeamEntity.id), nullable=False)
-    away_team = relationship(TeamEntity, lazy="joined", foreign_keys=away_team_id)
+    away_team = relationship(TeamEntity, lazy="selectin", foreign_keys=away_team_id)
     away_team_score = Column(Integer, nullable=True)
     attendance = Column(Integer, nullable=True)
     clock = Column(Integer, nullable=True)
@@ -49,7 +50,7 @@ class FixtureEntity(PulseliveEntity):
     ground_id = Column(String, ForeignKey(GroundEntity.id), nullable=True)
     ground = relationship(GroundEntity, lazy="joined", foreign_keys=ground_id)
     home_team_id = Column(String, ForeignKey(TeamEntity.id), nullable=False)
-    home_team = relationship(TeamEntity, lazy="joined", foreign_keys=home_team_id)
+    home_team = relationship(TeamEntity, lazy="selectin", foreign_keys=home_team_id)
     home_team_score = Column(Integer, nullable=True)
     neutral_ground = Column(Boolean, nullable=False)
     kickoff_time = Column(DateTime, nullable=False)
@@ -88,7 +89,7 @@ class FixtureEntity(PulseliveEntity):
     def is_home_won(self) -> bool | None:
         """
         Check if the home team won the fixture.
-        :return: True if home team won, False if away team won, None if scores are not available.
+        :return: True if a home team won, False if an away team won, None if scores are not available.
         """
         if self.home_team_score is None or self.away_team_score is None:
             return None
@@ -99,7 +100,7 @@ class FixtureEntity(PulseliveEntity):
     def is_away_won(self) -> bool | None:
         """
         Check if the away team won the fixture.
-        :return: True if away team won, False if home team won, None if scores are not available.
+        :return: True if an away team won, False if a home team won, None if scores are not available.
         """
         if self.away_team_score is None or self.home_team_score is None:
             return None
@@ -121,7 +122,7 @@ class FixtureEntity(PulseliveEntity):
     def is_home_lost(self) -> bool | None:
         """
         Check if the home team lost the fixture.
-        :return: True if home team lost, False if away team lost, None if scores are not available.
+        :return: True if a home team lost, False if an away team lost, None if scores are not available.
         """
         if self.is_home_won is None:
             return None
@@ -132,7 +133,7 @@ class FixtureEntity(PulseliveEntity):
     def is_away_lost(self) -> bool | None:
         """
         Check if the away team lost the fixture.
-        :return: True if away team lost, False if home team lost, None if scores are not available.
+        :return: True if an away team lost, False if a home team lost, None if scores are not available.
         """
         if self.is_away_won is None:
             return None

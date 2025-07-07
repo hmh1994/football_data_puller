@@ -1,8 +1,12 @@
-from sqlalchemy import Column, String, ForeignKey, Integer, ARRAY, func
+from sqlalchemy import Column, String, ForeignKey, Integer
+from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm import relationship
 
-from football_data_manager.common.new_repositories.awards.award_entity import (
-    AwardEntity,
+from football_data_manager.common.new_repositories.constants import (
+    PLAYER_STATS_TABLE_NAME,
+)
+from football_data_manager.common.new_repositories.player_stats.player_stat_award_association import (
+    PlayerStatAwardAssociation,
 )
 from football_data_manager.common.new_repositories.players.player_entity import (
     PlayerEntity,
@@ -18,8 +22,10 @@ from football_data_manager.common.new_repositories.teams.team_entity import Team
 
 class PlayerStatEntity(PulseliveEntity):
     """
-    Player statistics entity model.
+    Entity model for player statistics.
     :ivar id: Unique identifier for the player stat.
+    :ivar award_associations: List of associations between player stats and awards.
+    :ivar awards: List of awards.
     :ivar player_id: Player ID associated with the stats.
     :ivar season_id: Season ID associated with the stats.
     :ivar team_id: Team ID associated with the stats.
@@ -27,7 +33,6 @@ class PlayerStatEntity(PulseliveEntity):
     :ivar source_id: Unique identifier from the source.
     :param appearances: Number of appearances.
     :param assists: Number of assists.
-    :param awards: List of awards.
     :param clean_sheets: Number of clean sheets.
     :param goals: Number of goals scored.
     :param goals_conceded: Number of goals conceded.
@@ -41,19 +46,14 @@ class PlayerStatEntity(PulseliveEntity):
     :param team: Team entity associated with the stats.
     """
 
-    __tablename__ = "player_stats_new"
+    __tablename__ = PLAYER_STATS_TABLE_NAME
 
     appearances = Column(Integer, nullable=False)
     assists = Column(Integer, nullable=False)
-    award_ids = Column(ARRAY(String), nullable=False)
-    awards = relationship(
-        TeamEntity,
-        primaryjoin=lambda: PlayerStatEntity.award_ids.any(AwardEntity.id),
-        lazy="joined",
-        viewonly=True,
-        order_by=lambda: func.array_position(
-            PlayerStatEntity.award_ids, AwardEntity.id
-        ),
+    awards = association_proxy(
+        target_collection=PlayerStatAwardAssociation.AWARD_COLLECTION_NAME,
+        attr=PlayerStatAwardAssociation.award,
+        creator=lambda award: PlayerStatAwardAssociation(award=award, date=award.date),  # type: ignore[arg-type]
     )
     clean_sheets = Column(Integer, nullable=False)
     goals = Column(Integer, nullable=False)
@@ -89,8 +89,7 @@ class PlayerStatEntity(PulseliveEntity):
         super().__init__(source_id=self.get_source_id(season, player))
         self.appearances = appearances
         self.assists = assists
-        self.award_ids = []
-        self.awards = []
+        self.award_associations = []
         self.clean_sheets = clean_sheets
         self.goals = goals
         self.goals_conceded = goals_conceded
@@ -112,13 +111,3 @@ class PlayerStatEntity(PulseliveEntity):
         :return: Unique source ID.
         """
         return f"{season.source_id}_{player.source_id}"
-
-    def add_award(self, award: AwardEntity):
-        """
-        Add an award to the player stat.
-        :param award: Award entity to add.
-        """
-        if award.id not in self.award_ids:
-            self.awards.append(award)
-            self.awards.sort(key=lambda a: a.date)
-            self.awards = list(a.id for a in self.awards)

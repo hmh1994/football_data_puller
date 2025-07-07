@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Double, Integer, String
 
+from football_data_manager.common.new_repositories.constants import GROUNDS_TABLE_NAME
 from football_data_manager.common.new_repositories.pulselive_entity import (
     PulseliveEntity,
 )
@@ -7,7 +8,7 @@ from football_data_manager.common.new_repositories.pulselive_entity import (
 
 class GroundEntity(PulseliveEntity):
     """
-    Ground entity model.
+    Entity model for the ground of a football match.
     :ivar id: Unique identifier for the entity.
     :ivar source: Source of the entity data, set to PULSELIVE.
     :param capacity: Ground capacity.
@@ -20,7 +21,7 @@ class GroundEntity(PulseliveEntity):
     :param source_id: Unique identifier from the source.
     """
 
-    __tablename__ = "grounds_new"
+    __tablename__ = GROUNDS_TABLE_NAME
 
     capacity = Column(Integer, nullable=True)
     city_name_en = Column(String, nullable=False)

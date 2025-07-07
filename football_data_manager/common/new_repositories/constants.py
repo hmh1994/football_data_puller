@@ -1,0 +1,20 @@
+AWARDS_TABLE_NAME = "awards_new"
+COMPETITIONS_TABLE_NAME = "competitions_new"
+FIXTURES_TABLE_NAME = "fixtures_new"
+GROUNDS_TABLE_NAME = "grounds_new"
+NEWS_TABLE_NAME = "news_new"
+PLAYER_STATS_TABLE_NAME = "player_stats_new"
+PLAYERS_TABLE_NAME = "players_new"
+SEASONS_TABLE_NAME = "seasons_new"
+TEAM_STATS_TABLE_NAME = "team_stats_new"
+TEAMS_TABLE_NAME = "teams_new"
+
+NEWS_TEAM_ASSOCIATION_TABLE_NAME = "news_team_association"
+PLAYER_STAT_AWARD_ASSOCIATION_TABLE_NAME = "player_stat_award_association"
+PLAYER_CHAMPIONSHIP_ASSOCIATION_TABLE_NAME = "player_championship_association"
+TEAM_STAT_AWAY_FIXTURE_ASSOCIATION_TABLE_NAME = "team_stat_away_fixture_association"
+TEAM_STAT_HOME_FIXTURE_ASSOCIATION_TABLE_NAME = "team_stat_home_fixture_association"
+TEAM_STAT_OVERALL_FIXTURE_ASSOCIATION_TABLE_NAME = (
+    "team_stat_overall_fixture_association"
+)
+TEAM_CHAMPIONSHIP_ASSOCIATION_TABLE_NAME = "team_championship_association"

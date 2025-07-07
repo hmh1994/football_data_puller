@@ -31,4 +31,4 @@ class TeamStatRepository(BaseRepository[TeamStatEntity]):
         """
         stmt = select(self.model).filter_by(season_id=season.id)
         result = await session.execute(stmt)
-        return list(result.scalars().all())
+        return list(result.unique().scalars().all())

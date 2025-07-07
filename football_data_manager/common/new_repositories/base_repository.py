@@ -1,7 +1,7 @@
 from asyncio import gather
 from typing import TypeVar, Generic, Type, Callable, Coroutine
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from football_data_manager.common.enums.source_enum import SourceEnum
@@ -38,6 +38,8 @@ class BaseRepository(Generic[TEntity]):
         """
 
         async def wrapper(self, *args, **kwargs):
+            if args and isinstance(args[0], AsyncSession):
+                return await func(self, *args, **kwargs)
             assert (
                 await self.__db_service.check_connection()
             ), "Database connection failed."
@@ -47,6 +49,20 @@ class BaseRepository(Generic[TEntity]):
         return wrapper
 
     @with_db_session
+    async def count(self, session: AsyncSession, *filters) -> int:
+        """
+        Counts the number of entities in the database.
+        :param session: Database session.
+        :param filters: Optional filters to apply to the count query.
+        :return: Number of entities.
+        """
+        stmt = select(func.count()).select_from(self.model)
+        if filters:
+            stmt = stmt.where(*filters)
+        result = await session.execute(stmt)
+        return result.scalar_one()
+
+    @with_db_session
     async def create(self, session: AsyncSession, entity: TEntity) -> TEntity | None:
         """
         Creates an entity in the database.
@@ -54,7 +70,7 @@ class BaseRepository(Generic[TEntity]):
         :param entity: Entity to create.
         :return: Created entity or None if it is a duplicate.
         """
-        if await self.__sieve_duplication(session, entity) is None:
+        if await self.__sieve_duplication(entity) is None:
             return None
         else:
             session.add(entity)
@@ -96,7 +112,7 @@ class BaseRepository(Generic[TEntity]):
         :return: List of entities.
         """
         result = await session.execute(select(self.model))
-        return list(result.scalars().all())
+        return list(result.unique().scalars().all())
 
     @with_db_session
     async def read_by_id(self, session: AsyncSession, entity_id: str) -> TEntity | None:
@@ -121,7 +137,13 @@ class BaseRepository(Generic[TEntity]):
         """
         stmt = (
             select(self.model)
-            .filter_by(source=source.value.upper())
+            .filter_by(
+                source=(
+                    source.value.upper()
+                    if isinstance(source, SourceEnum)
+                    else source.upper()
+                )
+            )
             .filter_by(source_id=source_id)
         )
         result = await session.execute(stmt)
@@ -164,7 +186,11 @@ class BaseRepository(Generic[TEntity]):
         :param entity: Entity to sieve.
         :return: Entity if not duplicated, None otherwise.
         """
-        if await session.get(self.model, entity.id):
+        same_id, same_source = await gather(
+            self.read_by_id(entity.id),
+            self.read_by_source_id(entity.source, entity.source_id),
+        )
+        if same_id is not None or same_source is not None:
             return None
         else:
             return entity

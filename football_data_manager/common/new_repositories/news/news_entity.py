@@ -16,7 +16,6 @@ class NewsEntity(BaseEntity):
     """
     Entity model for news articles.
     :ivar id: Unique identifier for the entity.
-    :ivar team_associations: List of associations between news and teams.
     :ivar teams: List of teams related to the news.
     :param author_en: List of authors in English.
     :param author_kr: List of authors in Korean.
@@ -43,8 +42,8 @@ class NewsEntity(BaseEntity):
     source = Column(String, nullable=False)
     teams = association_proxy(
         target_collection=NewsTeamAssociation.TEAM_COLLECTION_NAME,
-        attr=NewsTeamAssociation.team,
-        creator=lambda team: NewsTeamAssociation(team=team, date=team.date),  # type: ignore[arg-type]
+        attr=NewsTeamAssociation.TEAM_ATTRIBUTE_NAME,
+        creator=lambda team: NewsTeamAssociation(team=team),  # type: ignore[arg-type]
     )
     thumbnail_url = Column(String, nullable=False)
     title_en = Column(String, nullable=False)

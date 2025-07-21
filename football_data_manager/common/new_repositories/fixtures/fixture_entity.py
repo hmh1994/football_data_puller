@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Self
 
 from sqlalchemy import Column, String, ForeignKey, Integer, DateTime, Boolean
 from sqlalchemy.orm import relationship
@@ -84,6 +85,24 @@ class FixtureEntity(PulseliveEntity):
         self.clock = clock
         self.ground_id = ground.id if ground else None
         self.home_team_score = home_team_score
+
+    def refresh(self, fixture: Self):
+        """
+        Update the fixture with another fixture's data.
+        :param fixture: Fixture entity to update from.
+        :raises AssertionError: If the source or source ID of the fixtures do not match.
+        """
+        assert (
+            self.source == fixture.source
+        ), "Cannot update fixture with different source"
+        assert (
+            self.source_id == fixture.source_id
+        ), "Cannot update fixture with different source ID"
+        self.away_team_score = fixture.away_team_score
+        self.attendance = fixture.attendance
+        self.clock = fixture.clock
+        self.ground_id = fixture.ground_id
+        self.home_team_score = fixture.home_team_score
 
     @property
     def is_home_won(self) -> bool | None:

@@ -24,7 +24,6 @@ class PlayerStatEntity(PulseliveEntity):
     """
     Entity model for player statistics.
     :ivar id: Unique identifier for the player stat.
-    :ivar award_associations: List of associations between player stats and awards.
     :ivar awards: List of awards.
     :ivar player_id: Player ID associated with the stats.
     :ivar season_id: Season ID associated with the stats.
@@ -52,7 +51,7 @@ class PlayerStatEntity(PulseliveEntity):
     assists = Column(Integer, nullable=False)
     awards = association_proxy(
         target_collection=PlayerStatAwardAssociation.AWARD_COLLECTION_NAME,
-        attr=PlayerStatAwardAssociation.award,
+        attr=PlayerStatAwardAssociation.AWARD_ATTRIBUTE_NAME,
         creator=lambda award: PlayerStatAwardAssociation(award=award, date=award.date),  # type: ignore[arg-type]
     )
     clean_sheets = Column(Integer, nullable=False)
@@ -89,7 +88,6 @@ class PlayerStatEntity(PulseliveEntity):
         super().__init__(source_id=self.get_source_id(season, player))
         self.appearances = appearances
         self.assists = assists
-        self.award_associations = []
         self.clean_sheets = clean_sheets
         self.goals = goals
         self.goals_conceded = goals_conceded

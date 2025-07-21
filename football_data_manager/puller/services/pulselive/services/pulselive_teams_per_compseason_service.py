@@ -186,7 +186,9 @@ class PulseliveTeamsPerCompSeasonService:
         response: PulseliveTeamsCompseasonsStaffPlayerResponse,
     ) -> tuple[PlayerEntity, PlayerStatEntity]:
         player = await self.__process_player(response)
-        player_stat = await self.__process_player_stat(player, season, team, response)
+        player_stat, player = await self.__process_player_stat(
+            player, season, team, response
+        )
         return player, player_stat
 
     async def __process_player(
@@ -243,7 +245,7 @@ class PulseliveTeamsPerCompSeasonService:
         season: SeasonEntity,
         team: TeamEntity,
         response: PulseliveTeamsCompseasonsStaffPlayerResponse,
-    ) -> PlayerStatEntity:
+    ) -> tuple[PlayerStatEntity, PlayerEntity]:
         player_stat = await self.__player_stats_repository.read_by_source_id(
             PlayerStatEntity.get_source_id(season, player)
         )
@@ -251,11 +253,6 @@ class PulseliveTeamsPerCompSeasonService:
             awards, championship = await self.__pickup_awards_of_player(
                 season, response.awards
             )
-            for award in awards:
-                player_stat.add_award(award)
-            if championship:
-                player.add_championship(season)
-            return player_stat
         else:
             awards, championship = await self.__pickup_awards_of_player(
                 season, response.awards
@@ -285,11 +282,15 @@ class PulseliveTeamsPerCompSeasonService:
                 tackles=response.tackles if response.tackles is not None else 0,
                 team=team,
             )
-            for award in awards:
-                player_stat.add_award(award)
-            if championship:
-                player.add_championship(season)
-            return player_stat
+        for award in awards:
+            player_stat = await self.__player_stats_repository.update_award(
+                player_stat, award
+            )
+        if championship:
+            player = await self.__player_repository.update_championship_season(
+                player, season
+            )
+        return player_stat, player
 
     async def __pickup_awards_of_player(
         self,

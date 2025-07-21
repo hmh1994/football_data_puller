@@ -1,19 +1,13 @@
-from typing import Self
-
 from sqlalchemy import Column, String
-from sqlalchemy.ext.orderinglist import ordering_list
-from sqlalchemy.orm import relationship
+from sqlalchemy.ext.associationproxy import association_proxy
 
+from football_data_manager.common.new_repositories.constants import TEAMS_TABLE_NAME
 from football_data_manager.common.new_repositories.pulselive_entity import (
     PulseliveEntity,
-)
-from football_data_manager.common.new_repositories.seasons.season_entity import (
-    SeasonEntity,
 )
 from football_data_manager.common.new_repositories.teams.team_championship_association import (
     TeamChampionshipAssociation,
 )
-from football_data_manager.common.services.db.db_service import DbService
 
 
 class TeamEntity(PulseliveEntity):
@@ -31,23 +25,13 @@ class TeamEntity(PulseliveEntity):
     :param source_id: Unique identifier from the source.
     """
 
-    __tablename__ = "teams_new"
+    __tablename__ = TEAMS_TABLE_NAME
 
     abbreviation = Column(String, nullable=False)
-    championship_season_associations = relationship(
-        TeamChampionshipAssociation,
-        back_populates="team",
-        cascade="all, delete-orphan",
-        single_parent=True,
-        lazy="joined",
-        collection_class=ordering_list("date_end"),
-        order_by=TeamChampionshipAssociation.date_end,
-    )
-    championship_seasons = relationship(
-        SeasonEntity,
-        secondary=TeamChampionshipAssociation.__table__,
-        viewonly=True,
-        lazy="select",
+    championship_seasons = association_proxy(
+        target_collection=TeamChampionshipAssociation.SEASON_COLLECTION_NAME,
+        attr=TeamChampionshipAssociation.SEASON_ATTRIBUTE_NAME,
+        creator=lambda season: TeamChampionshipAssociation(season=season, date_end=season.date_end),  # type: ignore[arg-type]
     )
     icon_url = Column(String, nullable=True)
     name_en = Column(String, nullable=False)
@@ -72,25 +56,3 @@ class TeamEntity(PulseliveEntity):
         self.name_kr = name_kr
         self.short_name_en = short_name_en
         self.short_name_kr = short_name_kr
-
-    async def update_championship_season(
-        self, db_service: DbService, season: SeasonEntity
-    ) -> Self:
-        """
-        Apply a championship season to the team.
-        :param db_service: Database service for saving the association.
-        :param season: Season entity to apply.
-        :return: The updated team entity.
-        """
-        async with db_service.create_db_session() as session:
-            merged_entity = await session.merge(self)
-            await session.refresh(merged_entity, ["championship_season_associations"])
-        if all(
-            association.season_id != season.id
-            for association in merged_entity.championship_season_associations
-        ):
-            association = TeamChampionshipAssociation(
-                team_id=self.id, season_id=season.id, date_end=season.date_end
-            )
-            merged_entity.championship_season_associations.append(association)
-        return merged_entity

@@ -1,3 +1,5 @@
+from asyncio import gather
+
 from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -40,3 +42,33 @@ class FixtureRepository(BaseRepository[FixtureEntity]):
         )
         result = await session.execute(stmt)
         return sorted(list(result.unique().scalars().all()), key=lambda x: x.game_week)
+
+    @BaseRepository.with_db_session
+    async def upsert(
+        self, session: AsyncSession, fixture: FixtureEntity
+    ) -> FixtureEntity:
+        """
+        Upserts a fixture entity into the database.
+        If a fixture with the same source and source_id exists, it updates the existing fixture.
+        :param session: Database session (not used in this method).
+        :param fixture: Fixture entity to upsert.
+        :return: The upserted fixture entity.
+        """
+        if old_fixture := await self.read_by_source_id(
+            session, fixture.source, fixture.source_id
+        ):
+            if fixture.clock is None or old_fixture.clock is not None:
+                return old_fixture
+            else:
+                old_fixture.refresh(fixture)
+                return await self.update(session, old_fixture)
+        else:
+            return await self.create(session, fixture)
+
+    async def upsert_all(self, fixtures: list[FixtureEntity]) -> list[FixtureEntity]:
+        """
+        Upserts multiple fixture entities into the database.
+        :param fixtures: List of fixture entities to upsert.
+        :return: List of upserted fixture entities.
+        """
+        return await gather(*[self.upsert(fixture) for fixture in fixtures])

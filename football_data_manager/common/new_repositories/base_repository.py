@@ -1,4 +1,5 @@
 from asyncio import gather
+from functools import wraps
 from typing import TypeVar, Generic, Type, Callable, Coroutine
 
 from sqlalchemy import select, func
@@ -37,14 +38,17 @@ class BaseRepository(Generic[TEntity]):
         :return: Decorated function.
         """
 
+        @wraps(func)
         async def wrapper(self, *args, **kwargs):
             if args and isinstance(args[0], AsyncSession):
-                return await func(self, *args, **kwargs)
-            assert (
-                await self.__db_service.check_connection()
-            ), "Database connection failed."
-            async with self.__db_service.create_db_session() as session:
-                return await func(self, session, *args, **kwargs)
+                session, *rest = args
+                return await func(self, session, *rest, **kwargs)
+            else:
+                assert (
+                    await self.__db_service.check_connection()
+                ), "Database connection failed."
+                async with self.__db_service.create_db_session() as session:
+                    return await func(self, session, *args, **kwargs)
 
         return wrapper
 
@@ -63,6 +67,29 @@ class BaseRepository(Generic[TEntity]):
         return result.scalar_one()
 
     @with_db_session
+    async def exists(self, session: AsyncSession, entity_id: str) -> bool:
+        """
+        Checks if an entity exists in the database.
+        :param session: Database session (not used, but required for the decorator).
+        :param entity_id: ID of the entity.
+        :return: True if the entity exists, False otherwise.
+        """
+        return await self.read_by_id(session, entity_id) is not None
+
+    @with_db_session
+    async def exists_by_source_id(
+        self, session: AsyncSession, source: SourceEnum, source_id: str
+    ) -> bool:
+        """
+        Checks if an entity exists by source ID.
+        :param session: Database session (not used, but required for the decorator).
+        :param source: Source of the entity.
+        :param source_id: Source ID of the entity.
+        :return: True if the entity exists, False otherwise.
+        """
+        return await self.read_by_source_id(session, source, source_id) is not None
+
+    @with_db_session
     async def create(self, session: AsyncSession, entity: TEntity) -> TEntity | None:
         """
         Creates an entity in the database.
@@ -70,7 +97,7 @@ class BaseRepository(Generic[TEntity]):
         :param entity: Entity to create.
         :return: Created entity or None if it is a duplicate.
         """
-        if await self.__sieve_duplication(entity) is None:
+        if await self.__sieve_duplication(session, entity) is None:
             return None
         else:
             session.add(entity)
@@ -96,7 +123,10 @@ class BaseRepository(Generic[TEntity]):
             key=lambda e: (e.source, e.source_id),
         )
         sieved_entities = await gather(
-            *[self.__sieve_duplication(entity) for entity in unduplicated_entities]
+            *[
+                self.__sieve_duplication(session, entity)
+                for entity in unduplicated_entities
+            ]
         )
         candidate_entities = [e for e in sieved_entities if e is not None]
         if len(candidate_entities) > 0:
@@ -144,7 +174,7 @@ class BaseRepository(Generic[TEntity]):
                     else source.upper()
                 )
             )
-            .filter_by(source_id=source_id)
+            .filter_by(source_id=str(source_id))
         )
         result = await session.execute(stmt)
         return result.scalars().first()
@@ -177,6 +207,24 @@ class BaseRepository(Generic[TEntity]):
             await session.flush()
 
     @with_db_session
+    async def _load_lazy_fields(
+        self, session: AsyncSession, entity: TEntity, fields: list[str]
+    ) -> TEntity:
+        """
+        Loads lazy fields for the entity.
+        :param session: Database session.
+        :param entity: Entity to load lazy fields for.
+        :param fields: List of field names to load lazily.
+        :return: Entity with lazy fields loaded.
+        """
+        if await self.exists(session, entity.id):
+            merged_entity = await session.merge(entity)
+            await session.refresh(merged_entity, attribute_names=fields)
+            return merged_entity
+        else:
+            return entity
+
+    @with_db_session
     async def __sieve_duplication(
         self, session: AsyncSession, entity: TEntity
     ) -> TEntity | None:
@@ -187,8 +235,8 @@ class BaseRepository(Generic[TEntity]):
         :return: Entity if not duplicated, None otherwise.
         """
         same_id, same_source = await gather(
-            self.read_by_id(entity.id),
-            self.read_by_source_id(entity.source, entity.source_id),
+            self.read_by_id(session, entity.id),
+            self.read_by_source_id(session, entity.source, entity.source_id),
         )
         if same_id is not None or same_source is not None:
             return None

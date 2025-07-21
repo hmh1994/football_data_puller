@@ -12,8 +12,9 @@ from football_data_manager.common.new_repositories.constants import (
 class PlayerStatAwardAssociation(Base):
     __tablename__ = PLAYER_STAT_AWARD_ASSOCIATION_TABLE_NAME
 
-    AWARD_COLLECTION_NAME = "award_associations"
     PLAYER_STAT_COLLECTION_NAME = "player_stat_awards_associations"
+    AWARD_COLLECTION_NAME = "award_associations"
+    AWARD_ATTRIBUTE_NAME = "award"
 
     player_stat_id = Column(
         String, ForeignKey(f"{PLAYER_STATS_TABLE_NAME}.id"), primary_key=True
@@ -28,7 +29,7 @@ class PlayerStatAwardAssociation(Base):
             name=AWARD_COLLECTION_NAME,
             lazy="select",
             cascade="all, delete-orphan",
-            order_by=f"{PLAYER_STAT_AWARD_ASSOCIATION_TABLE_NAME}.date",
+            order_by="PlayerStatAwardAssociation.date",
         ),
     )
     award = relationship(

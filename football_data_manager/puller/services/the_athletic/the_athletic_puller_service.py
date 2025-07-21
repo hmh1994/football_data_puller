@@ -102,12 +102,13 @@ class TheAthleticPullerService:
         if translate_response is None:
             return None
         print(f"News entity translated: [{content.consumable_id}] {article.headline}")
-        return self.__process_news(content, article, translate_response)
+        return await self.__process_news(content, article, translate_response)
 
     async def __pull_news_list(
         self, league_abbr: str
     ) -> list[TheAthleticLeagueFeedMulliganLayoutContentResponse]:
         contents = []
+        content_id = set()
         page = 0
         while page < 5:
             response = await self.__graphql_service.get_league_feed(league_abbr, page)
@@ -117,11 +118,15 @@ class TheAthleticPullerService:
                 for c in r.contents
                 if c.consumable_id is not None
             ]
-            filtered_contents = [
-                c
-                for c in new_contents
-                if not (await self.__check_if_news_exists(c.consumable_id))
-            ]
+            filtered_contents = list()
+            for c in new_contents:
+                if (
+                    await self.__check_if_news_exists(c.consumable_id)
+                    or c.consumable_id in content_id
+                ):
+                    continue
+                content_id.add(c.consumable_id)
+                filtered_contents.append(c)
             print(f"League feed response from page {page}: {len(filtered_contents)}")
             contents.extend(filtered_contents)
             if len(new_contents) != len(filtered_contents):
@@ -175,7 +180,7 @@ class TheAthleticPullerService:
                 try_count += 1
         return None
 
-    def __process_news(
+    async def __process_news(
         self,
         content: TheAthleticLeagueFeedMulliganLayoutContentResponse,
         article: TheAthleticArticleResponse,
@@ -192,10 +197,7 @@ class TheAthleticPullerService:
         thumbnail_url = article.thumbnailUrl
         title_en = translate_response.title.en
         title_kr = translate_response.title.ko
-        teams = [
-            team for team in self.teams if team.abbreviation in translate_response.teams
-        ]
-        return NewsEntity(
+        news = NewsEntity(
             author_en=author_en,
             author_kr=author_kr,
             content_en=" ".join(translate_response.summary.en),
@@ -204,11 +206,18 @@ class TheAthleticPullerService:
             url=url,
             source=SourceEnum.THE_ATHLETIC,
             source_id=content.consumable_id,
-            teams=teams,
             thumbnail_url=thumbnail_url,
             title_en=title_en,
             title_kr=title_kr,
             typ=NewsTypeEnum.FULL_ARTICLE,
+        )
+        return await self.__news_repository.append_teams(
+            news,
+            [
+                team
+                for team in self.teams
+                if team.abbreviation in translate_response.teams
+            ],
         )
 
     async def __check_if_news_exists(self, news_id: str) -> bool:

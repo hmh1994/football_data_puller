@@ -628,7 +628,7 @@ async def runrun():
             ):
                 continue
             new_team = await team.update_championship_season(db_service, season)
-            await new_team_repo.update(new_team)
+            await new_team_repo.refresh(new_team)
             print(
                 f"Updated team {new_team.name_en} with championship season {season.abbreviation}"
             )

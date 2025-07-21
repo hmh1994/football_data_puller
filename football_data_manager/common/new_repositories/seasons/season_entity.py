@@ -6,6 +6,7 @@ from sqlalchemy.orm import relationship
 from football_data_manager.common.new_repositories.competitions.competition_entity import (
     CompetitionEntity,
 )
+from football_data_manager.common.new_repositories.constants import SEASONS_TABLE_NAME
 from football_data_manager.common.new_repositories.pulselive_entity import (
     PulseliveEntity,
 )
@@ -26,7 +27,7 @@ class SeasonEntity(PulseliveEntity):
     :param year_start: Season starts year.
     """
 
-    __tablename__ = "seasons_new"
+    __tablename__ = SEASONS_TABLE_NAME
 
     abbreviation = Column(String, nullable=False)
     competition_id = Column(String, ForeignKey(CompetitionEntity.id), nullable=False)

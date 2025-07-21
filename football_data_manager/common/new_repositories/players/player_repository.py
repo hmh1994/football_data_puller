@@ -5,6 +5,9 @@ from football_data_manager.common.new_repositories.base_repository import BaseRe
 from football_data_manager.common.new_repositories.players.player_entity import (
     PlayerEntity,
 )
+from football_data_manager.common.old_repositories.seasons.season_entity import (
+    SeasonEntity,
+)
 from football_data_manager.common.services.db.db_service import DbService
 
 
@@ -15,6 +18,15 @@ class PlayerRepository(BaseRepository[PlayerEntity]):
 
     def __init__(self, db_service: DbService):
         super().__init__(db_service, PlayerEntity)
+
+    async def load_championship_seasons(self, player: PlayerEntity) -> PlayerEntity:
+        """
+        Load championship seasons for the given player entity.
+        This method uses lazy loading to fetch the championship seasons associated with the player entity.
+        :param player: The player entity to load championship seasons for.
+        :return: The player entity with championship seasons loaded.
+        """
+        return await self._load_lazy_fields(player, ["championship_seasons"])
 
     @BaseRepository.with_db_session
     async def get_birth_country_kr(
@@ -51,3 +63,18 @@ class PlayerRepository(BaseRepository[PlayerEntity]):
         )
         result = await session.execute(stmt)
         return result.scalars().first().position_info_kr if result else None
+
+    async def update_championship_season(
+        self, player: PlayerEntity, season: SeasonEntity
+    ) -> PlayerEntity:
+        """
+        Apply a championship season to the player.
+        :param player: Player entity to update.
+        :param season: Championship season entity to apply.
+        :return: The updated player entity.
+        """
+        merged_player = await self.load_championship_seasons(player)
+        season_id_list = [s.id for s in merged_player.championship_seasons]
+        if season.id not in season_id_list:
+            merged_player.championship_seasons.append(season)
+        return merged_player

@@ -12,8 +12,9 @@ from football_data_manager.common.new_repositories.constants import (
 class NewsTeamAssociation(Base):
     __tablename__ = NEWS_TEAM_ASSOCIATION_TABLE_NAME
 
-    TEAM_COLLECTION_NAME = "team_associations"
     NEWS_COLLECTION_NAME = "news_teams_associations"
+    TEAM_COLLECTION_NAME = "team_associations"
+    TEAM_ATTRIBUTE_NAME = "team"
 
     news_id = Column(String, ForeignKey(f"{NEWS_TABLE_NAME}.id"), primary_key=True)
     team_id = Column(String, ForeignKey(f"{TEAMS_TABLE_NAME}.id"), primary_key=True)

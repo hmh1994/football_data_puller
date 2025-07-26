@@ -49,14 +49,14 @@ class FixtureEntity(PulseliveEntity):
     clock = Column(Integer, nullable=True)
     game_week = Column(Integer, nullable=False)
     ground_id = Column(String, ForeignKey(GroundEntity.id), nullable=True)
-    ground = relationship(GroundEntity, lazy="joined", foreign_keys=ground_id)
+    ground = relationship(GroundEntity, lazy="selectin", foreign_keys=ground_id)
     home_team_id = Column(String, ForeignKey(TeamEntity.id), nullable=False)
     home_team = relationship(TeamEntity, lazy="selectin", foreign_keys=home_team_id)
     home_team_score = Column(Integer, nullable=True)
     neutral_ground = Column(Boolean, nullable=False)
     kickoff_time = Column(DateTime, nullable=False)
     season_id = Column(String, ForeignKey(SeasonEntity.id), nullable=False)
-    season = relationship(SeasonEntity, lazy="joined", foreign_keys=season_id)
+    season = relationship(SeasonEntity, lazy="selectin", foreign_keys=season_id)
 
     def __init__(
         self,

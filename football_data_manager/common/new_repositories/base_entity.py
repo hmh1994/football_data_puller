@@ -20,7 +20,7 @@ class BaseEntity(Base):
     __abstract__ = True
 
     id = Column(String, nullable=False, primary_key=True)
-    source = Column(String, nullable=False)
+    source = Column(String, nullable=False)  # TODO: Change to Enum type
     source_id = Column(String, nullable=False)
     created_at = Column(DateTime, nullable=False)
     updated_at = Column(DateTime, nullable=False)

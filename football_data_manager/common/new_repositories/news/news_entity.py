@@ -48,7 +48,7 @@ class NewsEntity(BaseEntity):
     thumbnail_url = Column(String, nullable=False)
     title_en = Column(String, nullable=False)
     title_kr = Column(String, nullable=False)
-    type = Column(String, nullable=False)
+    type = Column(String, nullable=False)  # TODO: Change to Enum type
 
     def __init__(
         self,

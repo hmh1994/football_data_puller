@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from football_data_manager.common.new_repositories.base_repository import BaseRepository
 from football_data_manager.common.new_repositories.news.news_entity import NewsEntity
-from football_data_manager.common.old_repositories.teams.team_entity import TeamEntity
+from football_data_manager.common.new_repositories.teams.team_entity import TeamEntity
 from football_data_manager.common.services.db.db_service import DbService
 
 

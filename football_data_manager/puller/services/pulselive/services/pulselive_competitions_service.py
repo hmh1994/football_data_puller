@@ -24,6 +24,9 @@ from football_data_manager.common.new_repositories.teams.team_repository import 
     TeamRepository,
 )
 from football_data_manager.common.services.db.db_service import DbService
+from football_data_manager.common.services.translator.translatorService import (
+    TranslatorService,
+)
 from football_data_manager.puller.services.pulselive.models.responses.competitions.pulselive_competition_response import (
     PulseliveCompetitionResponse,
 )
@@ -38,9 +41,6 @@ from football_data_manager.puller.services.pulselive.models.responses.compseason
 )
 from football_data_manager.puller.services.pulselive.services.pulselive_web_client_service import (
     PulseliveWebClientService,
-)
-from football_data_manager.puller.services.utils.translatorService import (
-    TranslatorService,
 )
 
 

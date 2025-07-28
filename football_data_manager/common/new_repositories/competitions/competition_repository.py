@@ -1,11 +1,13 @@
-from football_data_manager.common.new_repositories.base_repository import BaseRepository
 from football_data_manager.common.new_repositories.competitions.competition_entity import (
     CompetitionEntity,
+)
+from football_data_manager.common.new_repositories.pulselive_repository import (
+    PulseliveRepository,
 )
 from football_data_manager.common.services.db.db_service import DbService
 
 
-class CompetitionRepository(BaseRepository[CompetitionEntity]):
+class CompetitionRepository(PulseliveRepository[CompetitionEntity]):
     """
     Competition repository.
     """

@@ -38,6 +38,9 @@ from football_data_manager.common.new_repositories.teams.team_repository import 
     TeamRepository,
 )
 from football_data_manager.common.services.db.db_service import DbService
+from football_data_manager.common.services.translator.translatorService import (
+    TranslatorService,
+)
 from football_data_manager.common.utils.type_helper.datetime_helper import (
     create_utc_datetime,
 )
@@ -52,9 +55,6 @@ from football_data_manager.puller.services.pulselive.models.responses.teams.comp
 )
 from football_data_manager.puller.services.pulselive.services.pulselive_web_client_service import (
     PulseliveWebClientService,
-)
-from football_data_manager.puller.services.utils.translatorService import (
-    TranslatorService,
 )
 
 

@@ -85,7 +85,7 @@ class TeamStatEntity(PulseliveEntity):
     away_fixtures = association_proxy(
         target_collection=TeamStatAwayFixtureAssociation.FIXTURE_COLLECTION_NAME,
         attr=TeamStatAwayFixtureAssociation.FIXTURE_ATTRIBUTE_NAME,
-        create=lambda fixture: TeamStatAwayFixtureAssociation(  # type: ignore[arg-type]
+        creator=lambda fixture: TeamStatAwayFixtureAssociation(  # type: ignore[arg-type]
             fixture=fixture, kickoff_time=fixture.kickoff_time  # type: ignore[arg-type]
         ),
     )
@@ -104,7 +104,7 @@ class TeamStatEntity(PulseliveEntity):
     home_fixtures = association_proxy(
         target_collection=TeamStatHomeFixtureAssociation.FIXTURE_COLLECTION_NAME,
         attr=TeamStatHomeFixtureAssociation.FIXTURE_ATTRIBUTE_NAME,
-        create=lambda fixture: TeamStatHomeFixtureAssociation(  # type: ignore[arg-type]
+        creator=lambda fixture: TeamStatHomeFixtureAssociation(  # type: ignore[arg-type]
             fixture=fixture, kickoff_time=fixture.kickoff_time  # type: ignore[arg-type]
         ),
     )
@@ -121,7 +121,7 @@ class TeamStatEntity(PulseliveEntity):
     overall_fixtures = association_proxy(
         target_collection=TeamStatOverallFixtureAssociation.FIXTURE_COLLECTION_NAME,
         attr=TeamStatOverallFixtureAssociation.FIXTURE_ATTRIBUTE_NAME,
-        create=lambda fixture: TeamStatOverallFixtureAssociation(  # type: ignore[arg-type]
+        creator=lambda fixture: TeamStatOverallFixtureAssociation(  # type: ignore[arg-type]
             fixture=fixture, kickoff_time=fixture.kickoff_time  # type: ignore[arg-type]
         ),
     )

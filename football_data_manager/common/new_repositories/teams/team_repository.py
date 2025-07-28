@@ -1,4 +1,6 @@
-from football_data_manager.common.new_repositories.base_repository import BaseRepository
+from football_data_manager.common.new_repositories.pulselive_repository import (
+    PulseliveRepository,
+)
 from football_data_manager.common.new_repositories.seasons.season_entity import (
     SeasonEntity,
 )
@@ -6,7 +8,7 @@ from football_data_manager.common.new_repositories.teams.team_entity import Team
 from football_data_manager.common.services.db.db_service import DbService
 
 
-class TeamRepository(BaseRepository[TeamEntity]):
+class TeamRepository(PulseliveRepository[TeamEntity]):
     """
     Team repository.
     """
@@ -38,3 +40,11 @@ class TeamRepository(BaseRepository[TeamEntity]):
         if season.id not in season_id_list:
             merged_team.championship_seasons.append(season)
         return merged_team
+
+    async def read_by_abbreviation(self, abbreviation: str) -> TeamEntity | None:
+        """
+        Read the team entity by abbreviation.
+        :param abbreviation: The abbreviation to get.
+        :return: The team entity read by the given abbreviation.
+        """
+        return await self._read_one_by_field(abbreviation=abbreviation)

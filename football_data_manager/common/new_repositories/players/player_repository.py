@@ -5,13 +5,16 @@ from football_data_manager.common.new_repositories.base_repository import BaseRe
 from football_data_manager.common.new_repositories.players.player_entity import (
     PlayerEntity,
 )
-from football_data_manager.common.old_repositories.seasons.season_entity import (
+from football_data_manager.common.new_repositories.pulselive_repository import (
+    PulseliveRepository,
+)
+from football_data_manager.common.new_repositories.seasons.season_entity import (
     SeasonEntity,
 )
 from football_data_manager.common.services.db.db_service import DbService
 
 
-class PlayerRepository(BaseRepository[PlayerEntity]):
+class PlayerRepository(PulseliveRepository[PlayerEntity]):
     """
     Player repository.
     """
@@ -78,3 +81,19 @@ class PlayerRepository(BaseRepository[PlayerEntity]):
         if season.id not in season_id_list:
             merged_player.championship_seasons.append(season)
         return merged_player
+
+    async def read_by_display_name_en(self, name: str) -> PlayerEntity | None:
+        """
+        Reads a player entity by its display name in English.
+        :param name: The display name in English.
+        :return: The player entity if found, otherwise None.
+        """
+        return await self._read_one_by_field(display_name_en=name)
+
+    async def read_by_full_name(self, name: str) -> PlayerEntity | None:
+        """
+        Reads a player entity by its full name.
+        :param name: The full name of the player.
+        :return: The player entity if found, otherwise None.
+        """
+        return await self._read_one_by_field(full_name=name)

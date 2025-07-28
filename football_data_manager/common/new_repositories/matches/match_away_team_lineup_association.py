@@ -4,8 +4,12 @@ from sqlalchemy.orm import relationship, backref
 from football_data_manager.common.new_repositories import Base
 from football_data_manager.common.new_repositories.constants import (
     MATCH_AWAY_TEAM_LINEUP_ASSOCIATION_TABLE_NAME,
-    MATCHES_TABLE_NAME,
-    PLAYERS_TABLE_NAME,
+)
+from football_data_manager.common.new_repositories.matches.match_entity import (
+    MatchEntity,
+)
+from football_data_manager.common.new_repositories.players.player_entity import (
+    PlayerEntity,
 )
 
 
@@ -13,9 +17,8 @@ class MatchAwayTeamLineupAssociation(Base):
     __tablename__ = MATCH_AWAY_TEAM_LINEUP_ASSOCIATION_TABLE_NAME
 
     POSITION_COLLECTION_NAME = "away_team_lineup_associations"
-    POSITION_ATTRIBUTE_NAME = "player_info"  # see `player_info` property below
 
-    match_id = Column(String, ForeignKey(f"{MATCHES_TABLE_NAME}.id"), primary_key=True)
+    match_id = Column(String, ForeignKey(MatchEntity.id), primary_key=True)
     match = relationship(
         argument="MatchEntity",
         backref=backref(
@@ -25,7 +28,7 @@ class MatchAwayTeamLineupAssociation(Base):
             order_by=f"{__qualname__}.shirt_number",  # see `shirt_number` attribute below
         ),
     )
-    player_id = Column(String, ForeignKey(f"{PLAYERS_TABLE_NAME}.id"), primary_key=True)
+    player_id = Column(String, ForeignKey(PlayerEntity.id), primary_key=True)
     player = relationship(
         argument="PlayerEntity", lazy="noload", foreign_keys=player_id
     )
@@ -36,5 +39,5 @@ class MatchAwayTeamLineupAssociation(Base):
     column = Column(Integer, nullable=False)
 
     @property
-    def player_info(self):  # see `POSITION_ATTRIBUTE_NAME`
-        return self.player, self.shirt_number, (self.row, self.column)
+    def player_info(self):
+        return self.player.id, self.shirt_number, (self.row, self.column)

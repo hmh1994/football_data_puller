@@ -2,19 +2,22 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from football_data_manager.common.new_repositories.base_repository import BaseRepository
+from football_data_manager.common.new_repositories.fixtures.fixture_entity import (
+    FixtureEntity,
+)
+from football_data_manager.common.new_repositories.pulselive_repository import (
+    PulseliveRepository,
+)
 from football_data_manager.common.new_repositories.seasons.season_entity import (
     SeasonEntity,
 )
 from football_data_manager.common.new_repositories.team_stats.team_stat_entity import (
     TeamStatEntity,
 )
-from football_data_manager.common.old_repositories.fixtures.fixture_entity import (
-    FixtureEntity,
-)
 from football_data_manager.common.services.db.db_service import DbService
 
 
-class TeamStatRepository(BaseRepository[TeamStatEntity]):
+class TeamStatRepository(PulseliveRepository[TeamStatEntity]):
     """
     Team statistics repository.
     """

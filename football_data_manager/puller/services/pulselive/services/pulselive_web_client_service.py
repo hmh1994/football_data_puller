@@ -13,8 +13,14 @@ from football_data_manager.puller.services.pulselive.models.responses.compseason
 from football_data_manager.puller.services.pulselive.models.responses.compseasons.teams.pulselive_compseason_team_response import (
     PulseliveCompseasonTeamResponse,
 )
+from football_data_manager.puller.services.pulselive.models.responses.fixture_details.pulselive_fixture_detail_response import (
+    PulseliveFixtureDetailResponse,
+)
 from football_data_manager.puller.services.pulselive.models.responses.fixtures.pulselive_fixture_response import (
     PulseliveFixtureResponse,
+)
+from football_data_manager.puller.services.pulselive.models.responses.match_stats.pulselive_match_stat_response import (
+    PulseliveMatchStatResponse,
 )
 from football_data_manager.puller.services.pulselive.models.responses.pulselive_list_response import (
     PulseliveListResponse,
@@ -39,7 +45,7 @@ class PulseliveWebClientService(AbstractWebClientService):
         super().__init__(URL(config.url.unicode_string()))
 
     async def get_football_competitions(
-            self,
+        self,
     ) -> list[PulseliveCompetitionResponse]:
         """
         Get the competitions.
@@ -56,7 +62,7 @@ class PulseliveWebClientService(AbstractWebClientService):
         )
 
     async def get_football_compseasons_gameweeks(
-            self, compseason_id: int
+        self, compseason_id: int
     ) -> PulseliveCompSeasonGameweekResponse:
         response = await self.get(
             path=URL(f"/football/compseasons/{compseason_id}/gameweeks"),
@@ -64,7 +70,7 @@ class PulseliveWebClientService(AbstractWebClientService):
         return PulseliveCompSeasonGameweekResponse.model_validate(response)
 
     async def get_football_compseasons_teams(
-            self, compseason_id: int
+        self, compseason_id: int
     ) -> list[PulseliveCompseasonTeamResponse]:
         """
         Get the teams of a competition season.
@@ -84,7 +90,7 @@ class PulseliveWebClientService(AbstractWebClientService):
         )
 
     async def get_football_fixtures(
-            self, competition_id: int, comp_season_id: int, page: int = 0
+        self, competition_id: int, comp_season_id: int, page: int = 0
     ) -> list[PulseliveFixtureResponse]:
         """
         Gets the fixtures of a competition season.
@@ -113,8 +119,25 @@ class PulseliveWebClientService(AbstractWebClientService):
             .content
         )
 
+    async def get_football_fixture_detail(
+        self, fixture_id: int
+    ) -> PulseliveFixtureDetailResponse:
+        """
+        Gets the fixture detail of a fixture.
+        :param fixture_id: Fixture ID.
+        :return: Fixture detail.
+        """
+        response = await self.get(
+            path=URL(f"/football/fixtures/{fixture_id}"),
+            query={
+                "altIds": True,
+                "fast": True,
+            },
+        )
+        return PulseliveFixtureDetailResponse.model_validate(response)
+
     async def get_football_standings(
-            self, comp_season_id: int, competition_id: int
+        self, comp_season_id: int, competition_id: int
     ) -> PulseliveStandingsResponse:
         """
         Get the standings of a competition season.
@@ -134,9 +157,9 @@ class PulseliveWebClientService(AbstractWebClientService):
         return PulseliveStandingsResponse.model_validate(response)
 
     async def get_football_team_compseason_staff(
-            self,
-            comp_season_id: int,
-            team_id: int,
+        self,
+        comp_season_id: int,
+        team_id: int,
     ) -> PulseliveTeamsCompseasonsStaffResponse:
         response = await self.get(
             path=URL(f"/football/teams/{team_id}/compseasons/{comp_season_id}/staff"),
@@ -146,3 +169,20 @@ class PulseliveWebClientService(AbstractWebClientService):
             },
         )
         return PulseliveTeamsCompseasonsStaffResponse.model_validate(response)
+
+    async def get_football_stats_match(
+        self, fixture_id: int
+    ) -> PulseliveMatchStatResponse:
+        """
+        Get the match statistics for a fixture.
+        :param fixture_id: Fixture ID.
+        :return: Match statistics.
+        """
+        response = await self.get(
+            path=URL(f"/football/stats/match/{fixture_id}"),
+            query={
+                "altIds": True,
+                "fast": True,
+            },
+        )
+        return PulseliveMatchStatResponse.model_validate(response)

@@ -45,3 +45,13 @@ def partition(
         else:
             second.append(item)
     return first, second
+
+
+def find_first(items: list[T], predicate: Callable[[T], bool]) -> T | None:
+    """
+    Find the first element in `items` for which `predicate` returns True.
+    :param items: An iterable of items.
+    :param predicate: A function that takes an item and returns True if it matches, False otherwise.
+    :returns: The first matching item, or None if no item matches.
+    """
+    return next(filter(predicate, items), None)

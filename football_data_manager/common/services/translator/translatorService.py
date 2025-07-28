@@ -1,4 +1,10 @@
+from asyncio import sleep
 from json import loads
+from typing import TypeVar
+
+from black.lines import Callable
+from pydantic import BaseModel
+from regex import compile
 
 from football_data_manager.common.services.client.anthropic_client_service import (
     AnthropicClientService,
@@ -6,6 +12,12 @@ from football_data_manager.common.services.client.anthropic_client_service impor
 from football_data_manager.common.services.client.openai_client_service import (
     OpenAiClientService,
 )
+from football_data_manager.common.services.config.config_service import ConfigService
+from football_data_manager.common.services.translator.models.word_response import (
+    WordResponse,
+)
+
+T = TypeVar("T", bound=BaseModel)
 
 
 class TranslatorService:
@@ -13,12 +25,20 @@ class TranslatorService:
     __anthropic_client: AnthropicClientService
     __openai_client: OpenAiClientService
 
+    def __init__(self, config_service: ConfigService):
+        self.__anthropic_client = AnthropicClientService(
+            api_key=config_service.api_list.anthropic.key
+        )
+        self.__openai_client = OpenAiClientService(
+            api_key=config_service.api_list.open_ai.key
+        )
+
     async def translate_word(self, word: str) -> str:
         """
         Translates text using the OpenAI client.
         :return: Translated text.
         """
-        result = await self.__anthropic_client.request(
+        result = await self.__translate_from_anthropic(
             system_messages=[
                 (
                     True,
@@ -54,5 +74,35 @@ class TranslatorService:
                 (False, "Now translate the following term:"),
             ],
             user_messages=[f'"{word}"'],
+            decoder=lambda x: WordResponse.model_validate(x),
         )
-        return loads(result[0])["translated"]
+        return result.translated
+
+    async def __translate_from_anthropic(
+        self,
+        system_messages: list[tuple[bool, str]],
+        user_messages: list[str],
+        decoder: Callable[[str], T],
+    ) -> T | None:
+        """
+        Translates text using the Anthropic client.
+        :return: Translated text.
+        """
+        try_count = 0
+        while try_count < 5:
+            try:
+                responses = await self.__anthropic_client.request(
+                    system_messages=system_messages,
+                    user_messages=user_messages,
+                )
+                jsons = [
+                    obj
+                    for resp in responses
+                    for obj in compile(r"\{(?:[^{}]|(?R))*\}").findall(resp)
+                ]
+                return decoder(loads(str(max(jsons, key=len))))
+            except Exception as e:
+                print(f"Translation error: {e}")
+                await sleep(1)
+                try_count += 1
+        return None

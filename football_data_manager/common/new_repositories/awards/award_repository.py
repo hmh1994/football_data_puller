@@ -5,9 +5,12 @@ from football_data_manager.common.new_repositories.awards.award_entity import (
     AwardEntity,
 )
 from football_data_manager.common.new_repositories.base_repository import BaseRepository
+from football_data_manager.common.new_repositories.pulselive_repository import (
+    PulseliveRepository,
+)
 
 
-class AwardRepository(BaseRepository[AwardEntity]):
+class AwardRepository(PulseliveRepository[AwardEntity]):
     """
     Award repository.
     """

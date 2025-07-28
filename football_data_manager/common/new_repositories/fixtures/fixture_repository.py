@@ -7,6 +7,9 @@ from football_data_manager.common.new_repositories.base_repository import BaseRe
 from football_data_manager.common.new_repositories.fixtures.fixture_entity import (
     FixtureEntity,
 )
+from football_data_manager.common.new_repositories.pulselive_repository import (
+    PulseliveRepository,
+)
 from football_data_manager.common.new_repositories.seasons.season_entity import (
     SeasonEntity,
 )
@@ -14,7 +17,7 @@ from football_data_manager.common.new_repositories.teams.team_entity import Team
 from football_data_manager.common.services.db.db_service import DbService
 
 
-class FixtureRepository(BaseRepository[FixtureEntity]):
+class FixtureRepository(PulseliveRepository[FixtureEntity]):
     """
     Fixture repository.
     """

@@ -1,11 +1,13 @@
-from football_data_manager.common.new_repositories.base_repository import BaseRepository
+from football_data_manager.common.new_repositories.pulselive_repository import (
+    PulseliveRepository,
+)
 from football_data_manager.common.new_repositories.seasons.season_entity import (
     SeasonEntity,
 )
 from football_data_manager.common.services.db.db_service import DbService
 
 
-class SeasonRepository(BaseRepository[SeasonEntity]):
+class SeasonRepository(PulseliveRepository[SeasonEntity]):
     """
     Season repository.
     """

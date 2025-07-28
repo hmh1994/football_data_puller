@@ -1,4 +1,3 @@
-from asyncio import gather
 from functools import wraps
 from typing import TypeVar, Generic, Type, Callable, Coroutine
 
@@ -122,12 +121,10 @@ class BaseRepository(Generic[TEntity]):
             remove_duplicates(entities, key=lambda e: e.id),
             key=lambda e: (e.source, e.source_id),
         )
-        sieved_entities = await gather(
-            *[
-                self.__sieve_duplication(session, entity)
-                for entity in unduplicated_entities
-            ]
-        )
+        sieved_entities = [
+            await self.__sieve_duplication(session, entity)
+            for entity in unduplicated_entities
+        ]
         candidate_entities = [e for e in sieved_entities if e is not None]
         if len(candidate_entities) > 0:
             session.add_all(candidate_entities)
@@ -178,6 +175,31 @@ class BaseRepository(Generic[TEntity]):
         )
         result = await session.execute(stmt)
         return result.scalars().first()
+
+    @with_db_session
+    async def _read_by_field(self, session: AsyncSession, **kwargs) -> list[TEntity]:
+        """
+        Reads an entity by field from the database.
+        :param session: Database session.
+        :param kwargs: Field names and values to filter by.
+        :return: An entity or None if not found.
+        """
+        stmt = select(self.model).filter_by(**kwargs)
+        result = await session.execute(stmt)
+        return list(result.unique().scalars().all())
+
+    async def _read_one_by_field(self, **kwargs) -> TEntity | None:
+        """
+        Reads a single entity by field from the database.
+        :param session: Database session.
+        :param kwargs: Field names and values to filter by.
+        :return: An entity or None if not found.
+        """
+        lst = await self._read_by_field(**kwargs)
+        if lst:
+            return lst[0]
+        else:
+            return None
 
     @with_db_session
     async def update(self, session: AsyncSession, entity: TEntity) -> TEntity:
@@ -234,11 +256,13 @@ class BaseRepository(Generic[TEntity]):
         :param entity: Entity to sieve.
         :return: Entity if not duplicated, None otherwise.
         """
-        same_id, same_source = await gather(
-            self.read_by_id(session, entity.id),
-            self.read_by_source_id(session, entity.source, entity.source_id),
+        same_id = await self.read_by_id(session, entity.id)
+        if same_id is not None:
+            return None
+        same_source = await self.read_by_source_id(
+            session, entity.source, entity.source_id
         )
-        if same_id is not None or same_source is not None:
+        if same_source is not None:
             return None
         else:
             return entity

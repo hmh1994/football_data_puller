@@ -1,14 +1,16 @@
 from football_data_manager.common.new_repositories.awards.award_entity import (
     AwardEntity,
 )
-from football_data_manager.common.new_repositories.base_repository import BaseRepository
 from football_data_manager.common.new_repositories.player_stats.player_stat_entity import (
     PlayerStatEntity,
+)
+from football_data_manager.common.new_repositories.pulselive_repository import (
+    PulseliveRepository,
 )
 from football_data_manager.common.services.db.db_service import DbService
 
 
-class PlayerStatRepository(BaseRepository[PlayerStatEntity]):
+class PlayerStatRepository(PulseliveRepository[PlayerStatEntity]):
     """
     Player statistics repository.
     """

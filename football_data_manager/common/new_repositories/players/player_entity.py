@@ -44,7 +44,7 @@ class PlayerEntity(PulseliveEntity):
     championship_seasons = association_proxy(
         target_collection=PlayerChampionshipAssociation.SEASON_COLLECTION_NAME,
         attr=PlayerChampionshipAssociation.SEASON_ATTRIBUTE_NAME,
-        create=lambda season: PlayerChampionshipAssociation(season=season, date_end=season.date_end),  # type: ignore[arg-type]
+        creator=lambda season: PlayerChampionshipAssociation(season=season, date_end=season.date_end),  # type: ignore[arg-type]
     )
     display_name_en = Column(String, nullable=False)
     display_name_kr = Column(String, nullable=False)

@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 from asyncio import run
 
-from football_data_manager.common.new_repositories import Base
+from football_data_manager.common.repositories import Base
 from football_data_manager.common.services.common_service_container import (
     CommonServiceContainer,
 )

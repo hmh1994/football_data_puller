@@ -6,14 +6,14 @@ from aiohttp import ClientSession
 from bs4 import BeautifulSoup
 from regex import compile
 
-from football_data_manager.common.enums.news_type import NewsTypeEnum
+from football_data_manager.common.enums.news_type_enum import NewsTypeEnum
 from football_data_manager.common.enums.source_enum import SourceEnum
-from football_data_manager.common.new_repositories.news.news_entity import NewsEntity
-from football_data_manager.common.new_repositories.news.news_repository import (
+from football_data_manager.common.repositories.news.news_entity import NewsEntity
+from football_data_manager.common.repositories.news.news_repository import (
     NewsRepository,
 )
-from football_data_manager.common.new_repositories.teams.team_entity import TeamEntity
-from football_data_manager.common.new_repositories.teams.team_repository import (
+from football_data_manager.common.repositories.teams.team_entity import TeamEntity
+from football_data_manager.common.repositories.teams.team_repository import (
     TeamRepository,
 )
 from football_data_manager.common.services.client.anthropic_client_service import (

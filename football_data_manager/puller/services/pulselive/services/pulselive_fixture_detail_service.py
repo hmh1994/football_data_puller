@@ -1,31 +1,31 @@
 from asyncio import gather
 
 from football_data_manager.common.enums.source_enum import SourceEnum
-from football_data_manager.common.new_repositories.competitions.competition_repository import (
+from football_data_manager.common.repositories.competitions.competition_repository import (
     CompetitionRepository,
 )
-from football_data_manager.common.new_repositories.fixtures.fixture_entity import (
+from football_data_manager.common.repositories.fixtures.fixture_entity import (
     FixtureEntity,
 )
-from football_data_manager.common.new_repositories.fixtures.fixture_repository import (
+from football_data_manager.common.repositories.fixtures.fixture_repository import (
     FixtureRepository,
 )
-from football_data_manager.common.new_repositories.matches.match_entity import (
+from football_data_manager.common.repositories.matches.match_entity import (
     MatchEntity,
 )
-from football_data_manager.common.new_repositories.matches.match_repository import (
+from football_data_manager.common.repositories.matches.match_repository import (
     MatchRepository,
 )
-from football_data_manager.common.new_repositories.officials.official_repository import (
+from football_data_manager.common.repositories.officials.official_repository import (
     OfficialRepository,
 )
-from football_data_manager.common.new_repositories.players.player_repository import (
+from football_data_manager.common.repositories.players.player_repository import (
     PlayerRepository,
 )
-from football_data_manager.common.new_repositories.seasons.season_repository import (
+from football_data_manager.common.repositories.seasons.season_repository import (
     SeasonRepository,
 )
-from football_data_manager.common.new_repositories.staffs.staff_repository import (
+from football_data_manager.common.repositories.staffs.staff_repository import (
     StaffRepository,
 )
 from football_data_manager.common.services.db.db_service import DbService

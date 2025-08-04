@@ -1,34 +1,34 @@
 from asyncio import gather
 
 from football_data_manager.common.enums.card_type_enum import CardTypeEnum
-from football_data_manager.common.new_repositories.fixtures.fixture_entity import (
+from football_data_manager.common.repositories.fixtures.fixture_entity import (
     FixtureEntity,
 )
-from football_data_manager.common.new_repositories.matches.match_entity import (
+from football_data_manager.common.repositories.matches.match_entity import (
     MatchEntity,
 )
-from football_data_manager.common.new_repositories.matches.match_repository import (
+from football_data_manager.common.repositories.matches.match_repository import (
     MatchRepository,
 )
-from football_data_manager.common.new_repositories.officials.official_entity import (
+from football_data_manager.common.repositories.officials.official_entity import (
     OfficialEntity,
 )
-from football_data_manager.common.new_repositories.officials.official_repository import (
+from football_data_manager.common.repositories.officials.official_repository import (
     OfficialRepository,
 )
-from football_data_manager.common.new_repositories.players.player_entity import (
+from football_data_manager.common.repositories.players.player_entity import (
     PlayerEntity,
 )
-from football_data_manager.common.new_repositories.players.player_repository import (
+from football_data_manager.common.repositories.players.player_repository import (
     PlayerRepository,
 )
-from football_data_manager.common.new_repositories.repository_container import (
+from football_data_manager.common.repositories.repository_container import (
     CommonRepositoryContainer,
 )
-from football_data_manager.common.new_repositories.staffs.staff_entity import (
+from football_data_manager.common.repositories.staffs.staff_entity import (
     StaffEntity,
 )
-from football_data_manager.common.new_repositories.staffs.staff_repository import (
+from football_data_manager.common.repositories.staffs.staff_repository import (
     StaffRepository,
 )
 from football_data_manager.common.services.common_service_container import (

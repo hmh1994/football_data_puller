@@ -2,25 +2,25 @@ from asyncio import gather
 from datetime import datetime
 
 from football_data_manager.common.enums.source_enum import SourceEnum
-from football_data_manager.common.new_repositories.competitions.competition_repository import (
+from football_data_manager.common.repositories.competitions.competition_repository import (
     CompetitionRepository,
 )
-from football_data_manager.common.new_repositories.fixtures.fixture_entity import (
+from football_data_manager.common.repositories.fixtures.fixture_entity import (
     FixtureEntity,
 )
-from football_data_manager.common.new_repositories.fixtures.fixture_repository import (
+from football_data_manager.common.repositories.fixtures.fixture_repository import (
     FixtureRepository,
 )
-from football_data_manager.common.new_repositories.grounds.ground_repository import (
+from football_data_manager.common.repositories.grounds.ground_repository import (
     GroundRepository,
 )
-from football_data_manager.common.new_repositories.seasons.season_entity import (
+from football_data_manager.common.repositories.seasons.season_entity import (
     SeasonEntity,
 )
-from football_data_manager.common.new_repositories.seasons.season_repository import (
+from football_data_manager.common.repositories.seasons.season_repository import (
     SeasonRepository,
 )
-from football_data_manager.common.new_repositories.teams.team_repository import (
+from football_data_manager.common.repositories.teams.team_repository import (
     TeamRepository,
 )
 from football_data_manager.common.services.db.db_service import DbService

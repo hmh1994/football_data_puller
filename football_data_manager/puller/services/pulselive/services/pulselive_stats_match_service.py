@@ -1,19 +1,19 @@
 from asyncio import gather
 
 from football_data_manager.common.enums.source_enum import SourceEnum
-from football_data_manager.common.new_repositories.match_stats.match_stat_entity import (
+from football_data_manager.common.repositories.match_stats.match_stat_entity import (
     MatchStatEntity,
 )
-from football_data_manager.common.new_repositories.match_stats.match_stat_repository import (
+from football_data_manager.common.repositories.match_stats.match_stat_repository import (
     MatchStatRepository,
 )
-from football_data_manager.common.new_repositories.matches.match_entity import (
+from football_data_manager.common.repositories.matches.match_entity import (
     MatchEntity,
 )
-from football_data_manager.common.new_repositories.matches.match_repository import (
+from football_data_manager.common.repositories.matches.match_repository import (
     MatchRepository,
 )
-from football_data_manager.common.new_repositories.teams.team_repository import (
+from football_data_manager.common.repositories.teams.team_repository import (
     TeamRepository,
 )
 from football_data_manager.common.services.db.db_service import DbService

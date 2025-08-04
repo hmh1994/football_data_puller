@@ -1,63 +1,6 @@
 from asyncio import run, gather
 from typing import TypeVar
 
-from football_data_manager.common.enums.news_type import NewsTypeEnum
-from football_data_manager.common.enums.source_enum import SourceEnum
-from football_data_manager.common.new_repositories import Base as NewBase
-from football_data_manager.common.new_repositories.base_repository import BaseRepository
-from football_data_manager.common.new_repositories.competitions.competition_entity import (
-    CompetitionEntity,
-)
-from football_data_manager.common.new_repositories.competitions.competition_repository import (
-    CompetitionRepository,
-)
-from football_data_manager.common.new_repositories.fixtures.fixture_entity import (
-    FixtureEntity,
-)
-from football_data_manager.common.new_repositories.fixtures.fixture_repository import (
-    FixtureRepository,
-)
-from football_data_manager.common.new_repositories.grounds.ground_entity import (
-    GroundEntity,
-)
-from football_data_manager.common.new_repositories.grounds.ground_repository import (
-    GroundRepository,
-)
-from football_data_manager.common.new_repositories.news.news_entity import NewsEntity
-from football_data_manager.common.new_repositories.news.news_repository import (
-    NewsRepository,
-)
-from football_data_manager.common.new_repositories.player_stats.player_stat_entity import (
-    PlayerStatEntity,
-)
-from football_data_manager.common.new_repositories.player_stats.player_stat_repository import (
-    PlayerStatRepository,
-)
-from football_data_manager.common.new_repositories.players.player_entity import (
-    PlayerEntity,
-)
-from football_data_manager.common.new_repositories.players.player_repository import (
-    PlayerRepository,
-)
-from football_data_manager.common.new_repositories.repository_container import (
-    CommonRepositoryContainer,
-)
-from football_data_manager.common.new_repositories.seasons.season_entity import (
-    SeasonEntity,
-)
-from football_data_manager.common.new_repositories.seasons.season_repository import (
-    SeasonRepository,
-)
-from football_data_manager.common.new_repositories.team_stats.team_stat_entity import (
-    TeamStatEntity,
-)
-from football_data_manager.common.new_repositories.team_stats.team_stat_repository import (
-    TeamStatRepository,
-)
-from football_data_manager.common.new_repositories.teams.team_entity import TeamEntity
-from football_data_manager.common.new_repositories.teams.team_repository import (
-    TeamRepository,
-)
 from football_data_manager.common.old_repositories import Base as OldBase
 from football_data_manager.common.old_repositories.base_entity import BaseEntity
 from football_data_manager.common.old_repositories.competitions.competition_entity import (
@@ -92,6 +35,64 @@ from football_data_manager.common.old_repositories.teams.team_entity import (
 )
 from football_data_manager.common.old_repositories.teams.team_repository import (
     TeamRepository as OldTeamRepository,
+)
+
+from football_data_manager.common.enums.news_type_enum import NewsTypeEnum
+from football_data_manager.common.enums.source_enum import SourceEnum
+from football_data_manager.common.repositories import Base as NewBase
+from football_data_manager.common.repositories.base_repository import BaseRepository
+from football_data_manager.common.repositories.competitions.competition_entity import (
+    CompetitionEntity,
+)
+from football_data_manager.common.repositories.competitions.competition_repository import (
+    CompetitionRepository,
+)
+from football_data_manager.common.repositories.fixtures.fixture_entity import (
+    FixtureEntity,
+)
+from football_data_manager.common.repositories.fixtures.fixture_repository import (
+    FixtureRepository,
+)
+from football_data_manager.common.repositories.grounds.ground_entity import (
+    GroundEntity,
+)
+from football_data_manager.common.repositories.grounds.ground_repository import (
+    GroundRepository,
+)
+from football_data_manager.common.repositories.news.news_entity import NewsEntity
+from football_data_manager.common.repositories.news.news_repository import (
+    NewsRepository,
+)
+from football_data_manager.common.repositories.player_stats.player_stat_entity import (
+    PlayerStatEntity,
+)
+from football_data_manager.common.repositories.player_stats.player_stat_repository import (
+    PlayerStatRepository,
+)
+from football_data_manager.common.repositories.players.player_entity import (
+    PlayerEntity,
+)
+from football_data_manager.common.repositories.players.player_repository import (
+    PlayerRepository,
+)
+from football_data_manager.common.repositories.repository_container import (
+    CommonRepositoryContainer,
+)
+from football_data_manager.common.repositories.seasons.season_entity import (
+    SeasonEntity,
+)
+from football_data_manager.common.repositories.seasons.season_repository import (
+    SeasonRepository,
+)
+from football_data_manager.common.repositories.team_stats.team_stat_entity import (
+    TeamStatEntity,
+)
+from football_data_manager.common.repositories.team_stats.team_stat_repository import (
+    TeamStatRepository,
+)
+from football_data_manager.common.repositories.teams.team_entity import TeamEntity
+from football_data_manager.common.repositories.teams.team_repository import (
+    TeamRepository,
 )
 from football_data_manager.common.services.common_service_container import (
     CommonServiceContainer,

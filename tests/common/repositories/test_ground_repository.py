@@ -1,10 +1,10 @@
 from sqlalchemy.orm import DeclarativeBase
 
-from football_data_manager.common.new_repositories import Base
-from football_data_manager.common.new_repositories.grounds.ground_entity import (
+from football_data_manager.common.repositories import Base
+from football_data_manager.common.repositories.grounds.ground_entity import (
     GroundEntity,
 )
-from football_data_manager.common.new_repositories.grounds.ground_repository import (
+from football_data_manager.common.repositories.grounds.ground_repository import (
     GroundRepository,
 )
 from tests.common.repositories.abstract_test_repository import AbstractTestRepository

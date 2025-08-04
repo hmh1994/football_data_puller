@@ -1,6 +1,6 @@
 from sqlalchemy.orm import DeclarativeBase
 
-from football_data_manager.common.new_repositories.base_repository import BaseRepository
+from football_data_manager.common.repositories.base_repository import BaseRepository
 from tests.common.repositories.abstract_test_repository import AbstractTestRepository
 from tests.common.repositories.sample_data.base_sample_data import (
     EntityMock,

@@ -1,9 +1,9 @@
 from pytest import mark
 from sqlalchemy.orm import DeclarativeBase
 
-from football_data_manager.common.new_repositories import Base
-from football_data_manager.common.new_repositories.teams.team_entity import TeamEntity
-from football_data_manager.common.new_repositories.teams.team_repository import (
+from football_data_manager.common.repositories import Base
+from football_data_manager.common.repositories.teams.team_entity import TeamEntity
+from football_data_manager.common.repositories.teams.team_repository import (
     TeamRepository,
 )
 from football_data_manager.common.services.db.db_service import DbService

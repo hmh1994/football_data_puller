@@ -1,0 +1,322 @@
+from typing import TYPE_CHECKING
+
+from football_data_manager.common.enums.card_type_enum import CardTypeEnum
+from football_data_manager.common.repositories.matches.match_away_team_card_association import (
+    MatchAwayTeamCardAssociation,
+)
+from football_data_manager.common.repositories.matches.match_away_team_goal_association import (
+    MatchAwayTeamGoalAssociation,
+)
+from football_data_manager.common.repositories.matches.match_away_team_lineup_association import (
+    MatchAwayTeamLineupAssociation,
+)
+from football_data_manager.common.repositories.matches.match_away_team_substitute_association import (
+    MatchAwayTeamSubstituteAssociation,
+)
+from football_data_manager.common.repositories.matches.match_away_team_substitution_association import (
+    MatchAwayTeamSubstitutionAssociation,
+)
+from football_data_manager.common.repositories.matches.match_entity import (
+    MatchEntity,
+)
+from football_data_manager.common.repositories.matches.match_home_team_card_association import (
+    MatchHomeTeamCardAssociation,
+)
+from football_data_manager.common.repositories.matches.match_home_team_goal_association import (
+    MatchHomeTeamGoalAssociation,
+)
+from football_data_manager.common.repositories.matches.match_home_team_lineup_association import (
+    MatchHomeTeamLineupAssociation,
+)
+from football_data_manager.common.repositories.matches.match_home_team_substitute_association import (
+    MatchHomeTeamSubstituteAssociation,
+)
+from football_data_manager.common.repositories.matches.match_home_team_substitution_association import (
+    MatchHomeTeamSubstitutionAssociation,
+)
+from football_data_manager.common.repositories.players.player_entity import (
+    PlayerEntity,
+)
+from football_data_manager.common.repositories.pulselive_repository import (
+    PulseliveRepository,
+)
+from football_data_manager.common.services.db.db_service import DbService
+
+if TYPE_CHECKING:
+    pass
+
+
+class MatchRepository(PulseliveRepository[MatchEntity]):
+    """
+    Repository for managing match entities and their associations.
+
+    Provides specialized functionality for handling complex match data including
+    lineups, events, substitutions, and various match-related associations.
+    Extends PulseliveRepository to inherit source-specific operations.
+    """
+
+    def __init__(self, db_service: DbService):
+        super().__init__(db_service, MatchEntity)
+
+    async def load_items(self, match: MatchEntity) -> MatchEntity:
+        """
+        Load all match association items (lazy-loaded relationships).
+
+        Loads all association collections including cards, goals, lineups,
+        substitutes, and substitutions for both home and away teams.
+
+        :param match: The match entity to load items for
+        :returns: The match entity with all associations loaded
+        """
+        return await self._load_lazy_fields(
+            match,
+            [
+                MatchAwayTeamCardAssociation.CARD_INFO_COLLECTION_NAME,
+                MatchAwayTeamGoalAssociation.GOAL_INFO_COLLECTION_NAME,
+                MatchAwayTeamLineupAssociation.POSITION_COLLECTION_NAME,
+                MatchAwayTeamSubstituteAssociation.PLAYER_INFO_COLLECTION_NAME,
+                MatchAwayTeamSubstitutionAssociation.SUBSTITUTION_COLLECTION_NAME,
+                MatchHomeTeamCardAssociation.CARD_INFO_COLLECTION_NAME,
+                MatchHomeTeamGoalAssociation.GOAL_INFO_COLLECTION_NAME,
+                MatchHomeTeamLineupAssociation.POSITION_COLLECTION_NAME,
+                MatchHomeTeamSubstituteAssociation.PLAYER_INFO_COLLECTION_NAME,
+                MatchHomeTeamSubstitutionAssociation.SUBSTITUTION_COLLECTION_NAME,
+            ],
+        )
+
+    async def append_card(
+        self,
+        match: MatchEntity,
+        is_home: bool,
+        player: PlayerEntity,
+        card_type: CardTypeEnum,
+        clock: int,
+    ) -> MatchEntity:
+        """
+        Append a card to the match if it doesn't already exist.
+
+        Args:
+            match: The match entity
+            is_home: Whether the card is for the home team
+            player: The player who received the card
+            card_type: The type of card (yellow/red)
+            clock: The time when the card was given
+
+        Returns:
+            The updated match entity with the card added
+        """
+        merged_match = await self.load_items(match)
+        target_list = (
+            merged_match.home_team_card_associations
+            if is_home
+            else merged_match.away_team_card_associations
+        )
+
+        # Check for duplicate using more efficient set comparison
+        existing_cards = {(c.player_id, c.card_type, c.clock) for c in target_list}
+        card_key = (player.id, card_type, clock)
+
+        if card_key not in existing_cards:
+            params = {
+                "match": merged_match,
+                "player": player,
+                "card_type": card_type,
+                "clock": clock,
+            }
+            card_association = (
+                MatchHomeTeamCardAssociation(**params)
+                if is_home
+                else MatchAwayTeamCardAssociation(**params)
+            )
+            target_list.append(card_association)
+        return merged_match
+
+    async def append_goal(
+        self,
+        match: MatchEntity,
+        is_home: bool,
+        player: PlayerEntity,
+        assist_player: PlayerEntity | None,
+        is_penalty: bool,
+        is_own_goal: bool,
+        clock: int,
+    ) -> MatchEntity:
+        """
+        Append a goal to the match if it doesn't already exist.
+
+        Args:
+            match: The match entity
+            is_home: Whether the goal is for the home team
+            player: The player who scored the goal
+            assist_player: The player who assisted (optional)
+            is_penalty: Whether it was a penalty goal
+            is_own_goal: Whether it was an own goal
+            clock: The time when the goal was scored
+
+        Returns:
+            The updated match entity with the goal added
+        """
+        merged_match = await self.load_items(match)
+        target_list = (
+            merged_match.home_team_goal_associations
+            if is_home
+            else merged_match.away_team_goal_associations
+        )
+
+        # Check for duplicate using more efficient set comparison
+        existing_goals = {(g.player_id, g.clock) for g in target_list}
+        goal_key = (player.id, clock)
+
+        if goal_key not in existing_goals:
+            params = {
+                "match": merged_match,
+                "player": player,
+                "assist_player": assist_player,
+                "clock": clock,
+                "is_penalty": is_penalty,
+                "is_own_goal": is_own_goal,
+            }
+            goal_association = (
+                MatchHomeTeamGoalAssociation(**params)
+                if is_home
+                else MatchAwayTeamGoalAssociation(**params)
+            )
+            target_list.append(goal_association)
+        return merged_match
+
+    async def append_lineup(
+        self,
+        match: MatchEntity,
+        is_home: bool,
+        player: PlayerEntity,
+        shirt_number: int,
+        row: int,
+        column: int,
+    ) -> MatchEntity:
+        """
+        Append a player to the starting lineup if not already present.
+
+        Args:
+            match: The match entity
+            is_home: Whether the player is for the home team
+            player: The player entity
+            shirt_number: The player's shirt number
+            row: Formation row position
+            column: Formation column position
+
+        Returns:
+            The updated match entity with the lineup player added
+        """
+        merged_match = await self.load_items(match)
+        target_list = (
+            merged_match.home_team_lineup_associations
+            if is_home
+            else merged_match.away_team_lineup_associations
+        )
+
+        # Check for duplicate using more efficient set comparison
+        existing_players = {l.player_id for l in target_list}
+
+        if player.id not in existing_players:
+            params = {
+                "match": merged_match,
+                "player": player,
+                "shirt_number": shirt_number,
+                "row": row,
+                "column": column,
+            }
+            lineup_association = (
+                MatchHomeTeamLineupAssociation(**params)
+                if is_home
+                else MatchAwayTeamLineupAssociation(**params)
+            )
+            target_list.append(lineup_association)
+        return merged_match
+
+    async def append_substitute(
+        self, match: MatchEntity, is_home: bool, player: PlayerEntity, shirt_number: int
+    ) -> MatchEntity:
+        """
+        Append a substitute player if not already present.
+
+        Args:
+            match: The match entity
+            is_home: Whether the substitute is for the home team
+            player: The substitute player entity
+            shirt_number: The player's shirt number
+
+        Returns:
+            The updated match entity with the substitute added
+        """
+        merged_match = await self.load_items(match)
+        target_list = (
+            merged_match.home_team_substitute_associations
+            if is_home
+            else merged_match.away_team_substitute_associations
+        )
+
+        # Check for duplicate using more efficient set comparison
+        existing_players = {s.player_id for s in target_list}
+
+        if player.id not in existing_players:
+            params = {
+                "match": merged_match,
+                "player": player,
+                "shirt_number": shirt_number,
+            }
+            substitute_association = (
+                MatchHomeTeamSubstituteAssociation(**params)
+                if is_home
+                else MatchAwayTeamSubstituteAssociation(**params)
+            )
+            target_list.append(substitute_association)
+        return merged_match
+
+    async def append_substitution(
+        self,
+        match: MatchEntity,
+        is_home: bool,
+        in_player: PlayerEntity,
+        out_player: PlayerEntity,
+        clock: int,
+    ) -> MatchEntity:
+        """
+        Append a substitution if it doesn't already exist.
+
+        Args:
+            match: The match entity
+            is_home: Whether the substitution is for the home team
+            in_player: The player coming in
+            out_player: The player going out
+            clock: The time when the substitution occurred
+
+        Returns:
+            The updated match entity with the substitution added
+        """
+        merged_match = await self.load_items(match)
+        target_list = (
+            merged_match.home_team_substitution_associations
+            if is_home
+            else merged_match.away_team_substitution_associations
+        )
+
+        # Check for duplicate using more efficient set comparison
+        existing_substitutions = {
+            (s.in_player_id, s.out_player_id) for s in target_list
+        }
+        substitution_key = (in_player.id, out_player.id)
+
+        if substitution_key not in existing_substitutions:
+            params = {
+                "match": merged_match,
+                "in_player": in_player,
+                "out_player": out_player,
+                "clock": clock,
+            }
+            substitution_association = (
+                MatchHomeTeamSubstitutionAssociation(**params)
+                if is_home
+                else MatchAwayTeamSubstitutionAssociation(**params)
+            )
+            target_list.append(substitution_association)
+        return merged_match

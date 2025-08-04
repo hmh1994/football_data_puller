@@ -1,4 +1,4 @@
-from football_data_manager.common.new_repositories.competitions.competition_repository import (
+from football_data_manager.common.repositories.competitions.competition_repository import (
     CompetitionEntity,
     CompetitionRepository,
 )

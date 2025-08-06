@@ -1,6 +1,15 @@
 from datetime import datetime
 
-from sqlalchemy import Column, String, ForeignKey, Integer, DateTime, Boolean
+from sqlalchemy import (
+    Column,
+    String,
+    ForeignKey,
+    Integer,
+    DateTime,
+    Boolean,
+    Index,
+    desc,
+)
 
 from football_data_manager.common.repositories.constants import FIXTURES_TABLE_NAME
 from football_data_manager.common.repositories.grounds.ground_entity import (
@@ -18,10 +27,10 @@ from football_data_manager.common.repositories.teams.team_entity import TeamEnti
 class FixtureEntity(PulseliveEntity):
     """
     Entity model for football fixtures (matches) with scheduling and team information.
-    
+
     Represents scheduled football matches with teams, venue, timing, and game week details.
     Extends PulseliveEntity to inherit source tracking functionality.
-    
+
     :ivar id: Unique identifier for the entity
     :ivar away_team_id: Foreign key to away team entity
     :ivar game_week: Game week number in the season
@@ -38,13 +47,37 @@ class FixtureEntity(PulseliveEntity):
 
     __tablename__ = FIXTURES_TABLE_NAME
 
-    away_team_id = Column(String, ForeignKey(TeamEntity.id), nullable=False)
+    away_team_id = Column(
+        String,
+        ForeignKey(TeamEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
+        nullable=False,
+    )
     game_week = Column(Integer, nullable=False)
-    ground_id = Column(String, ForeignKey(GroundEntity.id), nullable=True)
-    home_team_id = Column(String, ForeignKey(TeamEntity.id), nullable=False)
+    ground_id = Column(
+        String,
+        ForeignKey(GroundEntity.id, ondelete="SET NULL", onupdate="RESTRICT"),
+        nullable=True,
+    )
+    home_team_id = Column(
+        String,
+        ForeignKey(TeamEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
+        nullable=False,
+    )
     neutral_ground = Column(Boolean, nullable=False)
     kickoff_time = Column(DateTime, nullable=False)
-    season_id = Column(String, ForeignKey(SeasonEntity.id), nullable=False)
+    season_id = Column(
+        String,
+        ForeignKey(SeasonEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
+        nullable=False,
+    )
+
+    __table_args__ = (
+        Index("ix_fixture_away_team", away_team_id),
+        Index("ix_fixture_away_team_season", away_team_id, season_id),
+        Index("ix_fixture_home_team", home_team_id),
+        Index("ix_fixture_home_team_season", home_team_id, season_id),
+        Index("ix_fixture_kickoff_time_desc", desc(kickoff_time)),
+    )
 
     def __init__(
         self,
@@ -59,7 +92,7 @@ class FixtureEntity(PulseliveEntity):
     ):
         """
         Initialize a new fixture entity.
-        
+
         :param away_team: Away team entity for the match
         :param game_week: Game week number in the season
         :param home_team: Home team entity for the match

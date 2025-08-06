@@ -11,6 +11,15 @@ TEntity = TypeVar("TEntity", bound=PulseliveEntity)
 
 class PulseliveRepository(BaseRepository[TEntity]):
 
+    async def exists_by_pulselive_id(self, source_id: str) -> bool:
+        """
+        Checks if an entity exists in the database by its Pulselive ID.
+
+        :param source_id: Pulselive ID to check.
+        :return: True if the entity exists, False otherwise.
+        """
+        return await self.exists_by_source_id(SourceEnum.PULSELIVE, source_id)
+
     async def read_by_pulselive_id(self, source_id: str) -> TEntity:
         """
         Reads an entity by Pulselive ID from the database.

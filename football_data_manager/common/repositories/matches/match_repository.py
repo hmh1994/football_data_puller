@@ -1,5 +1,3 @@
-from typing import TYPE_CHECKING
-
 from football_data_manager.common.enums.card_type_enum import CardTypeEnum
 from football_data_manager.common.repositories.matches.match_away_team_card_association import (
     MatchAwayTeamCardAssociation,
@@ -41,9 +39,6 @@ from football_data_manager.common.repositories.pulselive_repository import (
     PulseliveRepository,
 )
 from football_data_manager.common.services.db.db_service import DbService
-
-if TYPE_CHECKING:
-    pass
 
 
 class MatchRepository(PulseliveRepository[MatchEntity]):
@@ -129,6 +124,7 @@ class MatchRepository(PulseliveRepository[MatchEntity]):
                 else MatchAwayTeamCardAssociation(**params)
             )
             target_list.append(card_association)
+        target_list.sort(key=lambda c: c.clock)
         return merged_match
 
     async def append_goal(
@@ -182,6 +178,7 @@ class MatchRepository(PulseliveRepository[MatchEntity]):
                 else MatchAwayTeamGoalAssociation(**params)
             )
             target_list.append(goal_association)
+        target_list.sort(key=lambda g: g.clock)
         return merged_match
 
     async def append_lineup(
@@ -231,6 +228,7 @@ class MatchRepository(PulseliveRepository[MatchEntity]):
                 else MatchAwayTeamLineupAssociation(**params)
             )
             target_list.append(lineup_association)
+        target_list.sort(key=lambda l: (l.row, l.column))
         return merged_match
 
     async def append_substitute(
@@ -270,6 +268,7 @@ class MatchRepository(PulseliveRepository[MatchEntity]):
                 else MatchAwayTeamSubstituteAssociation(**params)
             )
             target_list.append(substitute_association)
+        target_list.sort(key=lambda s: s.shirt_number)
         return merged_match
 
     async def append_substitution(
@@ -319,4 +318,5 @@ class MatchRepository(PulseliveRepository[MatchEntity]):
                 else MatchAwayTeamSubstitutionAssociation(**params)
             )
             target_list.append(substitution_association)
+        target_list.sort(key=lambda s: s.clock)
         return merged_match

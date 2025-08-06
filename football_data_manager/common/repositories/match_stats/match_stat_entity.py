@@ -15,11 +15,11 @@ from football_data_manager.common.repositories.teams.team_entity import TeamEnti
 class MatchStatEntity(PulseliveEntity):
     """
     Entity model for comprehensive match statistics for teams.
-    
+
     Represents detailed statistical data for a team's performance in a specific match,
     including passing, shooting, defensive, and possession metrics. Extends PulseliveEntity
     to inherit source tracking functionality.
-    
+
     :ivar id: Unique identifier for the entity
     :ivar big_chances: Total big chances created (scored + missed)
     :ivar big_chances_missed: Number of big chances missed
@@ -100,7 +100,11 @@ class MatchStatEntity(PulseliveEntity):
     )  # expectedGoals - (home.penaltyFaced * 0.79)
     expected_goals_on_target = Column(Double, nullable=False)  # expectedGoalsOnTarget
     fouls_committed = Column(Integer, nullable=False)  # fkFoulLost
-    match_id = Column(String, ForeignKey(MatchEntity.id), nullable=False)
+    match_id = Column(
+        String,
+        ForeignKey(MatchEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
+        nullable=False,
+    )
     passes_accurate = Column(Integer, nullable=False)  # accuratePass
     passes_accurate_crosses = Column(Integer, nullable=False)  # accurateCross
     passes_accurate_long_balls = Column(Integer, nullable=False)  # accurateLongBalls
@@ -124,7 +128,11 @@ class MatchStatEntity(PulseliveEntity):
     shots_on_target = Column(Integer, nullable=False)  # ontargetScoringAtt
     shots_outside_box = Column(Integer, nullable=False)  # attemptsObox
     shots_total = Column(Integer, nullable=False)  # totalScoringAtt
-    team_id = Column(String, ForeignKey(TeamEntity.id), nullable=False)
+    team_id = Column(
+        String,
+        ForeignKey(TeamEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
+        nullable=False,
+    )
 
     def __init__(
         self,
@@ -175,10 +183,10 @@ class MatchStatEntity(PulseliveEntity):
     ):
         """
         Initialize a new match stat entity.
-        
+
         Creates comprehensive match statistics for a team's performance in a specific match.
         All statistical metrics are captured including attacking, defensive, passing, and possession data.
-        
+
         :param big_chances: Total big chances created (scored + missed)
         :param big_chances_missed: Number of big chances missed
         :param corners: Number of corner kicks taken
@@ -274,10 +282,10 @@ class MatchStatEntity(PulseliveEntity):
     def get_source_id(match: MatchEntity, team: TeamEntity) -> str:
         """
         Generate a unique source ID for the match stat entity.
-        
+
         Creates a composite source ID by combining the match and team source identifiers
         to ensure uniqueness for each team's statistics within a match.
-        
+
         :param match: Match entity for which statistics are recorded
         :param team: Team entity whose statistics are recorded
         :returns: Unique source ID combining match and team identifiers

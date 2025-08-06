@@ -7,6 +7,9 @@ from football_data_manager.common.services.config.models.api_config import ApiCo
 from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_list_response import (
     PulseliveNewListResponse,
 )
+from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v1_competition_response import (
+    PulseliveNewV1CompetitionResponse,
+)
 from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v1_event_response import (
     PulseliveNewV1EventResponse,
 )
@@ -29,14 +32,22 @@ class PulseliveNewWebclient(AbstractWebClientService):
     def __init__(self, config: ApiConfig):
         super().__init__(URL(config.url.unicode_string()))
 
-    async def get_v2_match(self, match_id: str) -> PulseliveNewV2MatchResponse:
+    async def get_v1_competitions(
+        self, limit: int = 10, cursor: str | None = None
+    ) -> PulseliveNewV1CompetitionResponse:
         """
-        Get a match by ID.
-        :param match_id: Match ID.
-        :return: Match information.
+        Get competitions list.
+
+        :param limit: Maximum number of competitions to return (default: 10)
+        :param cursor: Pagination cursor for next page (optional)
+        :returns: Competition list with pagination information
         """
-        response = await self.get(path=URL(f"v2/matches/{match_id}"))
-        return PulseliveNewV2MatchResponse.model_validate(response)
+        params = {"_limit": str(limit)}
+        if cursor:
+            params["_cursor"] = cursor
+
+        response = await self.get(path=URL("v1/competitions"), query=params)
+        return PulseliveNewV1CompetitionResponse.model_validate(response)
 
     async def get_v1_match_event(self, match_id: str) -> PulseliveNewV1EventResponse:
         """
@@ -72,6 +83,15 @@ class PulseliveNewWebclient(AbstractWebClientService):
             .model_validate(response)
             .root
         )
+
+    async def get_v2_match(self, match_id: str) -> PulseliveNewV2MatchResponse:
+        """
+        Get a match by ID.
+        :param match_id: Match ID.
+        :return: Match information.
+        """
+        response = await self.get(path=URL(f"v2/matches/{match_id}"))
+        return PulseliveNewV2MatchResponse.model_validate(response)
 
     async def get_v3_match_lineup(
         self, match_id: str

@@ -418,7 +418,7 @@ async def map_player(
             source_id=old_player.source_id,
             birth_place=old_player.birth_place,
             height=old_player.height,
-            national_team=old_player.national_team,
+            national_team=old_player.nationality,
             photo_url=old_player.photo_url,
             weight=old_player.weight,
         )

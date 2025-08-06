@@ -1,17 +1,17 @@
 from sqlalchemy import Column, String, ForeignKey
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import backref, relationship
 
+from football_data_manager.common.repositories import Base
 from football_data_manager.common.repositories.constants import (
     NEWS_TEAM_ASSOCIATION_TABLE_NAME,
 )
 from football_data_manager.common.repositories.news.news_entity import (
     NewsEntity,
-    AbstractNewsTeamAssociation,
 )
 from football_data_manager.common.repositories.teams.team_entity import TeamEntity
 
 
-class NewsTeamAssociation(AbstractNewsTeamAssociation):
+class NewsTeamAssociation(Base):
     """
     Concrete association class for news-team relationships.
 
@@ -19,21 +19,28 @@ class NewsTeamAssociation(AbstractNewsTeamAssociation):
     Extends AbstractNewsTeamAssociation with news-specific relationship.
 
     :ivar team_id: Foreign key to the team mentioned in the news
-    :ivar team: Team entity mentioned in the news
     :ivar news_id: Foreign key to the news entity
-    :ivar news: Associated news entity with backref to team collection
     """
 
     __tablename__ = NEWS_TEAM_ASSOCIATION_TABLE_NAME
 
-    TEAM_COLLECTION_NAME = "news_teams_associations"
+    TEAM_COLLECTION_NAME = "team_associations"
 
-    news_id = Column(String, ForeignKey(NewsEntity.id), primary_key=True)
+    team_id = Column(
+        String,
+        ForeignKey(TeamEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
+        primary_key=True,
+    )
+    news_id = Column(
+        String,
+        ForeignKey(NewsEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
+        primary_key=True,
+    )
     news = relationship(
-        NewsEntity,
+        "NewsEntity",
         backref=backref(
-            TEAM_COLLECTION_NAME,
-            lazy="select",
+            name=TEAM_COLLECTION_NAME,
+            lazy="noload",
             cascade="all, delete-orphan",
         ),
     )
@@ -45,5 +52,6 @@ class NewsTeamAssociation(AbstractNewsTeamAssociation):
         :param news: News entity that mentions the team
         :param team: Team entity mentioned in the news
         """
-        super().__init__(team_id=team.id)
+        super().__init__()
+        self.team_id = team.id
         self.news_id = news.id

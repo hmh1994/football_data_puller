@@ -1,36 +1,11 @@
 from datetime import datetime
-from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, String, ARRAY, DateTime, Enum, ForeignKey
-from sqlalchemy.orm import Mapped, relationship
+from sqlalchemy import Column, String, ARRAY, DateTime, Enum
 
 from football_data_manager.common.enums.news_type_enum import NewsTypeEnum
 from football_data_manager.common.enums.source_enum import SourceEnum
-from football_data_manager.common.repositories import Base
 from football_data_manager.common.repositories.base_entity import BaseEntity
 from football_data_manager.common.repositories.constants import NEWS_TABLE_NAME
-
-if TYPE_CHECKING:
-    from football_data_manager.common.repositories.teams.team_entity import TeamEntity
-else:
-    TeamEntity = "TeamEntity"
-
-
-class AbstractNewsTeamAssociation(Base):
-    """
-    Abstract base class for news-team associations.
-
-    Provides common functionality for associating news articles with teams
-    mentioned in the content. Used as base for concrete news-team associations.
-
-    :ivar team_id: Foreign key to the team mentioned in the news
-    :ivar team: Team entity mentioned in the news
-    """
-
-    __abstract__ = True
-
-    team_id = Column(String, ForeignKey(TeamEntity.id), primary_key=True)
-    team = relationship(TeamEntity, lazy="noload", foreign_keys=team_id)
 
 
 class NewsEntity(BaseEntity):
@@ -45,7 +20,7 @@ class NewsEntity(BaseEntity):
     :ivar author_kr: List of authors in Korean
     :ivar content_en: News content in English
     :ivar content_kr: News content in Korean
-    :ivar news_teams_associations: List of teams mentioned in the news
+    :ivar teams_associations: List of teams mentioned in the news
     :ivar publish_date: Date and time when the news was published
     :ivar url: URL of the news article
     :ivar source: Source of the news article
@@ -64,7 +39,6 @@ class NewsEntity(BaseEntity):
     author_kr = Column(ARRAY(String), nullable=False)
     content_en = Column(String, nullable=False)
     content_kr = Column(String, nullable=False)
-    news_teams_associations: Mapped[list[AbstractNewsTeamAssociation]]
     publish_date = Column(DateTime, nullable=False)
     url = Column(String, nullable=False)
     thumbnail_url = Column(String, nullable=False)
@@ -108,6 +82,7 @@ class NewsEntity(BaseEntity):
         self.author_kr = author_kr
         self.content_en = content_en
         self.content_kr = content_kr
+        self.teams_associations = []
         self.publish_date = publish_date
         self.url = url
         self.thumbnail_url = thumbnail_url

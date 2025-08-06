@@ -1,10 +1,7 @@
 from typing import Self
 
-from sqlalchemy import Column, String, ForeignKey, Integer, ARRAY, DateTime
-from sqlalchemy.ext.associationproxy import association_proxy
-from sqlalchemy.orm import relationship, Mapped
+from sqlalchemy import Column, String, ForeignKey, Integer, ARRAY
 
-from football_data_manager.common.repositories import Base
 from football_data_manager.common.repositories.constants import (
     TEAM_STATS_TABLE_NAME,
 )
@@ -23,32 +20,6 @@ from football_data_manager.common.repositories.seasons.season_entity import (
 from football_data_manager.common.repositories.teams.team_entity import TeamEntity
 from football_data_manager.common.services.db.db_service import DbService
 from football_data_manager.common.utils.type_helper.int_helper import compare_ints
-
-# Import after abstract class definition to avoid circular imports
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from football_data_manager.common.repositories.team_stats.team_stat_home_fixture_association import TeamStatHomeFixtureAssociation
-    from football_data_manager.common.repositories.team_stats.team_stat_away_fixture_association import TeamStatAwayFixtureAssociation
-    from football_data_manager.common.repositories.team_stats.team_stat_overall_fixture_association import TeamStatOverallFixtureAssociation
-
-
-class AbstractTeamStatFixtureAssociation(Base):
-    """
-    Abstract base class for team stat fixture associations.
-
-    Provides common functionality for associating team statistics with fixtures
-    across different contexts (home, away, overall). Used as base for concrete associations.
-
-    :ivar fixture_id: Foreign key to the fixture entity
-    :ivar fixture: Fixture entity associated with team statistics
-    :ivar kickoff_time: Scheduled kickoff time for the fixture
-    """
-
-    __abstract__ = True
-
-    fixture_id = Column(String, ForeignKey(FixtureEntity.id), primary_key=True)
-    fixture = relationship("FixtureEntity", lazy="noload", foreign_keys=fixture_id)
-    kickoff_time = Column(DateTime, nullable=False)
 
 
 class TeamStatEntity(PulseliveEntity):
@@ -71,7 +42,6 @@ class TeamStatEntity(PulseliveEntity):
     :ivar away_points: Total points from away matches
     :ivar away_position: Away standings position
     :ivar ground_id: Foreign key to home ground entity
-    :ivar ground: Home ground entity
     :ivar home_cumulative_points: Cumulative points progression in home matches
     :ivar home_fixture_associations: List of home fixture associations
     :ivar home_goals_against: Goals conceded in home matches
@@ -95,9 +65,7 @@ class TeamStatEntity(PulseliveEntity):
     :ivar overall_points: Total points from all matches
     :ivar overall_position: Overall standings position
     :ivar season_id: Foreign key to season entity
-    :ivar season: Season entity
     :ivar team_id: Foreign key to team entity
-    :ivar team: Team entity
     :ivar source: Source of the entity data, set to PULSELIVE
     :ivar source_id: Unique identifier from the source
     :ivar created_at: Entity creation timestamp
@@ -107,7 +75,6 @@ class TeamStatEntity(PulseliveEntity):
     __tablename__ = TEAM_STATS_TABLE_NAME
 
     away_cumulative_points = Column(ARRAY(Integer), nullable=False)
-    away_fixture_associations: Mapped[list[AbstractTeamStatFixtureAssociation]]
     away_goals_against = Column(Integer, nullable=False)
     away_goals_for = Column(Integer, nullable=False)
     away_goals_difference = Column(Integer, nullable=False)
@@ -117,10 +84,12 @@ class TeamStatEntity(PulseliveEntity):
     away_matches_won = Column(Integer, nullable=False)
     away_points = Column(Integer, nullable=False)
     away_position = Column(Integer, nullable=True)
-    ground_id = Column(String, ForeignKey(GroundEntity.id), nullable=False)
-    ground = relationship(GroundEntity, lazy="selectin", foreign_keys=ground_id)
+    ground_id = Column(
+        String,
+        ForeignKey(GroundEntity.id, ondelete="SET NULL", onupdate="RESTRICT"),
+        nullable=True,
+    )
     home_cumulative_points = Column(ARRAY(Integer), nullable=False)
-    home_fixture_associations: Mapped[list[AbstractTeamStatFixtureAssociation]]
     home_goals_against = Column(Integer, nullable=False)
     home_goals_for = Column(Integer, nullable=False)
     home_goals_difference = Column(Integer, nullable=False)
@@ -131,7 +100,6 @@ class TeamStatEntity(PulseliveEntity):
     home_points = Column(Integer, nullable=False)
     home_position = Column(Integer, nullable=True)
     overall_cumulative_points = Column(ARRAY(Integer), nullable=False)
-    overall_fixture_associations: Mapped[list[AbstractTeamStatFixtureAssociation]]
     overall_goals_against = Column(Integer, nullable=False)
     overall_goals_for = Column(Integer, nullable=False)
     overall_goals_difference = Column(Integer, nullable=False)
@@ -141,10 +109,16 @@ class TeamStatEntity(PulseliveEntity):
     overall_matches_won = Column(Integer, nullable=False)
     overall_points = Column(Integer, nullable=False)
     overall_position = Column(Integer, nullable=False)
-    season_id = Column(String, ForeignKey(SeasonEntity.id), nullable=False)
-    season = relationship(SeasonEntity, lazy="selectin", foreign_keys=season_id)
-    team_id = Column(String, ForeignKey(TeamEntity.id), nullable=False)
-    team = relationship(TeamEntity, lazy="selectin", foreign_keys=team_id)
+    season_id = Column(
+        String,
+        ForeignKey(SeasonEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
+        nullable=False,
+    )
+    team_id = Column(
+        String,
+        ForeignKey(TeamEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
+        nullable=False,
+    )
 
     def __init__(
         self,
@@ -160,7 +134,10 @@ class TeamStatEntity(PulseliveEntity):
         :param team: Team entity associated with the statistics
         """
         super().__init__(source_id=self.get_source_id(season, team))
+        self.away_fixture_associations = []
         self.ground_id = ground.id
+        self.home_fixture_associations = []
+        self.overall_fixture_associations = []
         self.season_id = season.id
         self.team_id = team.id
         self.initialize()
@@ -176,12 +153,12 @@ class TeamStatEntity(PulseliveEntity):
         """
         return f"{season.source_id}_{team.source_id}"
 
-    # TODO: apply to update
     async def apply_position(self, db_service: DbService, team_stats: list[Self]):
         """
-        Applies the position of the team in the standings based on the metrics of other teams.
-        :param db_service: Database service to fetch team stats.
-        :param team_stats: List of team stats entities to compare against.
+        Apply the position of the team in the standings based on the metrics of other teams.
+
+        :param db_service: Database service to fetch team stats
+        :param team_stats: List of team stats entities to compare against
         """
         other_overall_metrics, other_home_metrics, other_away_metrics = [], [], []
         for team_stat in team_stats:
@@ -202,7 +179,8 @@ class TeamStatEntity(PulseliveEntity):
 
     def initialize(self):
         """
-        Initializes the team statistics entity with default values.
+        Initialize the team statistics entity with default values.
+
         This method sets the initial values for all attributes related to team statistics.
         """
         self.away_cumulative_points = []
@@ -261,7 +239,9 @@ class TeamStatEntity(PulseliveEntity):
             )
         goal_difference = goal_for - goal_against
         # Import here to avoid circular imports
-        from football_data_manager.common.repositories.team_stats.team_stat_overall_fixture_association import TeamStatOverallFixtureAssociation
+        from football_data_manager.common.repositories.team_stats.team_stat_overall_fixture_association import (
+            TeamStatOverallFixtureAssociation,
+        )
 
         self.__append_point(self.overall_cumulative_points, point)
         self.overall_fixture_associations.append(
@@ -281,7 +261,9 @@ class TeamStatEntity(PulseliveEntity):
         self.overall_points += point
         if is_home:
             # Import here to avoid circular imports
-            from football_data_manager.common.repositories.team_stats.team_stat_home_fixture_association import TeamStatHomeFixtureAssociation
+            from football_data_manager.common.repositories.team_stats.team_stat_home_fixture_association import (
+                TeamStatHomeFixtureAssociation,
+            )
 
             self.__append_point(self.home_cumulative_points, point)
             self.home_fixture_associations.append(
@@ -301,7 +283,9 @@ class TeamStatEntity(PulseliveEntity):
             self.home_points += point
         else:
             # Import here to avoid circular imports
-            from football_data_manager.common.repositories.team_stats.team_stat_away_fixture_association import TeamStatAwayFixtureAssociation
+            from football_data_manager.common.repositories.team_stats.team_stat_away_fixture_association import (
+                TeamStatAwayFixtureAssociation,
+            )
 
             self.__append_point(self.away_cumulative_points, point)
             self.away_fixture_associations.append(
@@ -341,10 +325,10 @@ class TeamStatEntity(PulseliveEntity):
             return goals_scored
         async with db_service.create_db_session() as session:
             merged_entity = await session.merge(self)
-            await session.refresh(merged_entity, [
-                "home_fixture_associations",
-                "away_fixture_associations"
-            ])
+            await session.refresh(
+                merged_entity,
+                ["home_fixture_associations", "away_fixture_associations"],
+            )
             home_match_assoc = next(
                 filter(
                     lambda assoc: assoc.fixture.away_team_id == target.team_id,
@@ -359,10 +343,18 @@ class TeamStatEntity(PulseliveEntity):
                 ),
                 None,
             )
-            self_home_point = home_match_assoc.fixture.home_point if home_match_assoc else 0
-            self_away_point = away_match_assoc.fixture.away_point if away_match_assoc else 0
-            target_home_point = home_match_assoc.fixture.away_point if home_match_assoc else 0
-            target_away_point = away_match_assoc.fixture.home_point if away_match_assoc else 0
+            self_home_point = (
+                home_match_assoc.fixture.home_point if home_match_assoc else 0
+            )
+            self_away_point = (
+                away_match_assoc.fixture.away_point if away_match_assoc else 0
+            )
+            target_home_point = (
+                home_match_assoc.fixture.away_point if home_match_assoc else 0
+            )
+            target_away_point = (
+                away_match_assoc.fixture.home_point if away_match_assoc else 0
+            )
         head_to_head_points = compare_ints(
             self_home_point + self_away_point,
             target_home_point + target_away_point,
@@ -370,7 +362,10 @@ class TeamStatEntity(PulseliveEntity):
         if head_to_head_points != 0:
             return head_to_head_points
         return (
-            compare_ints(away_match_assoc.fixture.away_team_score, home_match_assoc.fixture.away_team_score)
+            compare_ints(
+                away_match_assoc.fixture.away_team_score,
+                home_match_assoc.fixture.away_team_score,
+            )
             if home_match_assoc is not None and away_match_assoc is not None
             else (home_match_assoc is None) - (away_match_assoc is None)
         )

@@ -1,8 +1,5 @@
-from sqlalchemy import Column, String, ForeignKey, Integer, DateTime
-from sqlalchemy.orm import Mapped, relationship
+from sqlalchemy import Column, String, ForeignKey, Integer
 
-from football_data_manager.common.repositories import Base
-from football_data_manager.common.repositories.awards.award_entity import AwardEntity
 from football_data_manager.common.repositories.constants import (
     PLAYER_STATS_TABLE_NAME,
 )
@@ -16,25 +13,6 @@ from football_data_manager.common.repositories.seasons.season_entity import (
     SeasonEntity,
 )
 from football_data_manager.common.repositories.teams.team_entity import TeamEntity
-
-
-class AbstractPlayerStatAwardAssociation(Base):
-    """
-    Abstract base class for player stat award associations.
-
-    Provides common functionality for associating awards with player statistics.
-    Used as base for concrete player stat award associations.
-
-    :ivar award_id: Foreign key to the award entity
-    :ivar award: Award entity being given
-    :ivar date: Date when the award was given
-    """
-
-    __abstract__ = True
-
-    award_id = Column(String, ForeignKey(AwardEntity.id), primary_key=True)
-    award = relationship(AwardEntity, lazy="noload", foreign_keys=award_id)
-    date = Column(DateTime, nullable=False)
 
 
 class PlayerStatEntity(PulseliveEntity):
@@ -70,18 +48,29 @@ class PlayerStatEntity(PulseliveEntity):
 
     appearances = Column(Integer, nullable=False)
     assists = Column(Integer, nullable=False)
-    award_associations: Mapped[list[AbstractPlayerStatAwardAssociation]]
     clean_sheets = Column(Integer, nullable=False)
     goals = Column(Integer, nullable=False)
     goals_conceded = Column(Integer, nullable=False)
     key_passes = Column(Integer, nullable=False)
     number = Column(Integer, nullable=False)
-    player_id = Column(String, ForeignKey(PlayerEntity.id), nullable=False)
+    player_id = Column(
+        String,
+        ForeignKey(PlayerEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
+        nullable=False,
+    )
     saves = Column(Integer, nullable=False)
-    season_id = Column(String, ForeignKey(SeasonEntity.id), nullable=False)
+    season_id = Column(
+        String,
+        ForeignKey(SeasonEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
+        nullable=False,
+    )
     shots = Column(Integer, nullable=False)
     tackles = Column(Integer, nullable=False)
-    team_id = Column(String, ForeignKey(TeamEntity.id), nullable=False)
+    team_id = Column(
+        String,
+        ForeignKey(TeamEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
+        nullable=False,
+    )
 
     def __init__(
         self,
@@ -119,6 +108,7 @@ class PlayerStatEntity(PulseliveEntity):
         super().__init__(source_id=self.get_source_id(season, player))
         self.appearances = appearances
         self.assists = assists
+        self.award_associations = []
         self.clean_sheets = clean_sheets
         self.goals = goals
         self.goals_conceded = goals_conceded

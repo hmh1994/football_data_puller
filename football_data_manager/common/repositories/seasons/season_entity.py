@@ -1,26 +1,24 @@
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
-from sqlalchemy.orm import relationship
 
+from football_data_manager.common.repositories.competitions.competition_entity import (
+    CompetitionEntity,
+)
 from football_data_manager.common.repositories.constants import SEASONS_TABLE_NAME
 from football_data_manager.common.repositories.pulselive_entity import (
     PulseliveEntity,
 )
 
-if TYPE_CHECKING:
-    from football_data_manager.common.repositories.competitions.competition_entity import CompetitionEntity
-
 
 class SeasonEntity(PulseliveEntity):
     """
     Entity model for football competition seasons with temporal and competition information.
-    
+
     Represents football seasons with start/end dates, year boundaries, and competition associations.
     Contains seasonal abbreviations and temporal data for organizing matches and events.
     Extends PulseliveEntity to inherit source tracking functionality.
-    
+
     :ivar id: Unique identifier for the entity
     :ivar abbreviation: Season abbreviation code (e.g., '23/24', '2023-2024')
     :ivar competition_id: Foreign key to the competition entity
@@ -37,7 +35,11 @@ class SeasonEntity(PulseliveEntity):
     __tablename__ = SEASONS_TABLE_NAME
 
     abbreviation = Column(String, nullable=False)
-    competition_id = Column(String, ForeignKey(CompetitionEntity.id), nullable=False)
+    competition_id = Column(
+        String,
+        ForeignKey(CompetitionEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
+        nullable=False,
+    )
     date_end = Column(DateTime, nullable=False)
     date_start = Column(DateTime, nullable=False)
     year_end = Column(Integer, nullable=False)
@@ -55,10 +57,10 @@ class SeasonEntity(PulseliveEntity):
     ) -> None:
         """
         Initialize a new season entity.
-        
+
         Creates a season with temporal boundaries and competition association.
         Automatically extracts competition ID from the provided competition entity.
-        
+
         :param abbreviation: Season abbreviation code (e.g., '23/24')
         :param competition: Competition entity this season belongs to
         :param date_end: Season end date and time

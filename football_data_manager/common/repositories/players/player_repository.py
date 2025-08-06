@@ -85,13 +85,14 @@ class PlayerRepository(PulseliveRepository[PlayerEntity]):
         """
         merged_player = await self.load_championship_seasons(player)
         season_id_list = [
-            s.season.id for s in merged_player.championship_season_associations
+            s.season_id for s in merged_player.championship_season_associations
         ]
         if season.id not in season_id_list:
             association = PlayerChampionshipAssociation(
                 player=merged_player, season=season, date_end=season.date_end
             )
             merged_player.championship_season_associations.append(association)
+        merged_player.championship_season_associations.sort(key=lambda s: s.date_end)
         return merged_player
 
     async def read_by_display_name_en(self, name: str) -> PlayerEntity | None:

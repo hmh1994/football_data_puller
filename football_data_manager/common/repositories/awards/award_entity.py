@@ -1,6 +1,6 @@
 from hashlib import md5
 
-from sqlalchemy import Column, String
+from sqlalchemy import Column, String, Index
 
 from football_data_manager.common.repositories.constants import AWARDS_TABLE_NAME
 from football_data_manager.common.repositories.pulselive_entity import (
@@ -11,10 +11,10 @@ from football_data_manager.common.repositories.pulselive_entity import (
 class AwardEntity(PulseliveEntity):
     """
     Entity model for football awards with multilingual information.
-    
+
     Represents football awards and achievements with descriptions and icons.
     Extends PulseliveEntity to inherit source tracking functionality.
-    
+
     :ivar id: Unique identifier for the award type
     :ivar description_en: Award type description in English
     :ivar description_kr: Award type description in Korean
@@ -32,8 +32,10 @@ class AwardEntity(PulseliveEntity):
     description_en = Column(String, nullable=True)
     description_kr = Column(String, nullable=True)
     icon_url = Column(String, nullable=True)
-    name_en = Column(String, nullable=False, unique=True, index=True)
+    name_en = Column(String, nullable=False, unique=True)
     name_kr = Column(String, nullable=False)
+
+    __table_args__ = (Index("ix_award_name_en", name_en),)
 
     def __init__(
         self,
@@ -45,7 +47,7 @@ class AwardEntity(PulseliveEntity):
     ):
         """
         Initialize a new award entity.
-        
+
         :param name_en: Award type name in English
         :param name_kr: Award type name in Korean
         :param description_en: Award type description in English (optional)
@@ -63,10 +65,10 @@ class AwardEntity(PulseliveEntity):
     def get_source_id(name_en: str) -> str:
         """
         Generate a unique source ID for the award entity.
-        
+
         Creates a hash-based source ID from the English award name to ensure
         uniqueness while maintaining deterministic ID generation.
-        
+
         :param name_en: Name of the award in English
         :returns: Unique source ID as a string
         """

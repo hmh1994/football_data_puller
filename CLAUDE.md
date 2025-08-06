@@ -153,51 +153,41 @@ BaseRepository[TEntity] (generic CRUD with async)
 - **Association Abstraction**: Abstract base classes for complex associations
 - **Property Methods**: Computed properties for business logic
 
-**String Relationship References**:
-
-```python
-# ✅ CORRECT - Use string references
-player = relationship("PlayerEntity", lazy="noload", foreign_keys=player_id)
-
-# ❌ INCORRECT - Direct class references cause issues
-player = relationship(argument=PlayerEntity, lazy="noload", foreign_keys=player_id)
-```
-
-**Backref Patterns**:
-
-```python
-# ✅ CORRECT - Proper backref with class name
-match = relationship(
-    MatchEntity,
-    backref=backref(
-        COLLECTION_NAME,
-        lazy="select",
-        cascade="all, delete-orphan",
-        order_by="MatchHomeTeamCardAssociation.clock",
-    ),
-)
-
-# ❌ INCORRECT - Using __qualname__ or name= parameter
-order_by = f"{__qualname__}.clock",  # Runtime error
-backref = backref(name=COLLECTION_NAME, ...)  # Deprecated pattern
-```
-
 #### 3. Association Pattern Standards
 
 **Abstract Association Classes**:
 
 ```python
 class AbstractMatchCardAssociation(Base):
+    """
+    Abstract base class for match card associations.
+
+    Provides common functionality for associating cards (yellow/red) with players
+    during a match. Used as a base for home and away team card associations.
+
+    :ivar player_id: Foreign key to the player who received the card
+    :ivar card_type: Type of card (yellow or red)
+    :ivar clock: Time in minutes when the card was issued
+    """
+
     __abstract__ = True
 
-    player_id = Column(String, ForeignKey(PlayerEntity.id), primary_key=True)
-    player = relationship("PlayerEntity", lazy="noload", foreign_keys=player_id)
+    player_id = Column(
+        String,
+        ForeignKey(PlayerEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
+        primary_key=True,
+    )
     card_type = Column(Enum(CardTypeEnum), primary_key=True)
     clock = Column(Integer, nullable=False)
 
     @property
     def card_info(self):
-        return self.player.id, self.card_type, self.clock
+        """
+        Get card information as a tuple.
+
+        :returns: Tuple containing player ID, card type, and time
+        """
+        return self.player_id, self.card_type, self.clock
 ```
 
 **Concrete Implementation**:
@@ -409,7 +399,9 @@ class TeamEntity(PulseliveEntity):
     :ivar name_en: Team name in English
     :ivar name_kr: Team name in Korean
     :ivar icon_url: URL to team icon/logo image
-    :ivar championship_seasons: List of championship seasons related to the team
+    :ivar championship_season_associations: List of championship season associations
+    :ivar short_name_en: Abbreviated team name in English
+    :ivar short_name_kr: Abbreviated team name in Korean
     :ivar source: Data source (inherited from PulseliveEntity)
     :ivar source_id: Unique identifier from source system
     :ivar created_at: Entity creation timestamp

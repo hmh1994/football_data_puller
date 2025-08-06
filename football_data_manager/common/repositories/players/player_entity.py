@@ -1,40 +1,11 @@
 from datetime import datetime
-from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, String, Integer, CHAR, DateTime, ForeignKey
-from sqlalchemy.orm import Mapped, relationship
+from sqlalchemy import Column, String, Integer, CHAR, DateTime
 
-from football_data_manager.common.repositories import Base
 from football_data_manager.common.repositories.constants import PLAYERS_TABLE_NAME
 from football_data_manager.common.repositories.pulselive_entity import (
     PulseliveEntity,
 )
-
-if TYPE_CHECKING:
-    from football_data_manager.common.repositories.seasons.season_entity import (
-        SeasonEntity,
-    )
-else:
-    SeasonEntity = "SeasonEntity"
-
-
-class AbstractPlayerChampionshipAssociation(Base):
-    """
-    Abstract base class for player championship associations.
-
-    Provides common functionality for associating players with championship seasons
-    they participated in. Used as base for concrete player-season associations.
-
-    :ivar season_id: Foreign key to the season entity
-    :ivar season: Season entity associated with player championships
-    :ivar date_end: End date of the championship season
-    """
-
-    __abstract__ = True
-
-    season_id = Column(String, ForeignKey(SeasonEntity.id), primary_key=True)
-    season = relationship(SeasonEntity, lazy="noload", foreign_keys=season_id)
-    date_end = Column(DateTime, nullable=False)
 
 
 class PlayerEntity(PulseliveEntity):
@@ -56,7 +27,7 @@ class PlayerEntity(PulseliveEntity):
     :ivar display_name_kr: Player display name in Korean
     :ivar full_name: Player's full legal name
     :ivar height: Player height in centimeters (optional)
-    :ivar national_team: National team representation (optional)
+    :ivar nationality: Nationality representation (optional)
     :ivar photo_url: URL to player photo
     :ivar position: Player position code
     :ivar position_info_en: Player position description in English
@@ -75,14 +46,11 @@ class PlayerEntity(PulseliveEntity):
     birth_date = Column(DateTime, nullable=False)
     birth_country_flag_icon_url = Column(String, nullable=False)
     birth_place = Column(String, nullable=True)
-    championship_season_associations: Mapped[
-        list[AbstractPlayerChampionshipAssociation]
-    ]
     display_name_en = Column(String, nullable=False)
     display_name_kr = Column(String, nullable=False)
     full_name = Column(String, nullable=False)
     height = Column(Integer, nullable=True)
-    national_team = Column(String, nullable=True)
+    nationality = Column(String, nullable=True)
     photo_url = Column(String, nullable=False)
     position = Column(CHAR, nullable=False)
     position_info_en = Column(String, nullable=False)
@@ -104,7 +72,7 @@ class PlayerEntity(PulseliveEntity):
         source_id: str,
         birth_place: str | None = None,
         height: int | None = None,
-        national_team: str | None = None,
+        nationality: str | None = None,
         photo_url: str | None = None,
         weight: int | None = None,
     ) -> None:
@@ -124,7 +92,7 @@ class PlayerEntity(PulseliveEntity):
         :param source_id: Unique identifier from the source system
         :param birth_place: Player's birthplace (optional)
         :param height: Player height in centimeters (optional)
-        :param national_team: National team representation (optional)
+        :param nationality: Nationality representation (optional)
         :param photo_url: URL to player photo (optional)
         :param weight: Player weight in kilograms (optional)
         """
@@ -133,6 +101,7 @@ class PlayerEntity(PulseliveEntity):
         self.birth_country_kr = birth_country_kr
         self.birth_date = birth_date
         self.birth_country_flag_icon_url = birth_country_flag_icon_url
+        self.championship_season_associations = []
         self.display_name_en = display_name_en
         self.display_name_kr = display_name_kr
         self.full_name = full_name
@@ -141,6 +110,6 @@ class PlayerEntity(PulseliveEntity):
         self.position_info_kr = position_info_kr
         self.birth_place = birth_place
         self.height = height
-        self.national_team = national_team
+        self.nationality = nationality
         self.photo_url = photo_url
         self.weight = weight

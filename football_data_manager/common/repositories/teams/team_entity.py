@@ -1,43 +1,44 @@
-from sqlalchemy import Column, String
-from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy import Column, String, Index
 
 from football_data_manager.common.repositories.constants import TEAMS_TABLE_NAME
 from football_data_manager.common.repositories.pulselive_entity import (
     PulseliveEntity,
 )
-from football_data_manager.common.repositories.teams.team_championship_association import (
-    TeamChampionshipAssociation,
-)
 
 
 class TeamEntity(PulseliveEntity):
     """
-    Team entity model.
-    :ivar id: Unique identifier for the entity.
-    :ivar championship_seasons: List of championship seasons entities related to the team.
-    :ivar source: Source of the entity data, set to PULSELIVE.
-    :param abbreviation: Team abbreviation.
-    :param icon_url: Team icon URL.
-    :param name_en: Team name in English.
-    :param name_kr: Team name in Korean.
-    :param short_name_en: Team short name in English.
-    :param short_name_kr: Team short name in Korean.
-    :param source_id: Unique identifier from the source.
+    Entity model for football teams with localized names, icons, and championship associations.
+
+    Represents football teams with multilingual names, visual branding elements, and
+    championship season tracking. Contains both full names and abbreviated versions
+    for different display contexts. Manages team identity and historical achievements.
+    Extends PulseliveEntity to inherit source tracking functionality.
+
+    :ivar id: Unique identifier for the entity
+    :ivar abbreviation: Team abbreviation code (e.g., 'MCI', 'LIV', 'ARS')
+    :ivar championship_season_associations: List of championship season associations
+    :ivar icon_url: URL to team icon/logo image (optional)
+    :ivar name_en: Team name in English
+    :ivar name_kr: Team name in Korean
+    :ivar short_name_en: Abbreviated team name in English
+    :ivar short_name_kr: Abbreviated team name in Korean
+    :ivar source: Source of the entity data, set to PULSELIVE
+    :ivar source_id: Unique identifier from the source system
+    :ivar created_at: Entity creation timestamp
+    :ivar updated_at: Last modification timestamp
     """
 
     __tablename__ = TEAMS_TABLE_NAME
 
-    abbreviation = Column(String, nullable=False)
-    championship_seasons = association_proxy(
-        target_collection=TeamChampionshipAssociation.SEASON_COLLECTION_NAME,
-        attr=TeamChampionshipAssociation.SEASON_ATTRIBUTE_NAME,
-        creator=lambda season: TeamChampionshipAssociation(season=season, date_end=season.date_end),  # type: ignore[arg-type]
-    )
+    abbreviation = Column(String, nullable=False, unique=True)
     icon_url = Column(String, nullable=True)
     name_en = Column(String, nullable=False)
     name_kr = Column(String, nullable=False)
     short_name_en = Column(String, nullable=False)
     short_name_kr = Column(String, nullable=False)
+
+    __table_args__ = (Index("ix_team_abbreviation", abbreviation),)
 
     def __init__(
         self,
@@ -49,8 +50,23 @@ class TeamEntity(PulseliveEntity):
         short_name_kr: str,
         source_id: str,
     ) -> None:
+        """
+        Initialize a new team entity.
+
+        Creates a team with multilingual names, branding elements, and identification codes.
+        Both full names and short names are required for different display contexts.
+
+        :param abbreviation: Team abbreviation code (e.g., 'MCI', 'LIV', 'ARS')
+        :param icon_url: URL to team icon/logo image
+        :param name_en: Full team name in English
+        :param name_kr: Full team name in Korean
+        :param short_name_en: Abbreviated team name in English
+        :param short_name_kr: Abbreviated team name in Korean
+        :param source_id: Unique identifier from the source system
+        """
         super().__init__(source_id=source_id)
         self.abbreviation = abbreviation
+        self.championship_season_associations = []
         self.icon_url = icon_url
         self.name_en = name_en
         self.name_kr = name_kr

@@ -57,4 +57,5 @@ class PlayerStatRepository(PulseliveRepository[PlayerStatEntity]):
                 player_stat=merged_player_stat, award=award, date=date
             )
             merged_player_stat.award_associations.append(association)
+        merged_player_stat.award_associations.sort(key=lambda s: s.date)
         return merged_player_stat

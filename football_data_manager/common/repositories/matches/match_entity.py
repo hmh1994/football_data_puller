@@ -1,8 +1,5 @@
-from sqlalchemy import Column, String, ForeignKey, Integer, ARRAY, Enum, Boolean
-from sqlalchemy.orm import relationship, Mapped
+from sqlalchemy import Column, String, ForeignKey, Integer, ARRAY
 
-from football_data_manager.common.enums.card_type_enum import CardTypeEnum
-from football_data_manager.common.repositories import Base
 from football_data_manager.common.repositories.constants import MATCHES_TABLE_NAME
 from football_data_manager.common.repositories.fixtures.fixture_entity import (
     FixtureEntity,
@@ -19,192 +16,6 @@ from football_data_manager.common.repositories.pulselive_entity import (
 from football_data_manager.common.repositories.staffs.staff_entity import (
     StaffEntity,
 )
-
-
-class AbstractMatchCardAssociation(Base):
-    """
-    Abstract base class for match card associations.
-
-    Provides common functionality for associating cards (yellow/red) with players
-    during a match. Used as a base for home and away team card associations.
-
-    :ivar player_id: Foreign key to the player who received the card
-    :ivar player: Player entity who received the card
-    :ivar card_type: Type of card (yellow or red)
-    :ivar clock: Time in minutes when the card was issued
-    """
-
-    __abstract__ = True
-
-    player_id = Column(String, ForeignKey(PlayerEntity.id), primary_key=True)
-    player = relationship(PlayerEntity, lazy="noload", foreign_keys=player_id)
-    card_type = Column(Enum(CardTypeEnum), primary_key=True)
-    clock = Column(  # see `order_by` in `match` relationship above
-        Integer, nullable=False
-    )
-
-    @property
-    def card_info(self):
-        """
-        Get card information as a tuple.
-
-        :returns: Tuple containing player ID, card type, and time
-        """
-        return self.player.id, self.card_type, self.clock
-
-
-class AbstractMatchGoalAssociation(Base):
-    """
-    Abstract base class for match goal associations.
-
-    Provides common functionality for associating goals with players during a match.
-    Includes support for assists, penalties, and own goals.
-
-    :ivar player_id: Foreign key to the player who scored the goal
-    :ivar player: Player entity who scored the goal
-    :ivar assist_player_id: Foreign key to the player who assisted (optional)
-    :ivar assist_player: Player entity who provided the assist
-    :ivar clock: Time in minutes when the goal was scored
-    :ivar is_penalty: Whether the goal was scored from a penalty
-    :ivar is_own_goal: Whether the goal was an own goal
-    """
-
-    __abstract__ = True
-
-    player_id = Column(String, ForeignKey(PlayerEntity.id), primary_key=True)
-    player = relationship(PlayerEntity, lazy="noload", foreign_keys=player_id)
-    assist_player_id = Column(String, ForeignKey(PlayerEntity.id), nullable=True)
-    assist_player = relationship(
-        PlayerEntity,
-        lazy="noload",
-        foreign_keys=assist_player_id,
-    )
-    clock = Column(  # see `order_by` in `match` relationship above
-        Integer, nullable=False
-    )
-    is_penalty = Column(Boolean, nullable=False)
-    is_own_goal = Column(Boolean, nullable=False)
-
-    @property
-    def goal_info(self):
-        """
-        Get goal information as a tuple.
-
-        :returns: Tuple containing player ID, assist player ID, time, penalty flag, and own goal flag
-        """
-        return (
-            self.player.id,
-            self.assist_player.id,
-            self.clock,
-            self.is_penalty,
-            self.is_own_goal,
-        )
-
-
-class AbstractMatchLineupAssociation(Base):
-    """
-    Abstract base class for match lineup associations.
-
-    Provides common functionality for associating starting lineup players with their
-    formation positions and shirt numbers in a match.
-
-    :ivar player_id: Foreign key to the player in the lineup
-    :ivar player: Player entity in the starting lineup
-    :ivar shirt_number: Player's shirt number for the match
-    :ivar row: Formation row position (1-based)
-    :ivar column: Formation column position (1-based)
-    """
-
-    __abstract__ = True
-
-    player_id = Column(String, ForeignKey(PlayerEntity.id), primary_key=True)
-    player = relationship(PlayerEntity, lazy="noload", foreign_keys=player_id)
-    shirt_number = Column(  # see `order_by` in `match` relationship above
-        Integer, nullable=False
-    )
-    row = Column(Integer, nullable=False)
-    column = Column(Integer, nullable=False)
-
-    @property
-    def player_info(self):
-        """
-        Get player lineup information as a tuple.
-
-        :returns: Tuple containing player ID, shirt number, and position coordinates
-        """
-        return self.player.id, self.shirt_number, (self.row, self.column)
-
-
-class AbstractMatchSubstituteAssociation(Base):
-    """
-    Abstract base class for match substitute associations.
-
-    Provides common functionality for associating substitute players (bench)
-    with their shirt numbers in a match.
-
-    :ivar player_id: Foreign key to the substitute player
-    :ivar player: Player entity on the substitute bench
-    :ivar shirt_number: Player's shirt number for the match
-    """
-
-    __abstract__ = True
-
-    player_id = Column(String, ForeignKey(PlayerEntity.id), primary_key=True)
-    player = relationship(PlayerEntity, lazy="noload", foreign_keys=player_id)
-    shirt_number = Column(  # see `order_by` in `match` relationship above
-        Integer, nullable=False
-    )
-
-    @property
-    def player_info(self):
-        """
-        Get substitute player information as a tuple.
-
-        :returns: Tuple containing player ID and shirt number
-        """
-        return self.player.id, self.shirt_number
-
-
-class AbstractMatchSubstitutionAssociation(Base):
-    """
-    Abstract base class for match substitution associations.
-
-    Provides common functionality for associating player substitutions (in/out)
-    with the time they occurred during a match.
-
-    :ivar in_player_id: Foreign key to the player coming in
-    :ivar in_player: Player entity coming into the match
-    :ivar out_player_id: Foreign key to the player going out
-    :ivar out_player: Player entity being substituted out
-    :ivar clock: Time in minutes when the substitution occurred
-    """
-
-    __abstract__ = True
-
-    in_player_id = Column(String, ForeignKey(PlayerEntity.id), primary_key=True)
-    in_player = relationship(
-        PlayerEntity,
-        lazy="noload",
-        foreign_keys=in_player_id,
-    )
-    out_player_id = Column(String, ForeignKey(PlayerEntity.id), primary_key=True)
-    out_player = relationship(
-        PlayerEntity,
-        lazy="noload",
-        foreign_keys=out_player_id,
-    )
-    clock = Column(  # see `order_by` in `match` relationship above
-        Integer, nullable=False
-    )
-
-    @property
-    def substitution(self):
-        """
-        Get substitution information as a tuple.
-
-        :returns: Tuple containing player IDs (in, out) and substitution time
-        """
-        return (self.in_player.id, self.out_player.id), self.clock
 
 
 class MatchEntity(PulseliveEntity):
@@ -249,47 +60,67 @@ class MatchEntity(PulseliveEntity):
     __tablename__ = MATCHES_TABLE_NAME
 
     attendance = Column(Integer, nullable=False)
-    away_team_captain_id = Column(String, ForeignKey(PlayerEntity.id), nullable=False)
-    away_team_card_associations: Mapped[list[AbstractMatchCardAssociation]]
+    away_team_captain_id = Column(
+        String,
+        ForeignKey(PlayerEntity.id, ondelete="SET NULL", onupdate="RESTRICT"),
+        nullable=True,
+    )
     away_team_formation = Column(ARRAY(Integer), nullable=False)
-    away_team_goal_associations: Mapped[list[AbstractMatchGoalAssociation]]
     away_team_half_time_score = Column(Integer, nullable=True)
-    away_team_lineup_associations: Mapped[list[AbstractMatchLineupAssociation]]
-    away_team_manager = Column(String, ForeignKey(StaffEntity.id), nullable=False)
+    away_team_manager = Column(
+        String,
+        ForeignKey(StaffEntity.id, ondelete="SET NULL", onupdate="RESTRICT"),
+        nullable=True,
+    )
     away_team_score = Column(Integer, nullable=False)
-    away_team_substitute_associations: Mapped[list[AbstractMatchSubstituteAssociation]]
-    away_team_substitution_associations: Mapped[
-        list[AbstractMatchSubstitutionAssociation]
-    ]
     clock = Column(Integer, nullable=False)
-    fixture_id = Column(String, ForeignKey(FixtureEntity.id), nullable=False)
-    home_team_captain_id = Column(String, ForeignKey(PlayerEntity.id), nullable=False)
-    home_team_card_associations: Mapped[list[AbstractMatchCardAssociation]]
+    fixture_id = Column(
+        String,
+        ForeignKey(FixtureEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
+        nullable=False,
+    )
+    home_team_captain_id = Column(
+        String,
+        ForeignKey(PlayerEntity.id, ondelete="SET NULL", onupdate="RESTRICT"),
+        nullable=True,
+    )
     home_team_formation = Column(ARRAY(Integer), nullable=False)
-    home_team_goal_associations: Mapped[list[AbstractMatchGoalAssociation]]
     home_team_half_time_score = Column(Integer, nullable=True)
-    home_team_lineup_associations: Mapped[list[AbstractMatchLineupAssociation]]
-    home_team_manager = Column(String, ForeignKey(StaffEntity.id), nullable=False)
+    home_team_manager = Column(
+        String,
+        ForeignKey(StaffEntity.id, ondelete="SET NULL", onupdate="RESTRICT"),
+        nullable=True,
+    )
     home_team_score = Column(Integer, nullable=False)
-    home_team_substitute_associations: Mapped[list[AbstractMatchSubstituteAssociation]]
-    home_team_substitution_associations: Mapped[
-        list[AbstractMatchSubstitutionAssociation]
-    ]
     official_main_referee_id = Column(
-        String, ForeignKey(OfficialEntity.id), nullable=False
+        String,
+        ForeignKey(OfficialEntity.id, ondelete="SET NULL", onupdate="RESTRICT"),
+        nullable=True,
     )
     official_assistant_1_referee_id = Column(
-        String, ForeignKey(OfficialEntity.id), nullable=False
+        String,
+        ForeignKey(OfficialEntity.id, ondelete="SET NULL", onupdate="RESTRICT"),
+        nullable=True,
     )
     official_assistant_2_referee_id = Column(
-        String, ForeignKey(OfficialEntity.id), nullable=False
+        String,
+        ForeignKey(OfficialEntity.id, ondelete="SET NULL", onupdate="RESTRICT"),
+        nullable=True,
     )
     official_fourth_referee_id = Column(
-        String, ForeignKey(OfficialEntity.id), nullable=False
+        String,
+        ForeignKey(OfficialEntity.id, ondelete="SET NULL", onupdate="RESTRICT"),
+        nullable=True,
     )
-    official_var_id = Column(String, ForeignKey(OfficialEntity.id), nullable=True)
+    official_var_id = Column(
+        String,
+        ForeignKey(OfficialEntity.id, ondelete="SET NULL", onupdate="RESTRICT"),
+        nullable=True,
+    )
     official_assistant_var_id = Column(
-        String, ForeignKey(OfficialEntity.id), nullable=True
+        String,
+        ForeignKey(OfficialEntity.id, ondelete="SET NULL", onupdate="RESTRICT"),
+        nullable=True,
     )
 
     def __init__(
@@ -368,6 +199,18 @@ class MatchEntity(PulseliveEntity):
         self.official_assistant_var_id = (
             official_assistant_var.id if official_assistant_var else None
         )
+
+        # Associations
+        self.away_team_card_associations = []
+        self.away_team_goal_associations = []
+        self.away_team_lineup_associations = []
+        self.away_team_substitute_associations = []
+        self.away_team_substitution_associations = []
+        self.home_team_card_associations = []
+        self.home_team_goal_associations = []
+        self.home_team_lineup_associations = []
+        self.home_team_substitute_associations = []
+        self.home_team_substitution_associations = []
 
     @property
     def is_home_won(self) -> bool | None:

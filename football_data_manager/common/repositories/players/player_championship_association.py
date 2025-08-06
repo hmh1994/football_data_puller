@@ -1,20 +1,19 @@
 from datetime import datetime
 
-from sqlalchemy import Column, String, ForeignKey
+from sqlalchemy import Column, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship, backref
 
+from football_data_manager.common.repositories import Base
 from football_data_manager.common.repositories.constants import (
     PLAYER_CHAMPIONSHIP_ASSOCIATION_TABLE_NAME,
-    PLAYERS_TABLE_NAME,
 )
 from football_data_manager.common.repositories.players.player_entity import (
     PlayerEntity,
-    AbstractPlayerChampionshipAssociation,
 )
 from football_data_manager.common.repositories.seasons.season_entity import SeasonEntity
 
 
-class PlayerChampionshipAssociation(AbstractPlayerChampionshipAssociation):
+class PlayerChampionshipAssociation(Base):
     """
     Concrete association class for player championship relationships.
 
@@ -23,22 +22,30 @@ class PlayerChampionshipAssociation(AbstractPlayerChampionshipAssociation):
     Tracks the end date of each championship for ordering purposes.
 
     :ivar season_id: Foreign key to the season entity
-    :ivar season: Season entity associated with player championships
     :ivar date_end: End date of the championship season
     :ivar player_id: Foreign key to the player entity
-    :ivar player: Associated player entity with backref to season collection
     """
 
     __tablename__ = PLAYER_CHAMPIONSHIP_ASSOCIATION_TABLE_NAME
 
     SEASON_COLLECTION_NAME = "championship_season_associations"
 
-    player_id = Column(String, ForeignKey(f"{PLAYERS_TABLE_NAME}.id"), primary_key=True)
+    season_id = Column(
+        String,
+        ForeignKey(SeasonEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
+        primary_key=True,
+    )
+    player_id = Column(
+        String,
+        ForeignKey(PlayerEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
+        primary_key=True,
+    )
+    date_end = Column(DateTime, nullable=False)
     player = relationship(
         PlayerEntity,
         backref=backref(
-            SEASON_COLLECTION_NAME,
-            lazy="select",
+            name=SEASON_COLLECTION_NAME,
+            lazy="noload",
             cascade="all, delete-orphan",
             order_by="PlayerChampionshipAssociation.date_end",
         ),
@@ -55,5 +62,7 @@ class PlayerChampionshipAssociation(AbstractPlayerChampionshipAssociation):
         :param season: Season entity for the championship
         :param date_end: End date of the championship season
         """
-        super().__init__(season_id=season.id, date_end=date_end)
+        super().__init__()
+        self.season_id = season.id
+        self.date_end = date_end
         self.player_id = player.id

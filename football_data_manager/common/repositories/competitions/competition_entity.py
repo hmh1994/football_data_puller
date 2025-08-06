@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String
+from sqlalchemy import Column, String, Index
 
 from football_data_manager.common.repositories.constants import (
     COMPETITIONS_TABLE_NAME,
@@ -11,10 +11,10 @@ from football_data_manager.common.repositories.pulselive_entity import (
 class CompetitionEntity(PulseliveEntity):
     """
     Entity model for football competitions with multilingual information.
-    
+
     Represents football competitions and tournaments with localized names,
     descriptions, and icons. Extends PulseliveEntity to inherit source tracking functionality.
-    
+
     :ivar id: Unique identifier for the entity
     :ivar abbreviation: Competition abbreviation (e.g., 'PL', 'UCL')
     :ivar description_en: Competition description in English
@@ -30,12 +30,14 @@ class CompetitionEntity(PulseliveEntity):
 
     __tablename__ = COMPETITIONS_TABLE_NAME
 
-    abbreviation = Column(String, nullable=False)
+    abbreviation = Column(String, nullable=False, unique=True)
     description_en = Column(String, nullable=True)
     description_kr = Column(String, nullable=True)
     icon_url = Column(String, nullable=True)
     name_en = Column(String, nullable=False)
     name_kr = Column(String, nullable=False)
+
+    __table_args__ = (Index("ix_competition_abbreviation", abbreviation),)
 
     def __init__(
         self,
@@ -49,7 +51,7 @@ class CompetitionEntity(PulseliveEntity):
     ):
         """
         Initialize a new competition entity.
-        
+
         :param abbreviation: Competition abbreviation (e.g., 'PL', 'UCL')
         :param name_en: Competition name in English
         :param name_kr: Competition name in Korean

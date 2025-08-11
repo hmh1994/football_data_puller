@@ -12,6 +12,9 @@ from football_data_manager.common.services.db.db_service import DbService
 from football_data_manager.puller.services.pulselive_new.components.pulselive_new_webclient import (
     PulseliveNewWebclient,
 )
+from football_data_manager.puller.services.pulselive_new.services.pulselive_new_competition_puller import (
+    PulseliveNewCompetitionPuller,
+)
 from football_data_manager.puller.services.pulselive_new.services.pulselive_new_match_puller import (
     PulseliveNewMatchPuller,
 )
@@ -23,20 +26,25 @@ from football_data_manager.puller.services.the_athletic.the_athletic_puller_serv
 )
 
 
-async def update_news(config_service: ConfigService, db_service: DbService):
+async def create_competitions(
+    service_container: CommonServiceContainer,
+    repository_container: CommonRepositoryContainer,
+    webclient: PulseliveNewWebclient,
+):
+    competition_puller = PulseliveNewCompetitionPuller(
+        service_container, repository_container, webclient
+    )
+    competitions = await competition_puller.pull_all_competitions()
+    return competitions
+
+
+async def create_news(config_service: ConfigService, db_service: DbService):
     puller_service = TheAthleticPullerService(
         anthropic_config=config_service.api_list.anthropic,
         the_athletic_graphql_config=config_service.api_list.the_athletic_graphql,
         db_service=db_service,
     )
     await puller_service.pull_news()
-
-
-# async def update_fixtures(
-#     db_service: DbService, pulselive_service: PulseliveWebClientService
-# ):
-#     puller_service = PulseliveFixturesService(db_service, pulselive_service)
-#     await puller_service.pull_fixtures()
 
 
 async def create_match(
@@ -73,14 +81,18 @@ async def runrun():
         await conn.run_sync(Base.metadata.create_all)
     repository_container = CommonRepositoryContainer(db_service=db_service)
     webclient_service = PulseliveNewWebclient(config_service.api_list.pulselive_new)
-    await create_match(
+    await create_competitions(
         service_container,
         repository_container,
         webclient_service,
-        2444840,
     )
+    # await create_match(
+    #     service_container,
+    #     repository_container,
+    #     webclient_service,
+    #     2444840,
+    # )
     # await update_news(config_service, db_service)
-    # await update_fixtures(db_service, web_client_service)
 
 
 run(runrun())

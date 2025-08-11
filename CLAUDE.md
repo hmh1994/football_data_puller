@@ -286,19 +286,6 @@ async def append_card(
 
 #### 5. Type Safety Standards
 
-**Import Organization**:
-
-```python
-from typing import TYPE_CHECKING
-
-from football_data_manager.common.enums.card_type_enum import CardTypeEnum
-
-# ... other imports
-
-if TYPE_CHECKING:
-    pass  # Forward declaration space
-```
-
 **Generic Repository Typing**:
 
 ```python

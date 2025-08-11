@@ -17,6 +17,7 @@ from football_data_manager.common.repositories.pulselive_entity import (
 from football_data_manager.common.repositories.seasons.season_entity import (
     SeasonEntity,
 )
+from football_data_manager.common.repositories.staffs.staff_entity import StaffEntity
 from football_data_manager.common.repositories.teams.team_entity import TeamEntity
 from football_data_manager.common.services.db.db_service import DbService
 from football_data_manager.common.utils.type_helper.int_helper import compare_ints
@@ -53,6 +54,7 @@ class TeamStatEntity(PulseliveEntity):
     :ivar home_matches_won: Home matches won
     :ivar home_points: Total points from home matches
     :ivar home_position: Home standings position
+    :ivar manager_id: Foreign key to team manager entity (optional)
     :ivar overall_cumulative_points: Cumulative points progression in all matches
     :ivar overall_fixture_associations: List of all fixture associations
     :ivar overall_matches: Total matches played
@@ -99,6 +101,7 @@ class TeamStatEntity(PulseliveEntity):
     home_matches_won = Column(Integer, nullable=False)
     home_points = Column(Integer, nullable=False)
     home_position = Column(Integer, nullable=True)
+    manager_id = Column(String, ForeignKey(StaffEntity.id), nullable=True)
     overall_cumulative_points = Column(ARRAY(Integer), nullable=False)
     overall_goals_against = Column(Integer, nullable=False)
     overall_goals_for = Column(Integer, nullable=False)

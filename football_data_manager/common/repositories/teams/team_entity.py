@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Index
+from sqlalchemy import Column, String, Index, Integer
 
 from football_data_manager.common.repositories.constants import TEAMS_TABLE_NAME
 from football_data_manager.common.repositories.pulselive_entity import (
@@ -18,6 +18,7 @@ class TeamEntity(PulseliveEntity):
     :ivar id: Unique identifier for the entity
     :ivar abbreviation: Team abbreviation code (e.g., 'MCI', 'LIV', 'ARS')
     :ivar championship_season_associations: List of championship season associations
+    :ivar founded_year: Year the team was founded (optional)
     :ivar icon_url: URL to team icon/logo image (optional)
     :ivar name_en: Team name in English
     :ivar name_kr: Team name in Korean
@@ -31,7 +32,8 @@ class TeamEntity(PulseliveEntity):
 
     __tablename__ = TEAMS_TABLE_NAME
 
-    abbreviation = Column(String, nullable=False, unique=True)
+    abbreviation = Column(String, nullable=False)
+    founded_year = Column(Integer, nullable=True)
     icon_url = Column(String, nullable=True)
     name_en = Column(String, nullable=False)
     name_kr = Column(String, nullable=False)

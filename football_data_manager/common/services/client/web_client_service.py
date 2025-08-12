@@ -46,6 +46,7 @@ class AbstractWebClientService(metaclass=ABCMeta):
             headers=headers if headers else {},
             timeout=self.timeout,
         )
+        print("GET request to:", response.url)
         response.raise_for_status()
         return response.json()
 
@@ -74,5 +75,6 @@ class AbstractWebClientService(metaclass=ABCMeta):
             headers=headers if headers else {},
             timeout=self.timeout,
         )
+        print("POST request to:", response.url, "with body:\n", data or json)
         response.raise_for_status()
         return response.json()

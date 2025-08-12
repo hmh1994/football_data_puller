@@ -74,29 +74,27 @@ class PulseliveNewCompetitionPuller:
         :returns: List of all competition entities created or updated
         """
         all_competitions = []
-        cursor = None
+        _next = None
 
         while True:
-            competitions, cursor = await self.pull_competitions(limit=50, cursor=cursor)
+            competitions, _next = await self.pull_competitions(limit=50, _next=_next)
             all_competitions.extend(competitions)
-            if cursor is None:
+            if _next is None:
                 break
 
         return all_competitions
 
     async def pull_competitions(
-        self, limit: int = 10, cursor: str | None = None
+        self, limit: int = 10, _next: str | None = None
     ) -> tuple[list[CompetitionEntity], str | None]:
         """
         Pull a single page of competitions from the PulseLive API.
 
         :param limit: Maximum number of competitions to retrieve
-        :param cursor: Pagination cursor for the next page
+        :param _next: Pagination cursor for the next page
         :returns: Tuple of (competitions list, next page cursor)
         """
-        response = await self.__webclient.get_v1_competitions(
-            limit=limit, cursor=cursor
-        )
+        response = await self.__webclient.get_v1_competitions(limit=limit, _next=_next)
         competitions = await self.__process_competitions(response.data)
         return competitions, response.pagination.next
 

@@ -1,6 +1,6 @@
 from hashlib import md5
 
-from sqlalchemy import Column, String, Index
+from sqlalchemy import Column, String
 
 from football_data_manager.common.repositories.constants import OFFICIALS_TABLE_NAME
 from football_data_manager.common.repositories.pulselive_entity import (
@@ -30,8 +30,6 @@ class OfficialEntity(PulseliveEntity):
     display_name_en = Column(String, nullable=False, unique=True)
     display_name_kr = Column(String, nullable=False)
     full_name = Column(String, nullable=False)
-
-    __table_args__ = (Index("ix_official_display_name_en", display_name_en),)
 
     def __init__(self, display_name_en: str, display_name_kr: str, full_name: str):
         """

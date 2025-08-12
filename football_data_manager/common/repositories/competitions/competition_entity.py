@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Index
+from sqlalchemy import Column, String
 
 from football_data_manager.common.repositories.constants import (
     COMPETITIONS_TABLE_NAME,
@@ -36,8 +36,6 @@ class CompetitionEntity(PulseliveEntity):
     icon_url = Column(String, nullable=True)
     name_en = Column(String, nullable=False)
     name_kr = Column(String, nullable=False)
-
-    __table_args__ = (Index("ix_competition_abbreviation", abbreviation),)
 
     def __init__(
         self,

@@ -33,18 +33,18 @@ class PulseliveNewWebclient(AbstractWebClientService):
         super().__init__(URL(config.url.unicode_string()))
 
     async def get_v1_competitions(
-        self, limit: int = 10, cursor: str | None = None
+        self, limit: int = 10, _next: str | None = None
     ) -> PulseliveNewV1CompetitionResponse:
         """
         Get competitions list.
 
         :param limit: Maximum number of competitions to return (default: 10)
-        :param cursor: Pagination cursor for next page (optional)
+        :param _next: Pagination cursor for next page (optional)
         :returns: Competition list with pagination information
         """
         params = {"_limit": str(limit)}
-        if cursor:
-            params["_cursor"] = cursor
+        if _next:
+            params["_next"] = _next
 
         response = await self.get(path=URL("v1/competitions"), query=params)
         return PulseliveNewV1CompetitionResponse.model_validate(response)

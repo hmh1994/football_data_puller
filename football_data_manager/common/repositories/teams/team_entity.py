@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Index, Integer
+from sqlalchemy import Column, String, Integer
 
 from football_data_manager.common.repositories.constants import TEAMS_TABLE_NAME
 from football_data_manager.common.repositories.pulselive_entity import (
@@ -32,15 +32,13 @@ class TeamEntity(PulseliveEntity):
 
     __tablename__ = TEAMS_TABLE_NAME
 
-    abbreviation = Column(String, nullable=False)
+    abbreviation = Column(String, nullable=False, unique=True)
     founded_year = Column(Integer, nullable=True)
     icon_url = Column(String, nullable=True)
     name_en = Column(String, nullable=False)
     name_kr = Column(String, nullable=False)
     short_name_en = Column(String, nullable=False)
     short_name_kr = Column(String, nullable=False)
-
-    __table_args__ = (Index("ix_team_abbreviation", abbreviation),)
 
     def __init__(
         self,

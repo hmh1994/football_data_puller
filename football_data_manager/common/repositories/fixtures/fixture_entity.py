@@ -72,11 +72,11 @@ class FixtureEntity(PulseliveEntity):
     )
 
     __table_args__ = (
-        Index("ix_fixture_away_team", away_team_id),
-        Index("ix_fixture_away_team_season", away_team_id, season_id),
-        Index("ix_fixture_home_team", home_team_id),
-        Index("ix_fixture_home_team_season", home_team_id, season_id),
-        Index("ix_fixture_kickoff_time_desc", desc(kickoff_time)),
+        Index("ix_fixtures_away_team", away_team_id),
+        Index("ix_fixtures_away_team_season", away_team_id, season_id),
+        Index("ix_fixtures_home_team", home_team_id),
+        Index("ix_fixtures_home_team_season", home_team_id, season_id),
+        Index("ix_fixtures_kickoff_time_desc", desc(kickoff_time)),
     )
 
     def __init__(

@@ -21,7 +21,7 @@ class BaseEntity(Base):
 
     id = Column(String, nullable=False, primary_key=True)
     source = Column(Enum(SourceEnum), nullable=False)
-    source_id = Column(String, nullable=False, unique=True, index=True)
+    source_id = Column(String, nullable=False, unique=True)
     created_at = Column(DateTime, nullable=False)
     updated_at = Column(DateTime, nullable=False)
 

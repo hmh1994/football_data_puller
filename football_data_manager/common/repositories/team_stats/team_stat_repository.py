@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from football_data_manager.common.repositories.fixtures.fixture_entity import (
     FixtureEntity,
 )
@@ -23,7 +25,9 @@ from football_data_manager.common.repositories.team_stats.team_stat_overall_fixt
     TeamStatOverallFixtureAssociation,
 )
 from football_data_manager.common.services.db.db_service import DbService
-from football_data_manager.common.utils.type_helper.int_helper import compare_ints
+from football_data_manager.common.utils.type_helper.datetime_helper import (
+    create_utc_now,
+)
 
 
 class TeamStatRepository(PulseliveRepository[TeamStatEntity]):
@@ -175,133 +179,245 @@ class TeamStatRepository(PulseliveRepository[TeamStatEntity]):
         return team_stat
 
     async def update_match(
-        self, team_stat: TeamStatEntity, match: MatchEntity
+        self,
+        team_stat: TeamStatEntity,
+        match: MatchEntity,
+        previous_match: MatchEntity = None,
     ) -> TeamStatEntity:
         """
-        Update team statistics based on completed match results.
+        Update team statistics based on match results with support for incremental updates.
 
-        Processes match results and updates team statistics including goals scored,
-        goals conceded, matches played, wins/draws/losses, points, and cumulative points.
-        Updates both home/away specific statistics and overall statistics.
+        For new matches (not yet processed): Processes match results in chronological order.
+        For in-progress matches: Updates only goal statistics incrementally based on score changes.
+        For completed matches: Updates all statistics including points, wins/draws/losses.
 
-        Validates that matches are processed in the correct chronological order
-        (by kickoff_time) to maintain data integrity of cumulative statistics.
+        Validates chronological order for new matches but allows incremental updates
+        for matches already being tracked.
 
         :param team_stat: The team stat entity to update
-        :param match: The completed match entity with final scores and results
+        :param match: The match entity with current scores and results
+        :param previous_match: Previous state of the match (for incremental updates, optional)
         :returns: The updated team stat entity with match results incorporated
-        :raises ValueError: If match fixture is not found, or if match is processed
-                           out of chronological order, or if all fixtures have
-                           already been processed
+        :raises ValueError: If match fixture is not found, or if new match is processed
+                           out of chronological order
         """
         # Load existing associations to check for fixture existence
         team_stat = await self.load_items(team_stat)
 
         # Find the fixture this match is associated with to determine team role
-        fixture_found = None
+        kickoff_time = None
         fixture_index = None
         for index, assoc in enumerate(team_stat.overall_fixture_associations):
             if assoc.fixture_id == match.fixture_id:
-                fixture_found = assoc.fixture
+                kickoff_time = assoc.kickoff_time
                 fixture_index = index
                 break
 
-        if not fixture_found:
+        if kickoff_time is None or fixture_index is None:
             raise ValueError(
                 f"Match fixture {match.fixture_id} not found in team {team_stat.team_id} statistics"
             )
 
-        # Validate match sequence: ensure this match corresponds to the next expected fixture
+        is_home = team_stat.check_is_home_match(match)
+
+        # Determine match processing type
         expected_match_count = len(team_stat.overall_cumulative_points)
-        total_fixtures = len(team_stat.overall_fixture_associations)
+        is_new_match = fixture_index == expected_match_count
+        is_incremental_update = (
+            fixture_index + 1 == expected_match_count and previous_match is not None
+        )
 
-        if expected_match_count >= total_fixtures:
-            raise ValueError(
-                f"Match sequence validation failed: all fixtures have already been processed. "
-                f"Total fixtures: {total_fixtures}, processed matches: {expected_match_count}"
-            )
-
-        if fixture_index != expected_match_count:
-            expected_fixture = team_stat.overall_fixture_associations[
-                expected_match_count
-            ]
-            raise ValueError(
-                f"Match order validation failed: fixture at index {fixture_index} "
-                f"does not match expected sequence position {expected_match_count}. "
-                f"Expected fixture: {expected_fixture.fixture_id} (kickoff: {expected_fixture.kickoff_time}) "
-                f"but received fixture: {match.fixture_id}"
-            )
-
-        # Determine if team is playing at home or away
-        if fixture_found.home_team_id == team_stat.team_id:
-            is_home = True
-            team_score = match.home_team_score
-            opponent_score = match.away_team_score
-            points_earned = match.home_point or 0
-        elif fixture_found.away_team_id == team_stat.team_id:
-            is_home = False
-            team_score = match.away_team_score
-            opponent_score = match.home_team_score
-            points_earned = match.away_point or 0
+        if not is_new_match and not is_incremental_update:
+            if fixture_index >= expected_match_count:
+                # New match out of order
+                expected_fixture = team_stat.overall_fixture_associations[
+                    expected_match_count
+                ]
+                raise ValueError(
+                    f"Match order validation failed: fixture at index {fixture_index} "
+                    f"does not match expected sequence position {expected_match_count}. "
+                    f"Expected fixture: {expected_fixture.fixture_id} (kickoff: {expected_fixture.kickoff_time}) "
+                    f"but received fixture: {match.fixture_id}"
+                )
+            else:
+                # In-progress update without previous match data
+                raise ValueError(
+                    f"Incremental update requires previous_match parameter for fixture {match.fixture_id}"
+                )
         else:
-            raise ValueError(
-                f"Match fixture {match.fixture_id} does not belong to team {team_stat.team_id}"
+            # Determine if team is playing at home or away
+            if is_home:
+                # Current team score
+                team_score = match.home_team_score
+                previous_team_score = (
+                    previous_match.home_team_score if previous_match else 0
+                )
+                team_score_increment = team_score - previous_team_score
+                # Opponent team score
+                opponent_score = match.away_team_score
+                previous_opponent_score = (
+                    previous_match.away_team_score if previous_match else 0
+                )
+                opponent_score_increment = opponent_score - previous_opponent_score
+                # Points earned by the team in this match
+                points_earned = match.home_point or 0
+                previous_points_earned = (
+                    previous_match.home_point if previous_match else 0
+                )
+                points_earned_increment = points_earned - previous_points_earned
+            else:
+                # Current team score
+                team_score = match.away_team_score
+                previous_team_score = (
+                    previous_match.away_team_score if previous_match else 0
+                )
+                team_score_increment = team_score - previous_team_score
+                # Opponent team score
+                opponent_score = match.home_team_score
+                previous_opponent_score = (
+                    previous_match.home_team_score if previous_match else 0
+                )
+                opponent_score_increment = opponent_score - previous_opponent_score
+                # Points earned by the team in this match
+                points_earned = match.away_point or 0
+                previous_points_earned = (
+                    previous_match.away_point if previous_match else 0
+                )
+                points_earned_increment = points_earned - previous_points_earned
+
+            # Calculate if match is complete based on kickoff time + match clock + 10 minutes buffer
+            is_match_complete = (
+                kickoff_time + timedelta(minutes=match.clock + 10) < create_utc_now()
             )
 
-        # Calculate match statistics
-        goal_difference = team_score - opponent_score
-        match_won = 1 if team_score > opponent_score else 0
-        match_drawn = 1 if team_score == opponent_score else 0
-        match_lost = 1 if team_score < opponent_score else 0
+            team_stat.update_increment(
+                is_home,
+                team_score_increment,
+                opponent_score_increment,
+                points_earned_increment,
+            )
 
-        # Update overall statistics
-        self.__append_point(team_stat.overall_cumulative_points, points_earned)
-        team_stat.overall_goals_for += team_score
-        team_stat.overall_goals_against += opponent_score
-        team_stat.overall_goals_difference += goal_difference
-        team_stat.overall_matches += 1
-        team_stat.overall_matches_won += match_won
-        team_stat.overall_matches_drawn += match_drawn
-        team_stat.overall_matches_lost += match_lost
-        team_stat.overall_points += points_earned
+            if is_match_complete:
+                if team_stat.overall_matches > expected_match_count:
+                    raise ValueError(
+                        f"Match {match.fixture_id} is already processed. "
+                        f"Cannot update completed match statistics again."
+                    )
 
-        # Update home/away specific statistics
-        if is_home:
-            self.__append_point(team_stat.home_cumulative_points, points_earned)
-            team_stat.home_goals_for += team_score
-            team_stat.home_goals_against += opponent_score
-            team_stat.home_goals_difference += goal_difference
-            team_stat.home_matches += 1
-            team_stat.home_matches_won += match_won
-            team_stat.home_matches_drawn += match_drawn
-            team_stat.home_matches_lost += match_lost
-            team_stat.home_points += points_earned
-        else:
-            self.__append_point(team_stat.away_cumulative_points, points_earned)
-            team_stat.away_goals_for += team_score
-            team_stat.away_goals_against += opponent_score
-            team_stat.away_goals_difference += goal_difference
-            team_stat.away_matches += 1
-            team_stat.away_matches_won += match_won
-            team_stat.away_matches_drawn += match_drawn
-            team_stat.away_matches_lost += match_lost
-            team_stat.away_points += points_earned
+                # Calculate final match statistics
+                match_won = 1 if team_score > opponent_score else 0
+                match_drawn = 1 if team_score == opponent_score else 0
+                match_lost = 1 if team_score < opponent_score else 0
+
+                # This was an in-progress match being completed for the first time
+                team_stat.append_overall_point(points_earned)
+                team_stat.overall_matches += 1
+                team_stat.overall_matches_won += match_won
+                team_stat.overall_matches_drawn += match_drawn
+                team_stat.overall_matches_lost += match_lost
+                team_stat.overall_points += points_earned
+
+                if is_home:
+                    team_stat.append_home_point(points_earned)
+                    team_stat.home_matches += 1
+                    team_stat.home_matches_won += match_won
+                    team_stat.home_matches_drawn += match_drawn
+                    team_stat.home_matches_lost += match_lost
+                    team_stat.home_points += points_earned
+                else:
+                    team_stat.append_away_point(points_earned)
+                    team_stat.away_matches += 1
+                    team_stat.away_matches_won += match_won
+                    team_stat.away_matches_drawn += match_drawn
+                    team_stat.away_matches_lost += match_lost
+                    team_stat.away_points += points_earned
 
         return team_stat
 
-    @staticmethod
-    def __append_point(points: list[int], point: int):
+    async def rebuild_from_matches(
+        self, team_stat: TeamStatEntity, matches: list[MatchEntity]
+    ) -> TeamStatEntity:
         """
-        Append cumulative points to the points list.
+        Rebuild team statistics from scratch using a list of matches.
 
-        :param points: List of cumulative points
-        :param point: Points to add to the cumulative total
+        Clears all existing statistics and recalculates them from the provided
+        matches in chronological order. Validates that all matches belong to
+        fixtures associated with this team.
+
+        :param team_stat: The team stat entity to rebuild
+        :param matches: List of match entities to process (should be chronologically ordered)
+        :returns: The updated team stat entity with recalculated statistics
+        :raises ValueError: If matches are out of order or don't belong to team fixtures
         """
-        last_point = points[-1] if points else 0
-        points.append(last_point + point)
+        # Load existing associations to validate matches
+        team_stat = await self.load_items(team_stat)
+
+        # Create lookup for valid fixture IDs
+        valid_fixture_ids = {
+            assoc.fixture_id for assoc in team_stat.overall_fixture_associations
+        }
+
+        # Validate all matches belong to this team's fixtures
+        invalid_matches = [m for m in matches if m.fixture_id not in valid_fixture_ids]
+        if invalid_matches:
+            invalid_ids = [m.fixture_id for m in invalid_matches]
+            raise ValueError(
+                f"Invalid matches found: fixtures {invalid_ids} do not belong to team {team_stat.team_id}"
+            )
+
+        # Sort matches by fixture order (based on fixture associations)
+        team_stat.overall_fixture_associations.sort(key=lambda a: a.kickoff_time)
+        team_stat.home_fixture_associations.sort(key=lambda a: a.kickoff_time)
+        team_stat.away_fixture_associations.sort(key=lambda a: a.kickoff_time)
+        fixture_order = {
+            assoc.fixture_id: idx
+            for idx, assoc in enumerate(team_stat.overall_fixture_associations)
+        }
+        sorted_matches = sorted(
+            matches, key=lambda m: fixture_order.get(m.fixture_id, float("inf"))
+        )
+
+        # Reset all statistics to initial values
+        team_stat.reset_statistics()
+
+        # Process each match in order using the new match logic
+        for match in sorted_matches:
+            try:
+                team_stat = await self.update_match(team_stat, match)
+            except Exception as e:
+                raise ValueError(
+                    f"Failed to process match {match.fixture_id}: {str(e)}"
+                ) from e
+
+        return team_stat
+
+    class __TeamStatComparator:
+        target: TeamStatEntity
+        home: MatchEntity | None
+        away: MatchEntity | None
+
+        def __init__(
+            self,
+            target: TeamStatEntity,
+            home: MatchEntity | None = None,
+            away: MatchEntity | None = None,
+        ) -> None:
+            """
+            Initialize a comparator for team statistics.
+
+            :param target: The target team stat entity to compare against
+            :param home: Optional home match entity for head-to-head comparison
+            :param away: Optional away match entity for head-to-head comparison
+            """
+            self.target = target
+            self.home = home
+            self.away = away
 
     async def update_position(
-        self, target_team_stat: TeamStatEntity, other_team_stats: list[TeamStatEntity]
+        self,
+        target_team_stat: TeamStatEntity,
+        other_team_stats: list[TeamStatEntity],
+        matches: list[MatchEntity],
     ) -> TeamStatEntity:
         """
         Update team standings positions based on comparison with other teams.
@@ -312,37 +428,44 @@ class TeamStatRepository(PulseliveRepository[TeamStatEntity]):
 
         :param target_team_stat: The team stat entity to update positions for
         :param other_team_stats: List of other team stat entities to compare against
+        :param matches: List of match entities to consider for head-to-head comparisons
         :returns: The updated team stat entity with refreshed position values
         """
         # Load target team associations for head-to-head comparisons
         target_team_stat = await self.load_items(target_team_stat)
 
         # Filter to only teams from the same season, excluding the target team
-        comparable_teams = [
-            team_stat
+        comparable_teams = {
+            team_stat.team_id: self.__TeamStatComparator(team_stat, None, None)
             for team_stat in other_team_stats
             if team_stat.team_id != target_team_stat.team_id
             and team_stat.season_id == target_team_stat.season_id
-        ]
+        }
+
+        for match in matches:
+            if target_team_stat.check_is_home_match(match):
+                comparable_teams[match.away_team_id].home = match
+            elif target_team_stat.check_is_away_match(match):
+                comparable_teams[match.home_team_id].away = match
+            else:
+                raise ValueError(
+                    f"Match {match.id} does not belong to target team {target_team_stat.team_id}"
+                )
 
         # Calculate positions by counting teams that rank lower (comparison >= 0)
         overall_comparisons = []
         home_comparisons = []
         away_comparisons = []
 
-        for other_team in comparable_teams:
-            # Load other team's associations for head-to-head comparison
-            other_team = await self.load_items(other_team)
-
+        for other_team in comparable_teams.values():
+            other_team_stat = await self.load_items(other_team.target)
             overall_comparisons.append(
-                await self._compare_overall_standing(target_team_stat, other_team)
+                target_team_stat.compare_overall(
+                    other_team_stat, other_team.home, other_team.away
+                )
             )
-            home_comparisons.append(
-                self._compare_home_standing(target_team_stat, other_team)
-            )
-            away_comparisons.append(
-                self._compare_away_standing(target_team_stat, other_team)
-            )
+            home_comparisons.append(target_team_stat.compare_home(other_team_stat))
+            away_comparisons.append(target_team_stat.compare_away(other_team_stat))
 
         # Position = number of teams that rank lower + 1
         target_team_stat.overall_position = (
@@ -352,139 +475,3 @@ class TeamStatRepository(PulseliveRepository[TeamStatEntity]):
         target_team_stat.away_position = sum(comp >= 0 for comp in away_comparisons) + 1
 
         return target_team_stat
-
-    @staticmethod
-    async def _compare_overall_standing(
-        team_a: TeamStatEntity, team_b: TeamStatEntity
-    ) -> int:
-        """
-        Compare overall standings between two teams using football ranking criteria.
-
-        Ranking order: Points > Goal Difference > Goals Scored > Head-to-head > Away goals
-
-        :param team_a: First team to compare
-        :param team_b: Second team to compare
-        :returns: 1 if team_a ranks higher, -1 if team_b ranks higher, 0 if equal
-        """
-        # Compare points
-        points_comparison = compare_ints(team_a.overall_points, team_b.overall_points)
-        if points_comparison != 0:
-            return points_comparison
-
-        # Compare goal difference
-        goal_diff_comparison = compare_ints(
-            team_a.overall_goals_difference, team_b.overall_goals_difference
-        )
-        if goal_diff_comparison != 0:
-            return goal_diff_comparison
-
-        # Compare goals scored
-        goals_scored_comparison = compare_ints(
-            team_a.overall_goals_for, team_b.overall_goals_for
-        )
-        if goals_scored_comparison != 0:
-            return goals_scored_comparison
-
-        # Head-to-head comparison
-        try:
-            # Find head-to-head matches between the two teams
-            team_a_home_match = next(
-                (
-                    assoc
-                    for assoc in team_a.home_fixture_associations
-                    if assoc.fixture.away_team_id == team_b.team_id
-                ),
-                None,
-            )
-            team_a_away_match = next(
-                (
-                    assoc
-                    for assoc in team_a.away_fixture_associations
-                    if assoc.fixture.home_team_id == team_b.team_id
-                ),
-                None,
-            )
-
-            if team_a_home_match or team_a_away_match:
-                # Calculate head-to-head points
-                team_a_h2h_points = 0
-                team_b_h2h_points = 0
-
-                if team_a_home_match:
-                    team_a_h2h_points += team_a_home_match.fixture.home_point or 0
-                    team_b_h2h_points += team_a_home_match.fixture.away_point or 0
-
-                if team_a_away_match:
-                    team_a_h2h_points += team_a_away_match.fixture.away_point or 0
-                    team_b_h2h_points += team_a_away_match.fixture.home_point or 0
-
-                h2h_points_comparison = compare_ints(
-                    team_a_h2h_points, team_b_h2h_points
-                )
-                if h2h_points_comparison != 0:
-                    return h2h_points_comparison
-
-                # If points are equal, compare away goals in head-to-head
-                if team_a_home_match and team_a_away_match:
-                    team_a_away_goals = team_a_away_match.fixture.away_team_score
-                    team_b_away_goals = team_a_home_match.fixture.away_team_score
-                    return compare_ints(team_a_away_goals, team_b_away_goals)
-
-        except Exception:
-            # If head-to-head comparison fails, continue with other criteria
-            pass
-
-        # If all criteria are equal, teams have the same rank
-        return 0
-
-    @staticmethod
-    def _compare_home_standing(team_a: TeamStatEntity, team_b: TeamStatEntity) -> int:
-        """
-        Compare home standings between two teams.
-
-        Ranking order: Home Points > Home Goal Difference > Home Goals Scored
-
-        :param team_a: First team to compare
-        :param team_b: Second team to compare
-        :returns: 1 if team_a ranks higher, -1 if team_b ranks higher, 0 if equal
-        """
-        # Compare home points
-        points_comparison = compare_ints(team_a.home_points, team_b.home_points)
-        if points_comparison != 0:
-            return points_comparison
-
-        # Compare home goal difference
-        goal_diff_comparison = compare_ints(
-            team_a.home_goals_difference, team_b.home_goals_difference
-        )
-        if goal_diff_comparison != 0:
-            return goal_diff_comparison
-
-        # Compare home goals scored
-        return compare_ints(team_a.home_goals_for, team_b.home_goals_for)
-
-    @staticmethod
-    def _compare_away_standing(team_a: TeamStatEntity, team_b: TeamStatEntity) -> int:
-        """
-        Compare away standings between two teams.
-
-        Ranking order: Away Points > Away Goal Difference > Away Goals Scored
-
-        :param team_a: First team to compare
-        :param team_b: Second team to compare
-        :returns: 1 if team_a ranks higher, -1 if team_b ranks higher, 0 if equal
-        """
-        # Compare away points
-        points_comparison = compare_ints(team_a.away_points, team_b.away_points)
-        if points_comparison != 0:
-            return points_comparison
-
-        # Compare away goal difference
-        goal_diff_comparison = compare_ints(
-            team_a.away_goals_difference, team_b.away_goals_difference
-        )
-        if goal_diff_comparison != 0:
-            return goal_diff_comparison
-
-        # Compare away goals scored
-        return compare_ints(team_a.away_goals_for, team_b.away_goals_for)

@@ -67,6 +67,11 @@ class MatchEntity(PulseliveEntity):
     )
     away_team_formation = Column(ARRAY(Integer), nullable=False)
     away_team_half_time_score = Column(Integer, nullable=True)
+    away_team_id = Column(
+        String,
+        ForeignKey(FixtureEntity.away_team_id, ondelete="CASCADE", onupdate="RESTRICT"),
+        nullable=False,
+    )
     away_team_manager = Column(
         String,
         ForeignKey(StaffEntity.id, ondelete="SET NULL", onupdate="RESTRICT"),
@@ -86,6 +91,11 @@ class MatchEntity(PulseliveEntity):
     )
     home_team_formation = Column(ARRAY(Integer), nullable=False)
     home_team_half_time_score = Column(Integer, nullable=True)
+    home_team_id = Column(
+        String,
+        ForeignKey(FixtureEntity.home_team_id, ondelete="CASCADE", onupdate="RESTRICT"),
+        nullable=False,
+    )
     home_team_manager = Column(
         String,
         ForeignKey(StaffEntity.id, ondelete="SET NULL", onupdate="RESTRICT"),

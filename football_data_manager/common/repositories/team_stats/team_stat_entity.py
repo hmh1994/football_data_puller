@@ -5,12 +5,10 @@ from sqlalchemy import Column, String, ForeignKey, Integer, ARRAY
 from football_data_manager.common.repositories.constants import (
     TEAM_STATS_TABLE_NAME,
 )
-from football_data_manager.common.repositories.fixtures.fixture_entity import (
-    FixtureEntity,
-)
 from football_data_manager.common.repositories.grounds.ground_entity import (
     GroundEntity,
 )
+from football_data_manager.common.repositories.matches.match_entity import MatchEntity
 from football_data_manager.common.repositories.pulselive_entity import (
     PulseliveEntity,
 )
@@ -19,7 +17,6 @@ from football_data_manager.common.repositories.seasons.season_entity import (
 )
 from football_data_manager.common.repositories.staffs.staff_entity import StaffEntity
 from football_data_manager.common.repositories.teams.team_entity import TeamEntity
-from football_data_manager.common.services.db.db_service import DbService
 from football_data_manager.common.utils.type_helper.int_helper import compare_ints
 
 
@@ -143,7 +140,7 @@ class TeamStatEntity(PulseliveEntity):
         self.overall_fixture_associations = []
         self.season_id = season.id
         self.team_id = team.id
-        self.initialize()
+        self.reset_statistics()
 
     @staticmethod
     def get_source_id(season: SeasonEntity, team: TeamEntity) -> str:
@@ -156,241 +153,238 @@ class TeamStatEntity(PulseliveEntity):
         """
         return f"{season.source_id}_{team.source_id}"
 
-    async def apply_position(self, db_service: DbService, team_stats: list[Self]):
+    def check_is_home_match(self, match: MatchEntity) -> bool:
         """
-        Apply the position of the team in the standings based on the metrics of other teams.
+        Check if the match is a home match for this team.
 
-        :param db_service: Database service to fetch team stats
-        :param team_stats: List of team stats entities to compare against
+        :param match: Match entity to check
+        :returns: True if the match is a home match, False otherwise
         """
-        other_overall_metrics, other_home_metrics, other_away_metrics = [], [], []
-        for team_stat in team_stats:
-            if (
-                team_stat.team_id == self.team_id
-                or team_stat.season_id != self.season_id
-            ):
-                continue
+        return match.home_team_id == self.team_id
 
-            other_overall_metrics.append(
-                await team_stat.__compare_overall_standing(db_service, self)
-            )
-            other_home_metrics.append(team_stat.__compare_home_standing(self))
-            other_away_metrics.append(team_stat.__compare_away_standing(self))
-        self.overall_position = sum(other >= 0 for other in other_overall_metrics) + 1
-        self.home_position = sum(other >= 0 for other in other_home_metrics) + 1
-        self.away_position = sum(other >= 0 for other in other_away_metrics) + 1
-
-    def initialize(self):
+    def check_is_away_match(self, match: MatchEntity) -> bool:
         """
-        Initialize the team statistics entity with default values.
+        Check if the match is an away match for this team.
 
-        This method sets the initial values for all attributes related to team statistics.
+        :param match: Match entity to check
+        :returns: True if the match is an away match, False otherwise
         """
-        self.away_cumulative_points = []
-        self.away_goals_against = 0
-        self.away_goals_for = 0
-        self.away_goals_difference = 0
-        self.away_matches = 0
-        self.away_matches_drawn = 0
-        self.away_matches_lost = 0
-        self.away_matches_won = 0
-        self.away_points = 0
-        self.away_position = None
-        self.home_cumulative_points = []
-        self.home_goals_against = 0
-        self.home_goals_for = 0
-        self.home_goals_difference = 0
-        self.home_matches = 0
-        self.home_matches_drawn = 0
-        self.home_matches_lost = 0
-        self.home_matches_won = 0
-        self.home_points = 0
-        self.home_position = None
+        return match.away_team_id == self.team_id
+
+    def reset_statistics(self):
+        """
+        Reset all team statistics to initial values.
+
+        Resets goals, points, matches played, and win/draw/loss counts for
+        overall, home, and away statistics. Preserves fixture associations.
+        """
+        # Reset overall statistics
         self.overall_cumulative_points = []
-        self.overall_goals_against = 0
         self.overall_goals_for = 0
+        self.overall_goals_against = 0
         self.overall_goals_difference = 0
         self.overall_matches = 0
+        self.overall_matches_won = 0
         self.overall_matches_drawn = 0
         self.overall_matches_lost = 0
-        self.overall_matches_won = 0
         self.overall_points = 0
-        self.overall_position = 0
 
-    def __process_fixture(self, fixture: FixtureEntity):
-        if fixture.home_team_id == self.team_id:
-            is_home = True
-            point = fixture.home_point
-            goal_against, goal_for = fixture.away_team_score, fixture.home_team_score
-            match_won, match_drawn, match_lost = (
-                1 if fixture.is_home_won else 0,
-                1 if fixture.is_drawn else 0,
-                1 if fixture.is_home_lost else 0,
-            )
-        elif fixture.away_team_id == self.team_id:
-            is_home = False
-            point = fixture.away_point
-            goal_against, goal_for = fixture.home_team_score, fixture.away_team_score
-            match_won, match_drawn, match_lost = (
-                1 if fixture.is_away_won else 0,
-                1 if fixture.is_drawn else 0,
-                1 if fixture.is_away_lost else 0,
-            )
-        else:
-            raise ValueError(
-                f"Fixture {fixture.id} does not belong to team {self.team_id}."
-            )
-        goal_difference = goal_for - goal_against
-        # Import here to avoid circular imports
-        from football_data_manager.common.repositories.team_stats.team_stat_overall_fixture_association import (
-            TeamStatOverallFixtureAssociation,
-        )
+        # Reset home statistics
+        self.home_cumulative_points = []
+        self.home_goals_for = 0
+        self.home_goals_against = 0
+        self.home_goals_difference = 0
+        self.home_matches = 0
+        self.home_matches_won = 0
+        self.home_matches_drawn = 0
+        self.home_matches_lost = 0
+        self.home_points = 0
 
-        self.__append_point(self.overall_cumulative_points, point)
-        self.overall_fixture_associations.append(
-            TeamStatOverallFixtureAssociation(
-                team_stat=self,
-                fixture=fixture,
-                kickoff_time=fixture.kickoff_time,
-            )
-        )
-        self.overall_goals_against += goal_against
-        self.overall_goals_for += goal_for
+        # Reset away statistics
+        self.away_cumulative_points = []
+        self.away_goals_for = 0
+        self.away_goals_against = 0
+        self.away_goals_difference = 0
+        self.away_matches = 0
+        self.away_matches_won = 0
+        self.away_matches_drawn = 0
+        self.away_matches_lost = 0
+        self.away_points = 0
+
+    def update_increment(
+        self,
+        is_home: bool,
+        team_score_increment: int,
+        opponent_score_increment: int,
+        points_earned_increment: int,
+    ):
+        """
+        Process a new match completely with all statistics.
+
+        :param is_home: Whether the team is playing at home
+        :param team_score_increment: Goals scored by the team
+        :param opponent_score_increment: Goals scored by the opponent
+        :param points_earned_increment: Points earned from the match
+        :returns: The updated team stat entity
+        """
+        # Calculate match statistics
+        goal_difference = team_score_increment - opponent_score_increment
+
+        # Update overall statistics
+        self.overall_goals_for += team_score_increment
+        self.overall_goals_against += opponent_score_increment
         self.overall_goals_difference += goal_difference
-        self.overall_matches += 1
-        self.overall_matches_drawn += match_drawn
-        self.overall_matches_lost += match_lost
-        self.overall_matches_won += match_won
-        self.overall_points += point
+        self.overall_points += points_earned_increment
+
+        # Update home/away specific statistics
         if is_home:
-            # Import here to avoid circular imports
-            from football_data_manager.common.repositories.team_stats.team_stat_home_fixture_association import (
-                TeamStatHomeFixtureAssociation,
-            )
-
-            self.__append_point(self.home_cumulative_points, point)
-            self.home_fixture_associations.append(
-                TeamStatHomeFixtureAssociation(
-                    team_stat=self,
-                    fixture=fixture,
-                    kickoff_time=fixture.kickoff_time,
-                )
-            )
-            self.home_goals_against += goal_against
-            self.home_goals_for += goal_for
+            self.home_goals_for += team_score_increment
+            self.home_goals_against += opponent_score_increment
             self.home_goals_difference += goal_difference
-            self.home_matches += 1
-            self.home_matches_drawn += match_drawn
-            self.home_matches_lost += match_lost
-            self.home_matches_won += match_won
-            self.home_points += point
+            self.home_points += points_earned_increment
         else:
-            # Import here to avoid circular imports
-            from football_data_manager.common.repositories.team_stats.team_stat_away_fixture_association import (
-                TeamStatAwayFixtureAssociation,
-            )
-
-            self.__append_point(self.away_cumulative_points, point)
-            self.away_fixture_associations.append(
-                TeamStatAwayFixtureAssociation(
-                    team_stat=self,
-                    fixture=fixture,
-                    kickoff_time=fixture.kickoff_time,
-                )
-            )
-            self.away_goals_against += goal_against
-            self.away_goals_for += goal_for
+            self.away_goals_for += team_score_increment
+            self.away_goals_against += opponent_score_increment
             self.away_goals_difference += goal_difference
-            self.away_matches += 1
-            self.away_matches_drawn += match_drawn
-            self.away_matches_lost += match_lost
-            self.away_matches_won += match_won
-            self.away_points += point
+            self.away_points += points_earned_increment
 
-    @staticmethod
-    def __append_point(points: list[int], point: int):
-        last_point = points[-1] if points else 0
-        points.append(last_point + point)
+    def append_overall_point(self, point: int):
+        """
+        Append a point to the overall cumulative points.
 
-    async def __compare_overall_standing(
-        self, db_service: DbService, target: Self
+        :param point: Points to append to the overall cumulative points
+        """
+        last_point = self.overall_cumulative_points[-1] if self.overall_cumulative_points else 0
+        self.overall_cumulative_points.append(last_point + point)
+
+    def append_home_point(self, point: int):
+        """
+        Append a point to the home cumulative points.
+
+        :param point: Points to append to the home cumulative points
+        """
+        last_point = self.home_cumulative_points[-1] if self.home_cumulative_points else 0
+        self.home_cumulative_points.append(last_point + point)
+
+    def append_away_point(self, point: int):
+        """
+        Append a point to the away cumulative points.
+
+        :param point: Points to append to the away cumulative points
+        """
+        last_point = self.away_cumulative_points[-1] if self.away_cumulative_points else 0
+        self.away_cumulative_points.append(last_point + point)
+
+    def compare_overall(
+        self,
+        target: Self,
+        home_match: MatchEntity | None,
+        away_match: MatchEntity | None,
     ) -> int:
-        points = compare_ints(self.overall_points, target.overall_points)
-        if points != 0:
-            return points
-        goal_difference = compare_ints(
+        """
+        Compare overall standings between two teams using football ranking criteria.
+
+        Ranking order: Points > Goal Difference > Goals Scored > Head-to-head > Away goals
+
+        :param target: Target team to compare
+        :param home_match: Home match entity for head-to-head comparison (optional)
+        :param away_match: Away match entity for head-to-head comparison (optional)
+        :returns: 1 if self ranks higher, -1 if target ranks higher, 0 if equal
+        """
+        # Compare points
+        points_comparison = compare_ints(self.overall_points, target.overall_points)
+        if points_comparison != 0:
+            return points_comparison
+
+        # Compare goal difference
+        goal_diff_comparison = compare_ints(
             self.overall_goals_difference, target.overall_goals_difference
         )
-        if goal_difference != 0:
-            return goal_difference
-        goals_scored = compare_ints(self.overall_goals_for, target.overall_goals_for)
-        if goals_scored != 0:
-            return goals_scored
-        async with db_service.create_db_session() as session:
-            merged_entity = await session.merge(self)
-            await session.refresh(
-                merged_entity,
-                ["home_fixture_associations", "away_fixture_associations"],
-            )
-            home_match_assoc = next(
-                filter(
-                    lambda assoc: assoc.fixture.away_team_id == target.team_id,
-                    merged_entity.home_fixture_associations,
-                ),
-                None,
-            )
-            away_match_assoc = next(
-                filter(
-                    lambda assoc: assoc.fixture.home_team_id == target.team_id,
-                    merged_entity.away_fixture_associations,
-                ),
-                None,
-            )
-            self_home_point = (
-                home_match_assoc.fixture.home_point if home_match_assoc else 0
-            )
-            self_away_point = (
-                away_match_assoc.fixture.away_point if away_match_assoc else 0
-            )
-            target_home_point = (
-                home_match_assoc.fixture.away_point if home_match_assoc else 0
-            )
-            target_away_point = (
-                away_match_assoc.fixture.home_point if away_match_assoc else 0
-            )
-        head_to_head_points = compare_ints(
-            self_home_point + self_away_point,
-            target_home_point + target_away_point,
-        )
-        if head_to_head_points != 0:
-            return head_to_head_points
-        return (
-            compare_ints(
-                away_match_assoc.fixture.away_team_score,
-                home_match_assoc.fixture.away_team_score,
-            )
-            if home_match_assoc is not None and away_match_assoc is not None
-            else (home_match_assoc is None) - (away_match_assoc is None)
-        )
+        if goal_diff_comparison != 0:
+            return goal_diff_comparison
 
-    def __compare_home_standing(self, target: Self) -> int:
-        points = compare_ints(self.home_points, target.home_points)
-        if points != 0:
-            return points
-        goal_difference = compare_ints(
+        # Compare goals scored
+        goals_scored_comparison = compare_ints(
+            self.overall_goals_for, target.overall_goals_for
+        )
+        if goals_scored_comparison != 0:
+            return goals_scored_comparison
+
+        if home_match is None and away_match is None:
+            return 0
+        elif home_match is not None and not self.check_is_home_match(home_match):
+            raise ValueError(
+                f"Home match {home_match.id} does not belong to team {self.team_id}"
+            )
+        elif away_match is not None and not self.check_is_away_match(away_match):
+            raise ValueError(
+                f"Away match {away_match.id} does not belong to team {self.team_id}"
+            )
+        else:
+            # Calculate head-to-head points
+            self_h2h_points = home_match.home_point if home_match else 0
+            self_h2h_points += away_match.away_point if away_match else 0
+            target_h2h_points = home_match.away_point if home_match else 0
+            target_h2h_points += away_match.home_point if away_match else 0
+
+            h2h_points_comparison = compare_ints(self_h2h_points, target_h2h_points)
+            if h2h_points_comparison != 0:
+                return h2h_points_comparison
+
+            # If points are equal, compare away goals in head-to-head
+            return (
+                compare_ints(
+                    away_match.away_team_score,
+                    home_match.away_team_score,
+                )
+                if home_match is not None and away_match is not None
+                else (home_match is None) - (away_match is None)
+            )
+
+    def compare_home(self, target: Self) -> int:
+        """
+        Compare home standings between two teams.
+
+        Ranking order: Home Points > Home Goal Difference > Home Goals Scored
+
+        :param target: Target team to compare
+        :returns: 1 if team_a ranks higher, -1 if team_b ranks higher, 0 if equal
+        """
+        # Compare home points
+        points_comparison = compare_ints(self.home_points, target.home_points)
+        if points_comparison != 0:
+            return points_comparison
+
+        # Compare home goal difference
+        goal_diff_comparison = compare_ints(
             self.home_goals_difference, target.home_goals_difference
         )
-        if goal_difference != 0:
-            return goal_difference
+        if goal_diff_comparison != 0:
+            return goal_diff_comparison
+
+        # Compare home goals scored
         return compare_ints(self.home_goals_for, target.home_goals_for)
 
-    def __compare_away_standing(self, target: Self) -> int:
-        points = compare_ints(self.away_points, target.away_points)
-        if points != 0:
-            return points
-        goal_difference = compare_ints(
+    def compare_away(self, target: Self) -> int:
+        """
+        Compare away standings between two teams.
+
+        Ranking order: Away Points > Away Goal Difference > Away Goals Scored
+
+        :param target: Target team to compare
+        :returns: 1 if team_a ranks higher, -1 if team_b ranks higher, 0 if equal
+        """
+        # Compare away points
+        points_comparison = compare_ints(self.away_points, target.away_points)
+        if points_comparison != 0:
+            return points_comparison
+
+        # Compare away goal difference
+        goal_diff_comparison = compare_ints(
             self.away_goals_difference, target.away_goals_difference
         )
-        if goal_difference != 0:
-            return goal_difference
+        if goal_diff_comparison != 0:
+            return goal_diff_comparison
+
+        # Compare away goals scored
         return compare_ints(self.away_goals_for, target.away_goals_for)

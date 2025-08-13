@@ -27,6 +27,9 @@ from football_data_manager.puller.services.pulselive_new.services.pulselive_new_
 from football_data_manager.puller.services.pulselive_new.services.pulselive_new_match_stat_puller import (
     PulseliveNewMatchStatPuller,
 )
+from football_data_manager.puller.services.pulselive_new.services.pulselive_new_player_puller import (
+    PulseliveNewPlayerPuller,
+)
 from football_data_manager.puller.services.pulselive_new.services.pulselive_new_season_puller import (
     PulseliveNewSeasonPuller,
 )
@@ -95,6 +98,36 @@ async def create_teams_and_grounds(
     return teams, grounds
 
 
+async def create_players(
+    service_container: CommonServiceContainer,
+    repository_container: CommonRepositoryContainer,
+    webclient: PulseliveNewWebclient,
+) -> list[TeamEntity]:
+    competition_repository = repository_container.competition_repository()
+    competition = await competition_repository.read_by_pulselive_id(8)
+    if not competition:
+        return []
+    season_repository = repository_container.season_repository()
+    seasons = await season_repository.read_all()
+    if not seasons:
+        return []
+    seasons.sort(key=lambda s: s.year_start, reverse=True)
+    team_repository = repository_container.team_repository()
+    teams = await team_repository.read_all()
+    if not teams:
+        return []
+    players = []
+    for season in seasons:
+        for team in teams:
+            squad_puller = PulseliveNewPlayerPuller(
+                repository_container, webclient, service_container
+            )
+            players.extend(
+                await squad_puller.pull_players_for_team(competition, season, team)
+            )
+    return players
+
+
 async def create_news(config_service: ConfigService, db_service: DbService):
     puller_service = TheAthleticPullerService(
         anthropic_config=config_service.api_list.anthropic,
@@ -144,9 +177,10 @@ async def runrun():
     #     webclient_service,
     # )
     # await create_seasons(repository_container, webclient_service)
-    await create_teams_and_grounds(
-        service_container, repository_container, webclient_service
-    )
+    # await create_teams_and_grounds(
+    #     service_container, repository_container, webclient_service
+    # )
+    await create_players(service_container, repository_container, webclient_service)
     # await create_match(
     #     service_container,
     #     repository_container,

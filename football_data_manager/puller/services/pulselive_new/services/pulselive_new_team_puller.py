@@ -89,6 +89,8 @@ class PulseliveNewTeamPuller:
         :param season: Season entity to pull teams for
         :returns: Tuple of (list of team entities, list of ground entities) created or updated
         """
+        if season.competition_id != competition.id:
+            return [], []
 
         # Get all teams for the season using pagination
         all_teams = await self.__get_all_teams_for_season(
@@ -194,9 +196,7 @@ class PulseliveNewTeamPuller:
             capacity=stadium.capacity,
         )
 
-        # Save to database
-        created_ground = await self.__ground_repository.create(ground)
-        return created_ground
+        return await self.__ground_repository.create(ground)
 
     async def __process_team(
         self, team_item: PulseliveNewTeamResponse

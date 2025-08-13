@@ -408,7 +408,7 @@ async def map_player(
                 month=old_player.birth_date.month,
                 day=old_player.birth_date.day,
             ),
-            birth_country_flag_icon_url=old_player.birth_country_flag_icon_url,
+            nationality_flag_icon_url=old_player.nationality_flag_icon_url,
             display_name_en=old_player.display_name_en,
             display_name_kr=old_player.display_name_kr,
             full_name=old_player.full_name,

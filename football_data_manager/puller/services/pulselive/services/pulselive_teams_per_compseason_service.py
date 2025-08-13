@@ -205,7 +205,7 @@ class PulseliveTeamsPerCompSeasonService:
                     response.birth.country.country
                 ),
                 birth_date=datetime.fromtimestamp(response.birth.date.millis / 1000.0),
-                birth_country_flag_icon_url=(
+                nationality_flag_icon_url=(
                     f"https://resources.premierleague.com/premierleague/flags/{response.birth.country.iso_code}.png"
                     if response.birth.country.iso_code is not None
                     else None
@@ -322,7 +322,7 @@ class PulseliveTeamsPerCompSeasonService:
         return sorted(awards, key=lambda a: a.date), championship
 
     async def __get_country_name_kr(self, birth_country_en: str) -> str:
-        previous_name = await self.__player_repository.get_birth_country_kr(
+        previous_name = await self.__player_repository.get_nationality_kr(
             birth_country_en=birth_country_en
         )
         if previous_name is not None:

@@ -18,7 +18,7 @@ class PlayerRepository(PulseliveRepository[PlayerEntity]):
     Repository for managing player entities with championship season associations.
 
     Provides specialized functionality for football players including multilingual name lookups,
-    championship season management, and position/birth country information retrieval.
+    championship season management, and position/nationality information retrieval.
     Extends PulseliveRepository for standard PULSELIVE source operations.
     """
 
@@ -44,31 +44,18 @@ class PlayerRepository(PulseliveRepository[PlayerEntity]):
             player, [PlayerChampionshipAssociation.SEASON_COLLECTION_NAME]
         )
 
-    async def get_birth_country_kr(self, birth_country_en: str) -> str | None:
+    async def get_nationality_kr(self, nationality_en: str) -> str | None:
         """
-        Get the Korean name of a player's birth country by its English name.
+        Get the Korean name of a player's nationality by its English name.
 
-        Searches for a player with the specified English birth country name
-        and returns the corresponding Korean birth country name.
+        Searches for a player with the specified English nationality name
+        and returns the corresponding Korean nationality name.
 
-        :param birth_country_en: The English name of the birth country
-        :returns: The Korean name of the birth country, or None if not found
+        :param nationality_en: The English name of the nationality
+        :returns: The Korean name of the nationality, or None if not found
         """
-        result = await self._read_one_by_field(birth_country_en=birth_country_en)
-        return result.birth_country_kr if result else None
-
-    async def get_position_info_kr(self, position_info_en: str) -> str:
-        """
-        Get the Korean name of a player's position by its English name.
-
-        Searches for a player with the specified English position information
-        and returns the corresponding Korean position information.
-
-        :param position_info_en: The English name of the position
-        :returns: The Korean name of the position, or None if not found
-        """
-        result = await self._read_one_by_field(position_info_en=position_info_en)
-        return result.position_info_kr if result else None
+        result = await self._read_one_by_field(nationality_en=nationality_en)
+        return result.nationality_kr if result else None
 
     async def update_championship_season(
         self, player: PlayerEntity, season: SeasonEntity

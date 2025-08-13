@@ -25,14 +25,17 @@ from football_data_manager.puller.services.pulselive_new.models.responses.pulsel
 from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v1_matchweek_matches_response import (
     PulseliveNewV1MatchweekMatchesResponse,
 )
+from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v1_teams_response import (
+    PulseliveNewV1TeamsResponse,
+)
 from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v2_match_response import (
     PulseliveNewV2MatchResponse,
 )
+from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v2_squad_response import (
+    PulseliveNewV2SquadResponse,
+)
 from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v3_match_lineup_response import (
     PulseliveNewV3MatchLineupResponse,
-)
-from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v1_teams_response import (
-    PulseliveNewV1TeamsResponse,
 )
 
 
@@ -131,26 +134,6 @@ class PulseliveNewWebclient(AbstractWebClientService):
             .root
         )
 
-    async def get_v2_match(self, match_id: str) -> PulseliveNewV2MatchResponse:
-        """
-        Get a match by ID.
-        :param match_id: Match ID.
-        :return: Match information.
-        """
-        response = await self.get(path=URL(f"v2/matches/{match_id}"))
-        return PulseliveNewV2MatchResponse.model_validate(response)
-
-    async def get_v3_match_lineup(
-        self, match_id: str
-    ) -> PulseliveNewV3MatchLineupResponse:
-        """
-        Get a match lineup by ID.
-        :param match_id: Match ID.
-        :return: Match lineup information.
-        """
-        response = await self.get(path=URL(f"v3/matches/{match_id}/lineups"))
-        return PulseliveNewV3MatchLineupResponse.model_validate(response)
-
     async def get_v1_teams(
         self,
         competition_id: str,
@@ -174,3 +157,44 @@ class PulseliveNewWebclient(AbstractWebClientService):
         path = f"v1/competitions/{competition_id}/seasons/{season_id}/teams"
         response = await self.get(path=URL(path), query=params)
         return PulseliveNewV1TeamsResponse.model_validate(response)
+
+    async def get_v2_match(self, match_id: str) -> PulseliveNewV2MatchResponse:
+        """
+        Get a match by ID.
+        :param match_id: Match ID.
+        :return: Match information.
+        """
+        response = await self.get(path=URL(f"v2/matches/{match_id}"))
+        return PulseliveNewV2MatchResponse.model_validate(response)
+
+    async def get_v2_squad(
+        self,
+        competition_id: str,
+        season_id: str,
+        team_id: str,
+    ) -> PulseliveNewV2SquadResponse:
+        """
+        Get squad information for a specific team in a competition season.
+
+        Retrieves player squad data including personal information, positions,
+        and physical attributes for the specified team.
+
+        :param competition_id: Competition ID
+        :param season_id: Season ID
+        :param team_id: Team ID
+        :returns: Squad information with player details
+        """
+        path = f"v2/competitions/{competition_id}/seasons/{season_id}/teams/{team_id}/squad"
+        response = await self.get(path=URL(path))
+        return PulseliveNewV2SquadResponse.model_validate(response)
+
+    async def get_v3_match_lineup(
+        self, match_id: str
+    ) -> PulseliveNewV3MatchLineupResponse:
+        """
+        Get a match lineup by ID.
+        :param match_id: Match ID.
+        :return: Match lineup information.
+        """
+        response = await self.get(path=URL(f"v3/matches/{match_id}/lineups"))
+        return PulseliveNewV3MatchLineupResponse.model_validate(response)

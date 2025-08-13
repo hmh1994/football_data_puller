@@ -5,7 +5,7 @@ from football_data_manager.common.utils.pydantic_helper.camelcase_model import (
 )
 
 
-class PulseliveNewV1PaginationResponse(CamelCaseModel):
+class PulseliveNewPaginatedResponse(CamelCaseModel):
     """
     Response model for pagination information from PulseLive v1 API.
 

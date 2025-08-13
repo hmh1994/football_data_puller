@@ -31,6 +31,9 @@ from football_data_manager.puller.services.pulselive_new.models.responses.pulsel
 from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v3_match_lineup_response import (
     PulseliveNewV3MatchLineupResponse,
 )
+from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v1_teams_response import (
+    PulseliveNewV1TeamsResponse,
+)
 
 
 class PulseliveNewWebclient(AbstractWebClientService):
@@ -147,3 +150,27 @@ class PulseliveNewWebclient(AbstractWebClientService):
         """
         response = await self.get(path=URL(f"v3/matches/{match_id}/lineups"))
         return PulseliveNewV3MatchLineupResponse.model_validate(response)
+
+    async def get_v1_teams(
+        self,
+        competition_id: str,
+        season_id: str,
+        limit: int = 50,
+        _next: str | None = None,
+    ) -> PulseliveNewV1TeamsResponse:
+        """
+        Get teams for a specific competition season.
+
+        :param competition_id: Competition ID
+        :param season_id: Season ID
+        :param limit: Maximum number of teams to return
+        :param _next: Pagination cursor for next page
+        :returns: Teams with stadium information for the specified season
+        """
+        params = {"_limit": str(limit)}
+        if _next:
+            params["_next"] = _next
+
+        path = f"v1/competitions/{competition_id}/seasons/{season_id}/teams"
+        response = await self.get(path=URL(path), query=params)
+        return PulseliveNewV1TeamsResponse.model_validate(response)

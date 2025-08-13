@@ -1,13 +1,21 @@
 from football_data_manager.common.utils.pydantic_helper.camelcase_model import (
     CamelCaseModel,
 )
+from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_stadium_response import (
+    PulseliveNewStadiumResponse,
+)
 
 
 class PulseliveNewTeamResponse(CamelCaseModel):
-    score: int
-    name: str
+    """
+    Team information from PulseLive teams API response.
+
+    Contains team details including names, abbreviations, and stadium
+    information for teams in a specific competition season.
+    """
+
     id: str
-    half_time_score: int
-    short_name: str
+    name: str
+    short_name: str | None = None
     abbr: str
-    red_cards: int
+    stadium: PulseliveNewStadiumResponse

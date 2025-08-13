@@ -21,11 +21,11 @@ from football_data_manager.common.utils.type_helper.datetime_helper import (
 from football_data_manager.puller.services.pulselive_new.components.pulselive_new_webclient import (
     PulseliveNewWebclient,
 )
-from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_match_response import (
-    PulseliveNewMatchResponse,
-)
 from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_competition_detail_season_response import (
     PulseliveNewCompetitionDetailSeasonResponse,
+)
+from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_match_response import (
+    PulseliveNewMatchResponse,
 )
 
 
@@ -54,7 +54,6 @@ class PulseliveNewSeasonPuller:
         """
         Initialize the season puller.
 
-        :param service_container: Container with common services
         :param repository_container: Container with repository instances
         :param pulselive_service: HTTP client for PulseLive API
         """

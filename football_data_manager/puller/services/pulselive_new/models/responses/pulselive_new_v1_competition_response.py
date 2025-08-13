@@ -4,8 +4,8 @@ from football_data_manager.common.utils.pydantic_helper.camelcase_model import (
 from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_competition_item_response import (
     PulseliveNewCompetitionItemResponse,
 )
-from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v1_pagination_response import (
-    PulseliveNewV1PaginationResponse,
+from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_paginated_response import (
+    PulseliveNewPaginatedResponse,
 )
 
 
@@ -21,5 +21,5 @@ class PulseliveNewV1CompetitionResponse(CamelCaseModel):
     :ivar data: List of competition items in the current page
     """
 
-    pagination: PulseliveNewV1PaginationResponse
+    pagination: PulseliveNewPaginatedResponse
     data: list[PulseliveNewCompetitionItemResponse]

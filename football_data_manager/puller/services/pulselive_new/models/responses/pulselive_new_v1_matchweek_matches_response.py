@@ -1,11 +1,11 @@
 from football_data_manager.common.utils.pydantic_helper.camelcase_model import (
     CamelCaseModel,
 )
-from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_match_response import (
+from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_match_response import (
     PulseliveNewMatchResponse,
 )
-from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v1_pagination_response import (
-    PulseliveNewV1PaginationResponse,
+from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_paginated_response import (
+    PulseliveNewPaginatedResponse,
 )
 
 
@@ -20,5 +20,5 @@ class PulseliveNewV1MatchweekMatchesResponse(CamelCaseModel):
     :ivar data: List of matches in the current page
     """
 
-    pagination: PulseliveNewV1PaginationResponse
+    pagination: PulseliveNewPaginatedResponse
     data: list[PulseliveNewMatchResponse]

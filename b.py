@@ -4,10 +4,12 @@ from football_data_manager.common.repositories import Base
 from football_data_manager.common.repositories.competitions.competition_entity import (
     CompetitionEntity,
 )
+from football_data_manager.common.repositories.grounds.ground_entity import GroundEntity
 from football_data_manager.common.repositories.repository_container import (
     CommonRepositoryContainer,
 )
 from football_data_manager.common.repositories.seasons.season_entity import SeasonEntity
+from football_data_manager.common.repositories.teams.team_entity import TeamEntity
 from football_data_manager.common.services.common_service_container import (
     CommonServiceContainer,
 )
@@ -27,6 +29,9 @@ from football_data_manager.puller.services.pulselive_new.services.pulselive_new_
 )
 from football_data_manager.puller.services.pulselive_new.services.pulselive_new_season_puller import (
     PulseliveNewSeasonPuller,
+)
+from football_data_manager.puller.services.pulselive_new.services.pulselive_new_team_puller import (
+    PulseliveNewTeamPuller,
 )
 from football_data_manager.puller.services.the_athletic.the_athletic_puller_service import (
     TheAthleticPullerService,
@@ -58,6 +63,36 @@ async def create_seasons(
         season_puller = PulseliveNewSeasonPuller(repository_container, webclient)
         seasons.append(await season_puller.pull_seasons_for_competition(competition))
     return seasons
+
+
+async def create_teams_and_grounds(
+    service_container: CommonServiceContainer,
+    repository_container: CommonRepositoryContainer,
+    webclient: PulseliveNewWebclient,
+) -> tuple[list[TeamEntity], list[GroundEntity]]:
+    competition_repository = repository_container.competition_repository()
+    competition = await competition_repository.read_by_pulselive_id(8)
+    if not competition:
+        return [], []
+    season_repository = repository_container.season_repository()
+    seasons = await season_repository.read_all()
+    if not seasons:
+        return [], []
+    seasons.sort(key=lambda s: s.year_start, reverse=True)
+    teams = []
+    grounds = []
+    for season in seasons:
+        if season.competition_id != competition.id:
+            continue
+        team_puller = PulseliveNewTeamPuller(
+            repository_container, webclient, service_container
+        )
+        team, ground = await team_puller.pull_teams_for_season(competition, season)
+        if team:
+            teams.extend(team)
+        if ground:
+            grounds.extend(ground)
+    return teams, grounds
 
 
 async def create_news(config_service: ConfigService, db_service: DbService):
@@ -108,7 +143,10 @@ async def runrun():
     #     repository_container,
     #     webclient_service,
     # )
-    await create_seasons(repository_container, webclient_service)
+    # await create_seasons(repository_container, webclient_service)
+    await create_teams_and_grounds(
+        service_container, repository_container, webclient_service
+    )
     # await create_match(
     #     service_container,
     #     repository_container,

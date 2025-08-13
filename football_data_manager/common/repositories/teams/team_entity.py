@@ -34,7 +34,7 @@ class TeamEntity(PulseliveEntity):
 
     abbreviation = Column(String, nullable=False, unique=True)
     founded_year = Column(Integer, nullable=True)
-    icon_url = Column(String, nullable=True)
+    icon_url = Column(String, nullable=False)
     name_en = Column(String, nullable=False)
     name_kr = Column(String, nullable=False)
     short_name_en = Column(String, nullable=False)
@@ -43,12 +43,12 @@ class TeamEntity(PulseliveEntity):
     def __init__(
         self,
         abbreviation: str,
-        icon_url: str,
         name_en: str,
         name_kr: str,
         short_name_en: str,
         short_name_kr: str,
         source_id: str,
+        icon_url: str | None = None,
     ) -> None:
         """
         Initialize a new team entity.
@@ -67,8 +67,8 @@ class TeamEntity(PulseliveEntity):
         super().__init__(source_id=source_id)
         self.abbreviation = abbreviation
         self.championship_season_associations = []
-        self.icon_url = icon_url
         self.name_en = name_en
         self.name_kr = name_kr
         self.short_name_en = short_name_en
         self.short_name_kr = short_name_kr
+        self.icon_url = icon_url

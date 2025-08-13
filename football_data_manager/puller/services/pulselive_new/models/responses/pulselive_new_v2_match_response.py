@@ -1,5 +1,8 @@
 from datetime import datetime
 
+from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_match_team_response import (
+    PulseliveNewMatchTeamResponse,
+)
 from pydantic import field_validator
 
 from football_data_manager.common.utils.pydantic_helper.camelcase_model import (
@@ -7,9 +10,6 @@ from football_data_manager.common.utils.pydantic_helper.camelcase_model import (
 )
 from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_season_response import (
     PulseliveNewSeasonResponse,
-)
-from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_team_response import (
-    PulseliveNewTeamResponse,
 )
 
 
@@ -19,13 +19,13 @@ class PulseliveNewV2MatchResponse(CamelCaseModel):
     period: str
     match_week: int
     kickoff: datetime
-    away_team: PulseliveNewTeamResponse
+    away_team: PulseliveNewMatchTeamResponse
     season_info: PulseliveNewSeasonResponse
     competition: str
     clock: str
     kickoff_timezone_string: str
     season_id: str
-    home_team: PulseliveNewTeamResponse
+    home_team: PulseliveNewMatchTeamResponse
     ground: str
     result_type: str
     match_id: str

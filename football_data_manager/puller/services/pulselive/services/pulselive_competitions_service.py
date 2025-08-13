@@ -153,7 +153,7 @@ class PulseliveCompetitionsService:
             competition=competition,
             date_end=end_datetime,
             date_start=start_datetime,
-            source_id=str(season_response.id),
+            season_source_id=str(season_response.id),
             year_end=end_datetime.year,
             year_start=start_datetime.year,
         )

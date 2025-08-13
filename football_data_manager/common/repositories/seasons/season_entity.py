@@ -51,7 +51,7 @@ class SeasonEntity(PulseliveEntity):
         competition: CompetitionEntity,
         date_end: datetime,
         date_start: datetime,
-        source_id: str,
+        season_source_id: str,
         year_end: int,
         year_start: int,
     ) -> None:
@@ -65,14 +65,50 @@ class SeasonEntity(PulseliveEntity):
         :param competition: Competition entity this season belongs to
         :param date_end: Season end date and time
         :param date_start: Season start date and time
-        :param source_id: Unique identifier from the source system
+        :param season_source_id: Unique identifier from the source system
         :param year_end: Season ending year as integer
         :param year_start: Season starting year as integer
         """
-        super().__init__(source_id=source_id)
+        super().__init__(source_id=self.get_source_id(competition, season_source_id))
         self.abbreviation = abbreviation
         self.competition_id = competition.id
         self.date_end = date_end
         self.date_start = date_start
         self.year_end = year_end
         self.year_start = year_start
+
+    @staticmethod
+    def get_source_id(competition: CompetitionEntity, season_source_id: str) -> str:
+        """
+        Generate a unique source ID for the season entity based on competition and season ID.
+
+        Combines competition source ID with the season ID to create a unique identifier
+        for database operations.
+
+        :param competition: Competition entity this season belongs to
+        :param season_source_id: Unique identifier from the source system
+        :returns: Combined source ID string
+        """
+        return f"{competition.source_id}_{season_source_id}"
+
+    @property
+    def competition_source_id(self) -> str:
+        """
+        Get the source ID of the associated competition.
+
+        Provides a convenient way to access the competition's source ID from the season entity.
+
+        :returns: Competition source ID
+        """
+        return self.source_id.split("_")[0]
+
+    @property
+    def season_source_id(self) -> str:
+        """
+        Get the unique season source ID.
+
+        Extracts the season-specific part of the source ID for API operations.
+
+        :returns: Season source ID
+        """
+        return self.source_id.split("_")[1]

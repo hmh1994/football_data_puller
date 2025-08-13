@@ -170,7 +170,7 @@ async def map_season(
             competition=competition,
             date_end=old_season.date_end,
             date_start=old_season.date_start,
-            source_id=old_season.source_id,
+            season_source_id=old_season.source_id,
             year_end=old_season.year_end,
             year_start=old_season.year_start,
         )

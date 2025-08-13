@@ -9,3 +9,6 @@ CONFIG_PATH: Path = PWD / "configs" / ".env"
 # Timezone constants
 BST: ZoneInfo = ZoneInfo("Europe/London")
 KST: ZoneInfo = ZoneInfo("Asia/Seoul")
+CET: ZoneInfo = ZoneInfo("Europe/Paris")
+WET: ZoneInfo = ZoneInfo("Europe/Lisbon")
+UTC_ZONE: ZoneInfo = ZoneInfo("UTC")

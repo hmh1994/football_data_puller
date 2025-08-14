@@ -1,4 +1,4 @@
-from pydantic import Field
+from pydantic import Field, AliasChoices
 
 from football_data_manager.common.utils.pydantic_helper.camelcase_model import (
     CamelCaseModel,
@@ -6,11 +6,11 @@ from football_data_manager.common.utils.pydantic_helper.camelcase_model import (
 
 
 class PulseliveNewPersonResponse(CamelCaseModel):
-    first_name: str = Field(alias="first")
-    last_name: str = Field(alias="last")
-    name: str | None = None
-    known_name: str | None = None
-    display: str | None = None
+    first_name: str = Field(validation_alias=AliasChoices("first", "firstName"))
+    last_name: str = Field(validation_alias=AliasChoices("last", "lastName"))
+    display_name: str | None = Field(
+        None, validation_alias=AliasChoices("display", "name", "knownName")
+    )
 
     @property
     def full_name(self) -> str:
@@ -18,4 +18,4 @@ class PulseliveNewPersonResponse(CamelCaseModel):
 
     @property
     def simple_name(self):
-        return self.known_name or self.name or self.display or self.full_name
+        return self.display_name or self.full_name

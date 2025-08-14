@@ -5,4 +5,4 @@ from football_data_manager.puller.services.pulselive_new.models.responses.pulsel
 
 class PulseliveNewEventCardResponse(PulseliveNewEventTemplateResponse):
     type: str
-    player_id: str
+    player_id: str | None = None

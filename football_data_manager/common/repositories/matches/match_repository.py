@@ -1,4 +1,5 @@
 from football_data_manager.common.enums.card_type_enum import CardTypeEnum
+from football_data_manager.common.enums.position_enum import PositionEnum
 from football_data_manager.common.repositories.matches.match_away_team_card_association import (
     MatchAwayTeamCardAssociation,
 )
@@ -186,6 +187,7 @@ class MatchRepository(PulseliveRepository[MatchEntity]):
         match: MatchEntity,
         is_home: bool,
         player: PlayerEntity,
+        position: PositionEnum,
         shirt_number: int,
         row: int,
         column: int,
@@ -218,6 +220,7 @@ class MatchRepository(PulseliveRepository[MatchEntity]):
             params = {
                 "match": merged_match,
                 "player": player,
+                "position": position,
                 "shirt_number": shirt_number,
                 "row": row,
                 "column": column,
@@ -232,7 +235,12 @@ class MatchRepository(PulseliveRepository[MatchEntity]):
         return merged_match
 
     async def append_substitute(
-        self, match: MatchEntity, is_home: bool, player: PlayerEntity, shirt_number: int
+        self,
+        match: MatchEntity,
+        is_home: bool,
+        player: PlayerEntity,
+        position: PositionEnum,
+        shirt_number: int,
     ) -> MatchEntity:
         """
         Append a substitute player if not already present.
@@ -260,6 +268,7 @@ class MatchRepository(PulseliveRepository[MatchEntity]):
             params = {
                 "match": merged_match,
                 "player": player,
+                "position": position,
                 "shirt_number": shirt_number,
             }
             substitute_association = (

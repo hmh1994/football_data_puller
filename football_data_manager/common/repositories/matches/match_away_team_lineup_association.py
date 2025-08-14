@@ -1,6 +1,7 @@
-from sqlalchemy import Column, String, ForeignKey, Integer
+from sqlalchemy import Column, String, ForeignKey, Integer, Enum
 from sqlalchemy.orm import relationship, backref
 
+from football_data_manager.common.enums.position_enum import PositionEnum
 from football_data_manager.common.repositories import Base
 from football_data_manager.common.repositories.constants import (
     MATCH_AWAY_TEAM_LINEUP_ASSOCIATION_TABLE_NAME,
@@ -31,19 +32,11 @@ class MatchAwayTeamLineupAssociation(Base):
 
     POSITION_COLLECTION_NAME = "away_team_lineup_associations"
 
-    player_id = Column(
-        String,
-        ForeignKey(PlayerEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
-        primary_key=True,
-    )
     match_id = Column(
         String,
         ForeignKey(MatchEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
         primary_key=True,
     )
-    shirt_number = Column(Integer, nullable=False)
-    row = Column(Integer, nullable=False)
-    column = Column(Integer, nullable=False)
     match = relationship(
         "MatchEntity",
         backref=backref(
@@ -53,11 +46,21 @@ class MatchAwayTeamLineupAssociation(Base):
             order_by="MatchAwayTeamLineupAssociation.shirt_number",
         ),
     )
+    player_id = Column(
+        String,
+        ForeignKey(PlayerEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
+        primary_key=True,
+    )
+    position = Column(Enum(PositionEnum), nullable=False)
+    shirt_number = Column(Integer, nullable=False)
+    row = Column(Integer, nullable=False)
+    column = Column(Integer, nullable=False)
 
     def __init__(
         self,
         match: MatchEntity,
         player: PlayerEntity,
+        position: PositionEnum,
         shirt_number: int,
         row: int,
         column: int,
@@ -67,16 +70,18 @@ class MatchAwayTeamLineupAssociation(Base):
 
         :param match: Match entity for the lineup
         :param player: Player entity in the starting lineup
+        :param position: Player's position in the formation
         :param shirt_number: Player's shirt number for the match
         :param row: Formation row position (1-based)
         :param column: Formation column position (1-based)
         """
         super().__init__()
+        self.match_id = match.id
         self.player_id = player.id
+        self.position = position
         self.shirt_number = shirt_number
         self.row = row
         self.column = column
-        self.match_id = match.id
 
     @property
     def player_info(self):

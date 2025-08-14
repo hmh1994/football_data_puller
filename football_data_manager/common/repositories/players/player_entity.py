@@ -55,7 +55,8 @@ class PlayerEntity(PulseliveEntity):
 
     def __init__(
         self,
-        birth_country: str,
+        birth_country: str | None,
+        birth_date: datetime | None,
         display_name_en: str,
         display_name_kr: str,
         full_name: str,
@@ -65,7 +66,6 @@ class PlayerEntity(PulseliveEntity):
         preferred_foot: SideEnum,
         source_id: str,
         height: int | None = None,
-        birth_date: datetime | None = None,
         nationality_flag_icon_url: str | None = None,
         photo_url: str | None = None,
         weight: int | None = None,

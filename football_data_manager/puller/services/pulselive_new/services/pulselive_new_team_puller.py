@@ -90,7 +90,9 @@ class PulseliveNewTeamPuller:
         :returns: Tuple of (list of team entities, list of ground entities) created or updated
         """
         if season.competition_id != competition.id:
-            return [], []
+            raise ValueError(
+                f"Season {season.id} does not belong to competition {competition.id}"
+            )
 
         # Get all teams for the season using pagination
         all_teams = await self.__get_all_teams_for_season(

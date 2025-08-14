@@ -5,5 +5,5 @@ from football_data_manager.puller.services.pulselive_new.models.responses.pulsel
 
 class PulseliveNewEventGoalResponse(PulseliveNewEventTemplateResponse):
     goal_type: str
-    assist_player_id: str
+    assist_player_id: str | None = None
     player_id: str

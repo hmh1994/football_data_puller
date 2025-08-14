@@ -1,4 +1,3 @@
-from asyncio import gather
 
 from football_data_manager.common.repositories.match_stats.match_stat_entity import (
     MatchStatEntity,
@@ -42,7 +41,7 @@ class PulseliveNewMatchStatPuller:
         self.__team_repository = repository_container.team_repository()
         self.__webclient = pulselive_service
 
-    async def pull(self, match: MatchEntity) -> MatchStatEntity:
+    async def pull_match_stat(self, match: MatchEntity) -> MatchStatEntity:
         match_stat = await self.__webclient.get_v1_match_stat(match.source_id)
         home_match_stat, away_match_stat = await self.__process_match_stat(
             match, match_stat
@@ -57,10 +56,8 @@ class PulseliveNewMatchStatPuller:
         match_stat: list[PulseliveNewV1MatchTeamStatResponse],
     ) -> tuple[MatchStatEntity, MatchStatEntity]:
         home_team_stat, away_team_stat = self.__get_each_team_stat(match_stat)
-        home_team, away_team = await gather(
-            self.__team_repository.read_by_pulselive_id(home_team_stat.team_id),
-            self.__team_repository.read_by_pulselive_id(away_team_stat.team_id),
-        )
+        home_team = await self.__team_repository.read_by_pulselive_id(home_team_stat.team_id)
+        away_team = await self.__team_repository.read_by_pulselive_id(away_team_stat.team_id)
         return (
             self.__get_stat(
                 match, home_team, home_team_stat.stats, away_team_stat.stats

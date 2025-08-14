@@ -94,6 +94,7 @@ class MatchHomeTeamGoalAssociation(Base):
         :param is_own_goal: Whether the goal was an own goal
         :param assist_player: Player entity who provided the assist (optional)
         """
+        super().__init__()
         self.player_id = player.id
         self.assist_player_id = assist_player.id if assist_player else None
         self.clock = clock

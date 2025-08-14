@@ -98,7 +98,9 @@ class PulseliveNewPlayerPuller:
         :returns: List of player entities created or updated
         """
         if competition.id != season.competition_id:
-            return []
+            raise ValueError(
+                f"Season {season.id} does not belong to competition {competition.id}"
+            )
 
         # Get squad data from API
         try:
@@ -138,7 +140,7 @@ class PulseliveNewPlayerPuller:
 
         return players
 
-    async def __process_player(
+    async def process_player(
         self, player_item: PulseliveNewPlayerResponse
     ) -> PlayerEntity | None:
         """
@@ -153,14 +155,14 @@ class PulseliveNewPlayerPuller:
         """
         # Check if player already exists
         existing_player = await self.__player_repository.read_by_pulselive_id(
-            source_id=player_item.id
+            source_id=player_item.id.player_id
         )
 
         if existing_player is not None:
             # Check if existing player needs photo URL update
             if not existing_player.photo_url or existing_player.photo_url.strip() == "":
                 # Validate Premier League player photo URL
-                photo_url = await self.__validate_player_photo(player_item.id)
+                photo_url = await self.__validate_player_photo(player_item.id.player_id)
 
                 if photo_url:
                     # Update the player's photo URL
@@ -184,7 +186,6 @@ class PulseliveNewPlayerPuller:
             print(
                 f"Unknown preferred foot '{player_item.preferred_foot}' for player '{player_item.name.simple_name}'"
             )
-            input("Press Enter to continue...")
 
         # Create new player entity
         player = PlayerEntity(
@@ -194,7 +195,7 @@ class PulseliveNewPlayerPuller:
             display_name_kr=await self.__translator.translate_word(
                 player_item.name.simple_name
             ),
-            full_name=f"{player_item.name.first_name} {player_item.name.last_name}".strip(),
+            full_name=player_item.name.full_name,
             nationality_en=player_item.country.country,
             nationality_kr=await self.__get_translated_country(
                 player_item.country.country
@@ -204,10 +205,10 @@ class PulseliveNewPlayerPuller:
             ),
             position=position,
             preferred_foot=preferred_foot,
-            source_id=player_item.id,
+            source_id=player_item.id.player_id,
             height=player_item.height,
             weight=player_item.weight,
-            photo_url=await self.__validate_player_photo(player_item.id),
+            photo_url=await self.__validate_player_photo(player_item.id.player_id),
         )
 
         return await self.__player_repository.create(player)

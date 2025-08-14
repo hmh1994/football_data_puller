@@ -1,6 +1,7 @@
-from sqlalchemy import Column, String, ForeignKey, Integer
+from sqlalchemy import Column, String, ForeignKey, Integer, Enum
 from sqlalchemy.orm import backref, relationship
 
+from football_data_manager.common.enums.position_enum import PositionEnum
 from football_data_manager.common.repositories import Base
 from football_data_manager.common.repositories.constants import (
     MATCH_HOME_TEAM_SUBSTITUTE_ASSOCIATION_TABLE_NAME,
@@ -33,13 +34,6 @@ class MatchHomeTeamSubstituteAssociation(Base):
         ForeignKey(MatchEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
         primary_key=True,
     )
-    player_id = Column(
-        String,
-        ForeignKey(PlayerEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
-        primary_key=True,
-    )
-    shirt_number = Column(Integer, nullable=False)
-    
     match = relationship(
         "MatchEntity",
         backref=backref(
@@ -49,6 +43,13 @@ class MatchHomeTeamSubstituteAssociation(Base):
             order_by="MatchHomeTeamSubstituteAssociation.shirt_number",
         ),
     )
+    player_id = Column(
+        String,
+        ForeignKey(PlayerEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
+        primary_key=True,
+    )
+    position = Column(Enum(PositionEnum), nullable=False)
+    shirt_number = Column(Integer, nullable=False)
 
     @property
     def player_info(self):
@@ -63,6 +64,7 @@ class MatchHomeTeamSubstituteAssociation(Base):
         self,
         match: MatchEntity,
         player: PlayerEntity,
+        position: PositionEnum,
         shirt_number: int,
     ):
         """
@@ -72,6 +74,8 @@ class MatchHomeTeamSubstituteAssociation(Base):
         :param player: Player entity on the substitute bench
         :param shirt_number: Player's shirt number for the match
         """
+        super().__init__()
         self.match_id = match.id
         self.player_id = player.id
+        self.position = position
         self.shirt_number = shirt_number

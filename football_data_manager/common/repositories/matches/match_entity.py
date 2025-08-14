@@ -1,5 +1,6 @@
-from sqlalchemy import Column, String, ForeignKey, Integer, ARRAY
+from sqlalchemy import Column, String, ForeignKey, Integer, ARRAY, Enum
 
+from football_data_manager.common.enums.period_enum import PeriodEnum
 from football_data_manager.common.repositories.constants import MATCHES_TABLE_NAME
 from football_data_manager.common.repositories.fixtures.fixture_entity import (
     FixtureEntity,
@@ -16,6 +17,7 @@ from football_data_manager.common.repositories.pulselive_entity import (
 from football_data_manager.common.repositories.staffs.staff_entity import (
     StaffEntity,
 )
+from football_data_manager.common.repositories.teams.team_entity import TeamEntity
 
 
 class MatchEntity(PulseliveEntity):
@@ -59,7 +61,7 @@ class MatchEntity(PulseliveEntity):
 
     __tablename__ = MATCHES_TABLE_NAME
 
-    attendance = Column(Integer, nullable=False)
+    attendance = Column(Integer, nullable=True)
     away_team_captain_id = Column(
         String,
         ForeignKey(PlayerEntity.id, ondelete="SET NULL", onupdate="RESTRICT"),
@@ -69,7 +71,7 @@ class MatchEntity(PulseliveEntity):
     away_team_half_time_score = Column(Integer, nullable=True)
     away_team_id = Column(
         String,
-        ForeignKey(FixtureEntity.away_team_id, ondelete="CASCADE", onupdate="RESTRICT"),
+        ForeignKey(TeamEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
         nullable=False,
     )
     away_team_manager = Column(
@@ -93,7 +95,7 @@ class MatchEntity(PulseliveEntity):
     home_team_half_time_score = Column(Integer, nullable=True)
     home_team_id = Column(
         String,
-        ForeignKey(FixtureEntity.home_team_id, ondelete="CASCADE", onupdate="RESTRICT"),
+        ForeignKey(TeamEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
         nullable=False,
     )
     home_team_manager = Column(
@@ -132,28 +134,30 @@ class MatchEntity(PulseliveEntity):
         ForeignKey(OfficialEntity.id, ondelete="SET NULL", onupdate="RESTRICT"),
         nullable=True,
     )
+    period = Column(Enum(PeriodEnum), nullable=False)
 
     def __init__(
         self,
         attendance: int,
-        away_team_captain: PlayerEntity,
-        away_team_manager: StaffEntity,
+        away_team_captain: PlayerEntity | None,
+        away_team_manager: StaffEntity | None,
         away_team_formation: list[int],
         away_team_score: int,
         away_team_half_time_score: int | None,
-        clock: int,
+        clock: int | None,
         fixture: FixtureEntity,
-        home_team_captain: PlayerEntity,
-        home_team_manager: StaffEntity,
+        home_team_captain: PlayerEntity | None,
+        home_team_manager: StaffEntity | None,
         home_team_formation: list[int],
         home_team_score: int,
         home_team_half_time_score: int | None,
-        official_main_referee: OfficialEntity,
-        official_assistant_1_referee: OfficialEntity,
-        official_assistant_2_referee: OfficialEntity,
-        official_fourth_referee: OfficialEntity,
+        official_main_referee: OfficialEntity | None,
+        official_assistant_1_referee: OfficialEntity | None,
+        official_assistant_2_referee: OfficialEntity | None,
+        official_fourth_referee: OfficialEntity | None,
         official_var: OfficialEntity | None,
         official_assistant_var: OfficialEntity | None,
+        period: PeriodEnum,
     ):
         """
         Initialize a new MatchEntity instance.
@@ -184,27 +188,38 @@ class MatchEntity(PulseliveEntity):
 
         # Basic fields
         self.attendance = attendance
-        self.clock = clock
+        self.clock = clock if clock else 0
+        self.period = period
 
         # Away team information
-        self.away_team_captain_id = away_team_captain.id
-        self.away_team_manager = away_team_manager.id
+        self.away_team_id = fixture.away_team_id
+        self.away_team_captain_id = away_team_captain.id if away_team_captain else None
+        self.away_team_manager = away_team_manager.id if away_team_manager else None
         self.away_team_formation = away_team_formation
-        self.away_team_score = away_team_score
+        self.away_team_score = away_team_score if away_team_score else 0
         self.away_team_half_time_score = away_team_half_time_score
 
         # Home team information
-        self.home_team_captain_id = home_team_captain.id
-        self.home_team_manager = home_team_manager.id
+        self.home_team_id = fixture.home_team_id
+        self.home_team_captain_id = home_team_captain.id if home_team_captain else None
+        self.home_team_manager = home_team_manager.id if home_team_manager else None
         self.home_team_formation = home_team_formation
-        self.home_team_score = home_team_score
+        self.home_team_score = home_team_score if home_team_score else 0
         self.home_team_half_time_score = home_team_half_time_score
 
         # Official information
-        self.official_main_referee_id = official_main_referee.id
-        self.official_assistant_1_referee_id = official_assistant_1_referee.id
-        self.official_assistant_2_referee_id = official_assistant_2_referee.id
-        self.official_fourth_referee_id = official_fourth_referee.id
+        self.official_main_referee_id = (
+            official_main_referee.id if official_main_referee else None
+        )
+        self.official_assistant_1_referee_id = (
+            official_assistant_1_referee.id if official_assistant_1_referee else None
+        )
+        self.official_assistant_2_referee_id = (
+            official_assistant_2_referee.id if official_assistant_2_referee else None
+        )
+        self.official_fourth_referee_id = (
+            official_fourth_referee.id if official_fourth_referee else None
+        )
         self.official_var_id = official_var.id if official_var else None
         self.official_assistant_var_id = (
             official_assistant_var.id if official_assistant_var else None

@@ -1,12 +1,12 @@
 from datetime import datetime
 
-from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_match_team_response import (
-    PulseliveNewMatchTeamResponse,
-)
 from pydantic import field_validator
 
 from football_data_manager.common.utils.pydantic_helper.camelcase_model import (
     CamelCaseModel,
+)
+from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_match_team_response import (
+    PulseliveNewMatchTeamResponse,
 )
 from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_season_response import (
     PulseliveNewSeasonResponse,
@@ -22,14 +22,14 @@ class PulseliveNewV2MatchResponse(CamelCaseModel):
     away_team: PulseliveNewMatchTeamResponse
     season_info: PulseliveNewSeasonResponse
     competition: str
-    clock: str
+    clock: str | None = None
     kickoff_timezone_string: str
     season_id: str
     home_team: PulseliveNewMatchTeamResponse
     ground: str
-    result_type: str
+    result_type: str | None = None
     match_id: str
-    attendance: int
+    attendance: int | None = None
 
     @field_validator("kickoff", mode="before")
     def parse_custom_dt(cls, v) -> datetime:

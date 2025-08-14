@@ -45,7 +45,7 @@ class MatchHomeTeamSubstitutionAssociation(Base):
         primary_key=True,
     )
     clock = Column(Integer, nullable=False)
-    
+
     match = relationship(
         "MatchEntity",
         backref=backref(
@@ -80,6 +80,7 @@ class MatchHomeTeamSubstitutionAssociation(Base):
         :param out_player: Player entity being substituted out
         :param clock: Time in minutes when the substitution occurred
         """
+        super().__init__()
         self.match_id = match.id
         self.in_player_id = in_player.id
         self.out_player_id = out_player.id

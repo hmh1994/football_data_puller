@@ -41,6 +41,12 @@ class PulseliveNewPlayerDatesResponse(CamelCaseModel):
         return v
 
 
+class PulseliveNewPlayerIdResponse(CamelCaseModel):
+    competition_id: str | None = None
+    season_id: str | None = None
+    player_id: str
+
+
 class PulseliveNewPlayerResponse(CamelCaseModel):
     """
     Individual player information from PulseLive v2 squad API response.
@@ -62,13 +68,20 @@ class PulseliveNewPlayerResponse(CamelCaseModel):
     """
 
     country: PulseliveNewCountryResponse
-    loan: int
+    loan: int | None = None
     country_of_birth: str | None = None
     name: PulseliveNewPersonResponse
     shirt_num: int | None = None
     weight: int | None = None
     dates: PulseliveNewPlayerDatesResponse
-    id: str
+    id: PulseliveNewPlayerIdResponse
     position: str
     preferred_foot: str | None = None
     height: int | None = None
+
+    @field_validator("id", mode="before")
+    def parse_id(cls, v) -> PulseliveNewPlayerIdResponse:
+        """Parse id."""
+        if isinstance(v, str):
+            return PulseliveNewPlayerIdResponse(player_id=v)
+        return v

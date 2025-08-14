@@ -4,7 +4,7 @@ from football_data_manager.common.utils.pydantic_helper.camelcase_model import (
 
 
 class PulseliveNewFormationResponse(CamelCaseModel):
-    subs: list[str]
-    team_id: str
-    lineup: list[list[str]]
-    formation: str
+    subs: list[str] | None = None
+    team_id: str | None = None
+    lineup: list[list[str]] | None = None
+    formation: str | None = None

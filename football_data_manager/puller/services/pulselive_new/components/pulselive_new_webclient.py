@@ -25,6 +25,9 @@ from football_data_manager.puller.services.pulselive_new.models.responses.pulsel
 from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v1_matchweek_matches_response import (
     PulseliveNewV1MatchweekMatchesResponse,
 )
+from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v1_player_response import (
+    PulseliveNewV1PlayerResponse,
+)
 from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v1_teams_response import (
     PulseliveNewV1TeamsResponse,
 )
@@ -157,6 +160,19 @@ class PulseliveNewWebclient(AbstractWebClientService):
         path = f"v1/competitions/{competition_id}/seasons/{season_id}/teams"
         response = await self.get(path=URL(path), query=params)
         return PulseliveNewV1TeamsResponse.model_validate(response)
+
+    async def get_v1_player(self, player_id: str) -> PulseliveNewV1PlayerResponse:
+        """
+        Get detailed player information by player ID.
+
+        Retrieves comprehensive player information including personal details,
+        physical attributes, and context information with competition and season IDs.
+
+        :param player_id: Player ID to fetch information for
+        :returns: Player information with competition and season context
+        """
+        response = await self.get(path=URL(f"v1/players/{player_id}"))
+        return PulseliveNewV1PlayerResponse.model_validate(response)
 
     async def get_v2_match(self, match_id: str) -> PulseliveNewV2MatchResponse:
         """

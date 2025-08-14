@@ -6,7 +6,6 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     DateTime,
-    Boolean,
     Index,
     desc,
 )
@@ -63,7 +62,6 @@ class FixtureEntity(PulseliveEntity):
         ForeignKey(TeamEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
         nullable=False,
     )
-    neutral_ground = Column(Boolean, nullable=False)
     kickoff_time = Column(DateTime, nullable=False)
     season_id = Column(
         String,
@@ -84,7 +82,6 @@ class FixtureEntity(PulseliveEntity):
         away_team: TeamEntity,
         game_week: int,
         home_team: TeamEntity,
-        neutral_ground: bool,
         kickoff_time: datetime,
         season: SeasonEntity,
         source_id: str,
@@ -96,7 +93,6 @@ class FixtureEntity(PulseliveEntity):
         :param away_team: Away team entity for the match
         :param game_week: Game week number in the season
         :param home_team: Home team entity for the match
-        :param neutral_ground: Boolean indicating if match is at neutral venue
         :param kickoff_time: Scheduled kickoff time for the match
         :param season: Season entity in which the fixture is scheduled
         :param source_id: Unique identifier from the source system
@@ -106,7 +102,6 @@ class FixtureEntity(PulseliveEntity):
         self.away_team_id = away_team.id
         self.game_week = game_week
         self.home_team_id = home_team.id
-        self.neutral_ground = neutral_ground
         self.kickoff_time = kickoff_time
         self.season_id = season.id
         self.ground_id = ground.id if ground else None

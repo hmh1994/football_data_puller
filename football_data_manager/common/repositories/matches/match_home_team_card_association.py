@@ -2,10 +2,10 @@ from sqlalchemy import Column, String, ForeignKey, Enum, Integer
 from sqlalchemy.orm import backref, relationship
 
 from football_data_manager.common.enums.card_type_enum import CardTypeEnum
+from football_data_manager.common.repositories import Base
 from football_data_manager.common.repositories.constants import (
     MATCH_HOME_TEAM_CARD_ASSOCIATION_TABLE_NAME,
 )
-from football_data_manager.common.repositories import Base
 from football_data_manager.common.repositories.matches.match_entity import (
     MatchEntity,
 )
@@ -77,6 +77,7 @@ class MatchHomeTeamCardAssociation(Base):
         :param card_type: Type of card (yellow or red)
         :param clock: Time in minutes when the card was issued
         """
+        super().__init__()
         self.player_id = player.id
         self.card_type = card_type
         self.clock = clock

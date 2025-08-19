@@ -67,7 +67,7 @@ class PulseliveNewPlayerResponse(CamelCaseModel):
     :ivar height: Player height in centimeters
     """
 
-    country: PulseliveNewCountryResponse
+    country: PulseliveNewCountryResponse | None = None
     loan: int | None = None
     country_of_birth: str | None = None
     name: PulseliveNewPersonResponse

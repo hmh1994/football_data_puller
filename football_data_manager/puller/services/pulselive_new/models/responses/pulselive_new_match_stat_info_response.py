@@ -1,5 +1,10 @@
+from pydantic import field_validator
+
 from football_data_manager.common.utils.pydantic_helper.camelcase_model import (
     CamelCaseModel,
+)
+from football_data_manager.common.utils.pydantic_helper.string_to_float_validator import (
+    convert_string_to_float,
 )
 
 
@@ -215,3 +220,8 @@ class PulseliveNewMatchStatInfoResponse(CamelCaseModel):
     won_corners: float = 0.0
     won_tackle: float = 0.0
     yellow_card: float = 0.0
+
+    @field_validator("*", mode="before")
+    def convert_all_floats(cls, v):
+        """Convert string values to float for all float fields."""
+        return convert_string_to_float(v)

@@ -211,6 +211,8 @@ class PulseliveNewMatchPuller:
             period=PeriodEnum.from_string(match_info.period),
         )
         home_players = [p.player for p in home_lineup_players + home_substitute_players]
+        away_players = [p.player for p in away_lineup_players + away_substitute_players]
+        all_players = home_players + away_players
         for player_info in home_lineup_players:
             match = await self.__update_lineup(
                 match, player_info, True, lineup.home_team.formation.lineup
@@ -223,15 +225,20 @@ class PulseliveNewMatchPuller:
                 player_info.position,
                 player_info.shirt_number,
             )
-        for card_info in events.home_team.cards:
-            match = await self.__update_card(match, card_info, True, home_players)
-        for goal_info in events.home_team.goals:
-            match = await self.__update_goal(match, goal_info, True, home_players)
-        for sub_info in events.home_team.subs:
+        for idx, card_info in enumerate(events.home_team.cards):
+            match = await self.__update_card(match, idx, card_info, True, home_players)
+        # Filter valid goal events for home team
+        valid_home_goals = [
+            goal for goal in events.home_team.goals if goal.is_valid_event()
+        ]
+        for idx, goal_info in enumerate(valid_home_goals):
+            match = await self.__update_goal(match, idx, goal_info, True, all_players)
+        # Fill in substitutions for home team
+        valid_home_subs = [sub for sub in events.home_team.subs if sub.is_valid_event()]
+        for sub_info in valid_home_subs:
             match = await self.__update_substitution(
                 match, sub_info, True, home_players
             )
-        away_players = [p.player for p in away_lineup_players + away_substitute_players]
         for player_info in away_lineup_players:
             match = await self.__update_lineup(
                 match, player_info, False, lineup.away_team.formation.lineup
@@ -244,11 +251,17 @@ class PulseliveNewMatchPuller:
                 player_info.position,
                 player_info.shirt_number,
             )
-        for card_info in events.away_team.cards:
-            match = await self.__update_card(match, card_info, False, away_players)
-        for goal_info in events.away_team.goals:
-            match = await self.__update_goal(match, goal_info, False, away_players)
-        for sub_info in events.away_team.subs:
+        for idx, card_info in enumerate(events.away_team.cards):
+            match = await self.__update_card(match, idx, card_info, False, away_players)
+        # Filter valid goal events for away team
+        valid_away_goals = [
+            goal for goal in events.away_team.goals if goal.is_valid_event()
+        ]
+        for idx, goal_info in enumerate(valid_away_goals):
+            match = await self.__update_goal(match, idx, goal_info, False, all_players)
+        # Fill in substitutions for away team
+        valid_away_subs = [sub for sub in events.away_team.subs if sub.is_valid_event()]
+        for sub_info in valid_away_subs:
             match = await self.__update_substitution(
                 match, sub_info, False, away_players
             )
@@ -302,6 +315,9 @@ class PulseliveNewMatchPuller:
         manager_staff = None
 
         for staff_info in manager_info_list:
+            if not staff_info.is_valid_event():
+                continue
+
             # Check if staff exists in repository
             existing_staff = await self.__staff_repository.read_by_pulselive_id(
                 staff_info.id
@@ -415,9 +431,7 @@ class PulseliveNewMatchPuller:
                     row, col = r, c
                     break
         if row is None or col is None:
-            raise ValueError(
-                f"Player {player_info.player.display_name_en} not found in the formation."
-            )
+            return match
         return await self.__match_repository.append_lineup(
             match=match,
             is_home=is_home,
@@ -431,6 +445,7 @@ class PulseliveNewMatchPuller:
     async def __update_card(
         self,
         match: MatchEntity,
+        index: int,
         card_info: PulseliveNewEventCardResponse,
         is_home: bool,
         player_list: list[PlayerEntity],
@@ -442,6 +457,7 @@ class PulseliveNewMatchPuller:
             match=match,
             is_home=is_home,
             player=player,
+            index=index,
             card_type=CardTypeEnum.from_string(card_info.type),
             clock=int(card_info.time),
         )
@@ -449,6 +465,7 @@ class PulseliveNewMatchPuller:
     async def __update_goal(
         self,
         match: MatchEntity,
+        index: int,
         goal_info: PulseliveNewEventGoalResponse,
         is_home: bool,
         player_list: list[PlayerEntity],
@@ -463,6 +480,7 @@ class PulseliveNewMatchPuller:
             is_home=is_home,
             player=player,
             assist_player=assist_player,
+            index=index,
             is_penalty=goal_info.goal_type == "Penalty",
             is_own_goal=goal_info.goal_type == "Own",
             clock=int(goal_info.time),

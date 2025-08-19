@@ -85,6 +85,7 @@ class MatchRepository(PulseliveRepository[MatchEntity]):
         match: MatchEntity,
         is_home: bool,
         player: PlayerEntity,
+        index: int,
         card_type: CardTypeEnum,
         clock: int,
     ) -> MatchEntity:
@@ -116,6 +117,7 @@ class MatchRepository(PulseliveRepository[MatchEntity]):
             params = {
                 "match": merged_match,
                 "player": player,
+                "index": index,
                 "card_type": card_type,
                 "clock": clock,
             }
@@ -134,6 +136,7 @@ class MatchRepository(PulseliveRepository[MatchEntity]):
         is_home: bool,
         player: PlayerEntity,
         assist_player: PlayerEntity | None,
+        index: int,
         is_penalty: bool,
         is_own_goal: bool,
         clock: int,
@@ -169,6 +172,7 @@ class MatchRepository(PulseliveRepository[MatchEntity]):
                 "match": merged_match,
                 "player": player,
                 "assist_player": assist_player,
+                "index": index,
                 "clock": clock,
                 "is_penalty": is_penalty,
                 "is_own_goal": is_own_goal,

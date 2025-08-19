@@ -20,23 +20,17 @@ class MatchAwayTeamCardAssociation(Base):
 
     Associates cards (yellow/red) issued to away team players during a match.
 
+    :ivar match_id: Foreign key to the match entity
     :ivar player_id: Foreign key to the player who received the card
+    :ivar index: Index of the card in the match (for ordering)
     :ivar card_type: Type of card issued (yellow or red)
     :ivar clock: Time in minutes when the card was issued
-    :ivar match_id: Foreign key to the match entity
     """
 
     __tablename__ = MATCH_AWAY_TEAM_CARD_ASSOCIATION_TABLE_NAME
 
     CARD_INFO_COLLECTION_NAME = "away_team_card_associations"
 
-    player_id = Column(
-        String,
-        ForeignKey(PlayerEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
-        primary_key=True,
-    )
-    card_type = Column(Enum(CardTypeEnum), primary_key=True)
-    clock = Column(Integer, nullable=False)
     match_id = Column(
         String,
         ForeignKey(MatchEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
@@ -51,11 +45,20 @@ class MatchAwayTeamCardAssociation(Base):
             order_by="MatchAwayTeamCardAssociation.clock",
         ),
     )
+    player_id = Column(
+        String,
+        ForeignKey(PlayerEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
+        primary_key=True,
+    )
+    index = Column(Integer, nullable=False, primary_key=True)
+    card_type = Column(Enum(CardTypeEnum), primary_key=True)
+    clock = Column(Integer, nullable=False)
 
     def __init__(
         self,
         match: MatchEntity,
         player: PlayerEntity,
+        index: int,
         card_type: CardTypeEnum,
         clock: int,
     ):
@@ -64,14 +67,16 @@ class MatchAwayTeamCardAssociation(Base):
 
         :param match: Match entity where the card was issued
         :param player: Player entity who received the card
+        :param index: Index of the card in the match (for ordering)
         :param card_type: Type of card (yellow or red)
         :param clock: Time in minutes when the card was issued
         """
         super().__init__()
+        self.match_id = match.id
         self.player_id = player.id
+        self.index = index
         self.card_type = card_type
         self.clock = clock
-        self.match_id = match.id
 
     @property
     def card_info(self):

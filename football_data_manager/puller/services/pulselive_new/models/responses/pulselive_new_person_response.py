@@ -6,8 +6,12 @@ from football_data_manager.common.utils.pydantic_helper.camelcase_model import (
 
 
 class PulseliveNewPersonResponse(CamelCaseModel):
-    first_name: str = Field(validation_alias=AliasChoices("first", "firstName"))
-    last_name: str = Field(validation_alias=AliasChoices("last", "lastName"))
+    first_name: str | None = Field(
+        None, validation_alias=AliasChoices("first", "firstName")
+    )
+    last_name: str | None = Field(
+        None, validation_alias=AliasChoices("last", "lastName")
+    )
     display_name: str | None = Field(
         None, validation_alias=AliasChoices("display", "name", "knownName")
     )
@@ -19,3 +23,6 @@ class PulseliveNewPersonResponse(CamelCaseModel):
     @property
     def simple_name(self):
         return self.display_name or self.full_name
+
+    def is_valid_event(self) -> bool:
+        return self.first_name is not None and self.last_name is not None

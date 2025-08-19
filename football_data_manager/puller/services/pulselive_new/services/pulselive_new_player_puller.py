@@ -33,7 +33,7 @@ from football_data_manager.puller.services.pulselive_new.components.pulselive_ne
     PulseliveNewWebclient,
 )
 from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v2_squad_response import (
-    PulseliveNewPlayerResponse,
+    PulseliveNewPlayerDetailResponse,
 )
 
 
@@ -118,7 +118,7 @@ class PulseliveNewPlayerPuller:
         return players
 
     async def __process_players(
-        self, player_items: list[PulseliveNewPlayerResponse]
+        self, player_items: list[PulseliveNewPlayerDetailResponse]
     ) -> list[PlayerEntity]:
         """
         Process player items from API response into database entities.
@@ -140,8 +140,8 @@ class PulseliveNewPlayerPuller:
 
         return players
 
-    async def process_player(
-        self, player_item: PulseliveNewPlayerResponse
+    async def __process_player(
+        self, player_item: PulseliveNewPlayerDetailResponse
     ) -> PlayerEntity | None:
         """
         Process player information from API response.

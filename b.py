@@ -6,6 +6,9 @@ from football_data_manager.common.repositories.competitions.competition_entity i
     CompetitionEntity,
 )
 from football_data_manager.common.repositories.grounds.ground_entity import GroundEntity
+from football_data_manager.common.repositories.player_stats.player_stat_entity import (
+    PlayerStatEntity,
+)
 from football_data_manager.common.repositories.repository_container import (
     CommonRepositoryContainer,
 )
@@ -33,6 +36,9 @@ from football_data_manager.puller.services.pulselive_new.services.pulselive_new_
 )
 from football_data_manager.puller.services.pulselive_new.services.pulselive_new_player_puller import (
     PulseliveNewPlayerPuller,
+)
+from football_data_manager.puller.services.pulselive_new.services.pulselive_new_player_stats_puller import (
+    PulseliveNewPlayerStatsPuller,
 )
 from football_data_manager.puller.services.pulselive_new.services.pulselive_new_season_puller import (
     PulseliveNewSeasonPuller,
@@ -180,6 +186,42 @@ async def create_match(
     return fixtures, matches, match_stats
 
 
+async def create_player_stats(
+    repository_container: CommonRepositoryContainer,
+    webclient: PulseliveNewWebclient,
+) -> list[PlayerStatEntity]:
+    competition_repository = repository_container.competition_repository()
+    competition = await competition_repository.read_by_pulselive_id(8)
+    if not competition:
+        return []
+    season_repository = repository_container.season_repository()
+    seasons = await season_repository.read_by_competition(competition)
+    if not seasons:
+        return []
+    seasons.sort(key=lambda s: s.year_start, reverse=True)
+    player_repository = repository_container.player_repository()
+    players = await player_repository.read_all()
+    player_stats_puller = PulseliveNewPlayerStatsPuller(repository_container, webclient)
+    player_stats = []
+    for season in seasons:
+        if season.year_start < 2024:
+            continue
+        for player in players:
+            try:
+                player_stat = await player_stats_puller.pull_player_stats(
+                    player, competition, season
+                )
+                if player_stat:
+                    player_stats.append(player_stat)
+            except ValueError as e:
+                print(f"Error pulling stats for player {player.id}: {e}")
+            except Exception as e:
+                raise RuntimeError(
+                    f"Unexpected error pulling stats for player {player.id}: {e}"
+                ) from e
+    return player_stats
+
+
 async def create_news(config_service: ConfigService, db_service: DbService):
     puller_service = TheAthleticPullerService(
         anthropic_config=config_service.api_list.anthropic,
@@ -208,11 +250,12 @@ async def runrun():
     #     service_container, repository_container, webclient_service
     # )
     # await create_players(service_container, repository_container, webclient_service)
-    await create_match(
-        service_container,
-        repository_container,
-        webclient_service,
-    )
+    await create_player_stats(repository_container, webclient_service)
+    # await create_match(
+    #     service_container,
+    #     repository_container,
+    #     webclient_service,
+    # )
     # await update_news(config_service, db_service)
 
 

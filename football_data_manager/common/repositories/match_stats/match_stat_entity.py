@@ -73,6 +73,7 @@ class MatchStatEntity(PulseliveEntity):
 
     __tablename__ = MATCH_STATS_TABLE_NAME
 
+    # fmt: off
     big_chances = Column(Integer, nullable=False)  # bigChanceScored + bigChanceMissed
     big_chances_missed = Column(Integer, nullable=False)  # bigChanceMissed
     corners = Column(Integer, nullable=False)  # cornerTaken
@@ -88,16 +89,12 @@ class MatchStatEntity(PulseliveEntity):
     duels_aerial_won = Column(Integer, nullable=False)  # aerialWon
     duels_dribbles_successful = Column(Integer, nullable=False)  # wonContest
     duels_dribbles_total = Column(Integer, nullable=False)  # totalContest
-    duels_ground_total = Column(
-        Integer, nullable=False
-    )  # duelWon + duelLost - aerialWon - aerialLost
+    duels_ground_total = Column(Integer, nullable=False)  # duelWon + duelLost - aerialWon - aerialLost
     duels_ground_won = Column(Integer, nullable=False)  # duelWon - aerialWon
     duels_total = Column(Integer, nullable=False)  # duelWon + duelLost
     duels_won = Column(Integer, nullable=False)  # duelWon
     expected_goals = Column(Double, nullable=False)  # expectedGoals
-    expected_goals_non_penalty = Column(
-        Double, nullable=False
-    )  # expectedGoals - (home.penaltyFaced * 0.79)
+    expected_goals_non_penalty = Column(Double, nullable=False)  # expectedGoals - (home.penaltyFaced * 0.79)
     expected_goals_on_target = Column(Double, nullable=False)  # expectedGoalsOnTarget
     fouls_committed = Column(Integer, nullable=False)  # fkFoulLost
     match_id = Column(
@@ -109,17 +106,13 @@ class MatchStatEntity(PulseliveEntity):
     passes_accurate_crosses = Column(Integer, nullable=False)  # accurateCross
     passes_accurate_long_balls = Column(Integer, nullable=False)  # accurateLongBalls
     passes_offsides = Column(Integer, nullable=False)  # totalOffside
-    passes_opposition_half = Column(
-        Integer, nullable=False
-    )  # accurateFwdZonePass - accurateCross
+    passes_opposition_half = Column(Integer, nullable=False)  # accurateFwdZonePass - accurateCross
     passes_own_half = Column(Integer, nullable=False)  # accurateBackZonePass
     passes_throws = Column(Integer, nullable=False)  # totalThrows
     passes_total = Column(Integer, nullable=False)  # totalPass
     passes_total_crosses = Column(Integer, nullable=False)  # totalCross
     passes_total_long_balls = Column(Integer, nullable=False)  # totalLongBalls
-    passes_touches_in_opposition_box = Column(
-        Integer, nullable=False
-    )  # touchesInOppBox
+    passes_touches_in_opposition_box = Column(Integer, nullable=False)  # touchesInOppBox
     possession = Column(Double, nullable=False)  # possessionPercentage
     shots_blocked = Column(Integer, nullable=False)  # blockedScoringAtt
     shots_hit_woodwork = Column(Integer, nullable=False)  # hitWoodwork
@@ -133,6 +126,7 @@ class MatchStatEntity(PulseliveEntity):
         ForeignKey(TeamEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
         nullable=False,
     )
+    # fmt: on
 
     def __init__(
         self,

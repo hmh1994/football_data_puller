@@ -25,6 +25,9 @@ from football_data_manager.puller.services.pulselive_new.models.responses.pulsel
 from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v1_matchweek_matches_response import (
     PulseliveNewV1MatchweekMatchesResponse,
 )
+from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v1_player_details_response import (
+    PulseliveNewV1PlayerDetailsResponse,
+)
 from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v1_player_response import (
     PulseliveNewV1PlayerResponse,
 )
@@ -33,6 +36,9 @@ from football_data_manager.puller.services.pulselive_new.models.responses.pulsel
 )
 from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v2_match_response import (
     PulseliveNewV2MatchResponse,
+)
+from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v2_player_stat_response import (
+    PulseliveNewV2PlayerStatsResponse,
 )
 from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v2_squad_response import (
     PulseliveNewV2SquadResponse,
@@ -173,6 +179,44 @@ class PulseliveNewWebclient(AbstractWebClientService):
         """
         response = await self.get(path=URL(f"v1/players/{player_id}"))
         return PulseliveNewV1PlayerResponse.model_validate(response)
+
+    async def get_v1_player_details(
+        self, competition_id: str, season_id: str, player_id: str
+    ) -> PulseliveNewV1PlayerDetailsResponse:
+        """
+        Get detailed player information including shirt number for a specific competition season.
+
+        Retrieves comprehensive player information including shirt number (shirtNum)
+        for the specified competition and season.
+
+        :param competition_id: Competition ID
+        :param season_id: Season ID
+        :param player_id: Player ID to fetch information for
+        :returns: Player information including shirt number
+        """
+        path = (
+            f"v1/competitions/{competition_id}/seasons/{season_id}/players/{player_id}"
+        )
+        response = await self.get(path=URL(path))
+        return PulseliveNewV1PlayerDetailsResponse.model_validate(response)
+
+    async def get_v2_player_stats(
+        self, competition_id: str, season_id: str, player_id: str
+    ) -> PulseliveNewV2PlayerStatsResponse:
+        """
+        Get player statistics for a specific competition season.
+
+        Retrieves comprehensive player performance statistics including goals,
+        assists, appearances, and detailed performance metrics for the specified season.
+
+        :param competition_id: Competition ID
+        :param season_id: Season ID
+        :param player_id: Player ID to fetch statistics for
+        :returns: Player statistics for the specified season
+        """
+        path = f"v2/competitions/{competition_id}/seasons/{season_id}/players/{player_id}/stats"
+        response = await self.get(path=URL(path))
+        return PulseliveNewV2PlayerStatsResponse.model_validate(response)
 
     async def get_v2_match(self, match_id: str) -> PulseliveNewV2MatchResponse:
         """

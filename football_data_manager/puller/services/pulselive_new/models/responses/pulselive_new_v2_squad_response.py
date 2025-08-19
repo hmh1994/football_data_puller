@@ -1,8 +1,8 @@
 from football_data_manager.common.utils.pydantic_helper.camelcase_model import (
     CamelCaseModel,
 )
-from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_player_response import (
-    PulseliveNewPlayerResponse,
+from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_player_detail_response import (
+    PulseliveNewPlayerDetailResponse,
 )
 
 
@@ -16,4 +16,4 @@ class PulseliveNewV2SquadResponse(CamelCaseModel):
     :ivar players: List of players in the squad
     """
 
-    players: list[PulseliveNewPlayerResponse]
+    players: list[PulseliveNewPlayerDetailResponse]

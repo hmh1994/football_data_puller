@@ -1,6 +1,6 @@
 from typing import Self
 
-from sqlalchemy import Column, String, ForeignKey, Integer, ARRAY
+from sqlalchemy import Column, String, ForeignKey, Integer, ARRAY, Double
 
 from football_data_manager.common.repositories.constants import (
     TEAM_STATS_TABLE_NAME,
@@ -109,6 +109,36 @@ class TeamStatEntity(PulseliveEntity):
     overall_matches_won = Column(Integer, nullable=False)
     overall_points = Column(Integer, nullable=False)
     overall_position = Column(Integer, nullable=False)
+    # fmt: off
+    overall_stat_attack_corners = Column(Integer, nullable=True)  # cornersTakenInclShortCorners
+    overall_stat_attack_crosses = Column(Integer, nullable=True)  # successfulCrossesAndCorners + unsuccessfulCrossesAndCorners
+    overall_stat_attack_crosses_successful = Column(Integer, nullable=True)  # successfulCrossesAndCorners
+    overall_stat_attack_expected_goals = Column(Double, nullable=True)  # expectedGoals
+    overall_stat_attack_long_balls = Column(Integer, nullable=True)  # successfulLongPasses + unsuccessfulLongPasses
+    overall_stat_attack_long_balls_successful = Column(Integer, nullable=True)  # successfulLongPasses
+    overall_stat_attack_passes = Column(Integer, nullable=True)  # totalPasses
+    overall_stat_attack_passes_successful = Column(Integer, nullable=True)  # successfulShortPasses + successfulLongPasses
+    overall_stat_attack_shots_on_target = Column(Integer, nullable=True)  # shotsOnTargetIncGoals
+    overall_stat_attack_touches_in_opposition_box = Column(Integer, nullable=True)  # touchesInOppBox
+    overall_stat_average_possession = Column(Double, nullable=True)  # possessionPercentage
+    overall_stat_defense_blocks = Column(Integer, nullable=True)  # blockedShots
+    overall_stat_defense_clearances = Column(Integer, nullable=True)  # totalClearances
+    overall_stat_defense_duels_aerial_total = Column(Integer, nullable=True)  # aerialDuels
+    overall_stat_defense_duels_aerial_won = Column(Integer, nullable=True)  # aerialDuelsWon
+    overall_stat_defense_duels_ground_total = Column(Integer, nullable=True)  # groundDuels
+    overall_stat_defense_duels_ground_won = Column(Integer, nullable=True)  # groundDuelsWon
+    overall_stat_defense_duels_total = Column(Integer, nullable=True)  # duels
+    overall_stat_defense_duels_won = Column(Integer, nullable=True)  # duelsWon
+    overall_stat_defense_interceptions = Column(Integer, nullable=True)  # interceptions
+    overall_stat_defense_saves = Column(Integer, nullable=True)  # (shotsOnConcededInsideBox + shotsOnConcededOutsideBox - goalsConceded) + penaltiesSaved
+    overall_stat_defense_saves_penalty = Column(Integer, nullable=True)  # penaltiesSaved
+    overall_stat_defense_tackles = Column(Integer, nullable=True)  # timesTackled
+    overall_stat_defense_tackles_successful = Column(Integer, nullable=True)  # tacklesWon
+    overall_stat_discipline_fouls = Column(Integer, nullable=True)  # totalFoulsConceded
+    overall_stat_discipline_red_cards = Column(Integer, nullable=True)  # totalRedCards
+    overall_stat_discipline_red_cards_direct = Column(Integer, nullable=True)  # straightRedCards
+    overall_stat_discipline_yellow_cards = Column(Integer, nullable=True)  # yellowCards
+    # fmt: on
     season_id = Column(
         String,
         ForeignKey(SeasonEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
@@ -254,7 +284,9 @@ class TeamStatEntity(PulseliveEntity):
 
         :param point: Points to append to the overall cumulative points
         """
-        last_point = self.overall_cumulative_points[-1] if self.overall_cumulative_points else 0
+        last_point = (
+            self.overall_cumulative_points[-1] if self.overall_cumulative_points else 0
+        )
         self.overall_cumulative_points.append(last_point + point)
 
     def append_home_point(self, point: int):
@@ -263,7 +295,9 @@ class TeamStatEntity(PulseliveEntity):
 
         :param point: Points to append to the home cumulative points
         """
-        last_point = self.home_cumulative_points[-1] if self.home_cumulative_points else 0
+        last_point = (
+            self.home_cumulative_points[-1] if self.home_cumulative_points else 0
+        )
         self.home_cumulative_points.append(last_point + point)
 
     def append_away_point(self, point: int):
@@ -272,7 +306,9 @@ class TeamStatEntity(PulseliveEntity):
 
         :param point: Points to append to the away cumulative points
         """
-        last_point = self.away_cumulative_points[-1] if self.away_cumulative_points else 0
+        last_point = (
+            self.away_cumulative_points[-1] if self.away_cumulative_points else 0
+        )
         self.away_cumulative_points.append(last_point + point)
 
     def compare_overall(

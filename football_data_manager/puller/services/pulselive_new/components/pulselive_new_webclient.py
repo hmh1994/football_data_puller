@@ -40,6 +40,9 @@ from football_data_manager.puller.services.pulselive_new.models.responses.pulsel
 from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v2_player_stat_response import (
     PulseliveNewV2PlayerStatsResponse,
 )
+from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v2_team_stats_response import (
+    PulseliveNewV2TeamStatsResponse,
+)
 from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v2_squad_response import (
     PulseliveNewV2SquadResponse,
 )
@@ -258,3 +261,22 @@ class PulseliveNewWebclient(AbstractWebClientService):
         """
         response = await self.get(path=URL(f"v3/matches/{match_id}/lineups"))
         return PulseliveNewV3MatchLineupResponse.model_validate(response)
+
+    async def get_v2_team_stats(
+        self, competition_id: str, season_id: str, team_id: str
+    ) -> PulseliveNewV2TeamStatsResponse:
+        """
+        Get team statistics for a specific competition season.
+
+        Retrieves comprehensive team performance statistics including goals,
+        assists, defensive actions, passing statistics, and detailed performance
+        metrics for the specified team and season.
+
+        :param competition_id: Competition ID
+        :param season_id: Season ID  
+        :param team_id: Team ID to fetch statistics for
+        :returns: Team statistics for the specified season
+        """
+        path = f"v2/competitions/{competition_id}/seasons/{season_id}/teams/{team_id}/stats"
+        response = await self.get(path=URL(path))
+        return PulseliveNewV2TeamStatsResponse.model_validate(response)

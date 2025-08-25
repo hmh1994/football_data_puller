@@ -108,7 +108,7 @@ class TeamStatEntity(PulseliveEntity):
     overall_matches_lost = Column(Integer, nullable=False)
     overall_matches_won = Column(Integer, nullable=False)
     overall_points = Column(Integer, nullable=False)
-    overall_position = Column(Integer, nullable=False)
+    overall_position = Column(Integer, nullable=True)
     # fmt: off
     overall_stat_attack_corners = Column(Integer, nullable=True)  # cornersTakenInclShortCorners
     overall_stat_attack_crosses = Column(Integer, nullable=True)  # successfulCrossesAndCorners + unsuccessfulCrossesAndCorners

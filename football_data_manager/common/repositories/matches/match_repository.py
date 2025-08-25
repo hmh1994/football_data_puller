@@ -1,5 +1,12 @@
+from sqlalchemy import select, or_
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from football_data_manager.common.enums.card_type_enum import CardTypeEnum
 from football_data_manager.common.enums.position_enum import PositionEnum
+from football_data_manager.common.repositories.base_repository import BaseRepository
+from football_data_manager.common.repositories.fixtures.fixture_entity import (
+    FixtureEntity,
+)
 from football_data_manager.common.repositories.matches.match_away_team_card_association import (
     MatchAwayTeamCardAssociation,
 )
@@ -39,6 +46,8 @@ from football_data_manager.common.repositories.players.player_entity import (
 from football_data_manager.common.repositories.pulselive_repository import (
     PulseliveRepository,
 )
+from football_data_manager.common.repositories.seasons.season_entity import SeasonEntity
+from football_data_manager.common.repositories.teams.team_entity import TeamEntity
 from football_data_manager.common.services.db.db_service import DbService
 
 
@@ -79,6 +88,47 @@ class MatchRepository(PulseliveRepository[MatchEntity]):
                 MatchHomeTeamSubstitutionAssociation.SUBSTITUTION_COLLECTION_NAME,
             ],
         )
+
+    @BaseRepository.with_db_session
+    async def read_by_team_on_season(
+        self,
+        session: AsyncSession,
+        season: SeasonEntity,
+        team: TeamEntity,
+        **kwargs,
+    ) -> list[MatchEntity]:
+        """
+        Read matches for a specific team in a given season.
+
+        Retrieves all matches where the specified team is either home or away team
+        within the given season. The method joins with fixture entities to filter
+        by season and then filters by team participation (home or away).
+
+        :param session: Database session for the query
+        :param season: Season entity to filter matches
+        :param team: Team entity to filter matches (home or away)
+        :param kwargs: Field names and values to filter by.
+        :returns: List of match entities for the team in the specified season
+        """
+        # Build query to join MatchEntity with FixtureEntity and filter by season and team
+        stmt = (
+            select(MatchEntity)
+            .filter_by(**kwargs)
+            .join(FixtureEntity, MatchEntity.fixture_id == FixtureEntity.id)
+            .where(
+                (FixtureEntity.season_id == season.id)
+                & (
+                    or_(
+                        MatchEntity.home_team_id == team.id,
+                        MatchEntity.away_team_id == team.id,
+                    )
+                )
+            )
+            .order_by(FixtureEntity.game_week)
+        )
+
+        result = await session.execute(stmt)
+        return list(result.scalars().all())
 
     async def append_card(
         self,

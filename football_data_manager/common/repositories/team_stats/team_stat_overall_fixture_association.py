@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, String, ForeignKey, DateTime
+from sqlalchemy import Column, String, ForeignKey, DateTime, Boolean
 from sqlalchemy.orm import relationship, backref
 
 from football_data_manager.common.repositories import Base
@@ -51,9 +51,14 @@ class TeamStatOverallFixtureAssociation(Base):
         ),
     )
     kickoff_time = Column(DateTime, nullable=False)
+    is_home = Column(Boolean, nullable=False)
 
     def __init__(
-        self, team_stat: TeamStatEntity, fixture: FixtureEntity, kickoff_time: datetime
+        self,
+        team_stat: TeamStatEntity,
+        fixture: FixtureEntity,
+        kickoff_time: datetime,
+        is_home: bool,
     ):
         """
         Initialize a new team stat overall fixture association.
@@ -66,3 +71,4 @@ class TeamStatOverallFixtureAssociation(Base):
         self.fixture_id = fixture.id
         self.kickoff_time = kickoff_time
         self.team_stat_id = team_stat.id
+        self.is_home = is_home

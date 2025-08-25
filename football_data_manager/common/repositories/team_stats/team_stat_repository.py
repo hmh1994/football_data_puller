@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from football_data_manager.common.enums.period_enum import PeriodEnum
 from football_data_manager.common.repositories.fixtures.fixture_entity import (
     FixtureEntity,
 )
@@ -74,7 +75,9 @@ class TeamStatRepository(PulseliveRepository[TeamStatEntity]):
         return await self._read_by_field(season_id=season.id)
 
     async def append_fixtures(
-        self, team_stat: TeamStatEntity, fixtures: list[FixtureEntity]
+        self,
+        team_stat: TeamStatEntity,
+        fixture_matches: list[tuple[FixtureEntity, MatchEntity]],
     ) -> TeamStatEntity:
         """
         Append fixtures to the team stat entity based on home/away status.
@@ -84,8 +87,8 @@ class TeamStatRepository(PulseliveRepository[TeamStatEntity]):
         duplicate checking to avoid performance overhead.
 
         :param team_stat: The team stat entity to append fixtures to
-        :param fixtures: List of fixture entities to append
-        :returns: The updated team stat entity with new fixture associations
+        :param fixture_matches: List of match entities to append
+        :returns: The updated team stat entity with new match associations
         """
         # Load existing associations for duplicate checking
         team_stat = await self.load_items(team_stat)
@@ -95,22 +98,25 @@ class TeamStatRepository(PulseliveRepository[TeamStatEntity]):
             assoc.fixture_id for assoc in team_stat.overall_fixture_associations
         }
 
-        for fixture in fixtures:
-            # Skip if fixture already exists in overall (covers all cases)
-            if fixture.id in existing_overall_fixtures:
+        for fixture, match in fixture_matches:
+            # Skip if match already exists in overall (covers all cases)
+            if match.id in existing_overall_fixtures:
+                continue
+            if match.period != PeriodEnum.FULLTIME:
                 continue
 
-            # Create overall association (always created for every fixture)
+            # Create overall association (always created for every match)
             team_stat.overall_fixture_associations.append(
                 TeamStatOverallFixtureAssociation(
                     team_stat=team_stat,
                     fixture=fixture,
                     kickoff_time=fixture.kickoff_time,
+                    is_home=fixture.home_team_id == team_stat.team_id,
                 )
             )
 
-            # Determine if fixture is home or away for this team
-            if fixture.home_team_id == team_stat.team_id:
+            # Determine if match is home or away for this team
+            if match.home_team_id == team_stat.team_id:
                 team_stat.home_fixture_associations.append(
                     TeamStatHomeFixtureAssociation(
                         team_stat=team_stat,
@@ -118,7 +124,7 @@ class TeamStatRepository(PulseliveRepository[TeamStatEntity]):
                         kickoff_time=fixture.kickoff_time,
                     )
                 )
-            elif fixture.away_team_id == team_stat.team_id:
+            elif match.away_team_id == team_stat.team_id:
                 team_stat.away_fixture_associations.append(
                     TeamStatAwayFixtureAssociation(
                         team_stat=team_stat,
@@ -129,52 +135,8 @@ class TeamStatRepository(PulseliveRepository[TeamStatEntity]):
             else:
                 # Fixture doesn't belong to this team - skip or raise error
                 raise ValueError(
-                    f"Fixture {fixture.id} does not belong to team {team_stat.team_id}"
+                    f"Fixture {match.id} does not belong to team {team_stat.team_id}"
                 )
-
-        return team_stat
-
-    async def update_fixture(
-        self, team_stat: TeamStatEntity, fixture: FixtureEntity
-    ) -> TeamStatEntity:
-        """
-        Update an existing fixture in the team stat entity associations.
-
-        Finds existing fixture associations by fixture_id and updates their
-        kickoff_time to match the updated fixture. Updates all relevant
-        associations (home, away, and overall) where the fixture exists.
-
-        :param team_stat: The team stat entity containing fixture associations
-        :param fixture: The updated fixture entity with new information
-        :returns: The updated team stat entity with refreshed fixture associations
-        """
-        # Load existing associations to find the fixture
-        team_stat = await self.load_items(team_stat)
-
-        # Update overall fixture associations
-        for assoc in team_stat.overall_fixture_associations:
-            if assoc.fixture_id == fixture.id:
-                assoc.kickoff_time = fixture.kickoff_time
-                break
-
-        # Determine if this is a home or away fixture for this team and update accordingly
-        if fixture.home_team_id == team_stat.team_id:
-            # Update home fixture associations
-            for assoc in team_stat.home_fixture_associations:
-                if assoc.fixture_id == fixture.id:
-                    assoc.kickoff_time = fixture.kickoff_time
-                    break
-        elif fixture.away_team_id == team_stat.team_id:
-            # Update away fixture associations
-            for assoc in team_stat.away_fixture_associations:
-                if assoc.fixture_id == fixture.id:
-                    assoc.kickoff_time = fixture.kickoff_time
-                    break
-        else:
-            # Fixture doesn't belong to this team
-            raise ValueError(
-                f"Fixture {fixture.id} does not belong to team {team_stat.team_id}"
-            )
 
         return team_stat
 

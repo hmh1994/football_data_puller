@@ -9,10 +9,14 @@ from football_data_manager.common.repositories.grounds.ground_entity import Grou
 from football_data_manager.common.repositories.player_stats.player_stat_entity import (
     PlayerStatEntity,
 )
+from football_data_manager.common.repositories.players.player_entity import PlayerEntity
 from football_data_manager.common.repositories.repository_container import (
     CommonRepositoryContainer,
 )
 from football_data_manager.common.repositories.seasons.season_entity import SeasonEntity
+from football_data_manager.common.repositories.team_stats.team_stat_entity import (
+    TeamStatEntity,
+)
 from football_data_manager.common.repositories.teams.team_entity import TeamEntity
 from football_data_manager.common.services.common_service_container import (
     CommonServiceContainer,
@@ -45,6 +49,9 @@ from football_data_manager.puller.services.pulselive_new.services.pulselive_new_
 )
 from football_data_manager.puller.services.pulselive_new.services.pulselive_new_team_puller import (
     PulseliveNewTeamPuller,
+)
+from football_data_manager.puller.services.pulselive_new.services.pulselive_new_team_stats_puller import (
+    PulseliveNewTeamStatsPuller,
 )
 from football_data_manager.puller.services.the_athletic.the_athletic_puller_service import (
     TheAthleticPullerService,
@@ -112,7 +119,7 @@ async def create_players(
     service_container: CommonServiceContainer,
     repository_container: CommonRepositoryContainer,
     webclient: PulseliveNewWebclient,
-) -> list[TeamEntity]:
+) -> list[PlayerEntity]:
     competition_repository = repository_container.competition_repository()
     competition = await competition_repository.read_by_pulselive_id(8)
     if not competition:
@@ -222,6 +229,52 @@ async def create_player_stats(
     return player_stats
 
 
+async def create_team_stats(
+    repository_container: CommonRepositoryContainer,
+    webclient: PulseliveNewWebclient,
+) -> list[TeamStatEntity]:
+    competition_repository = repository_container.competition_repository()
+    competition = await competition_repository.read_by_pulselive_id(8)
+    if not competition:
+        return []
+    season_repository = repository_container.season_repository()
+    seasons = await season_repository.read_by_competition(competition)
+    if not seasons:
+        return []
+    seasons.sort(key=lambda s: s.year_start, reverse=True)
+    team_repository = repository_container.team_repository()
+    team_stat_puller = PulseliveNewTeamStatsPuller(repository_container, webclient)
+    team_stat_repository = repository_container.team_stat_repository()
+    match_repository = repository_container.match_repository()
+    team_stats = []
+    for season in seasons:
+        season_team_stats = []
+        if season.year_start < 2024 or season.year_start >= 2025:
+            continue
+        teams = await webclient.get_v1_teams(
+            competition_id=competition.source_id, season_id=season.season_source_id
+        )
+        for team in teams.data:
+            team_entity = await team_repository.read_by_pulselive_id(str(team.id))
+            team_stat = await team_stat_puller.pull_team_stats(
+                team_entity, competition, season
+            )
+            if team_stat:
+                season_team_stats.append(team_stat)
+        if season_team_stats:
+            for team_stat in season_team_stats:
+                team_entity = await team_repository.read_by_id(team_stat.team_id)
+                matches = await match_repository.read_by_team_on_season(
+                    season, team_entity
+                )
+                team_stat = await team_stat_repository.update_position(
+                    team_stat, season_team_stats, matches
+                )
+                await team_stat_repository.update(team_stat)
+                team_stats.append(team_stat)
+    return team_stats
+
+
 async def create_news(config_service: ConfigService, db_service: DbService):
     puller_service = TheAthleticPullerService(
         anthropic_config=config_service.api_list.anthropic,
@@ -250,7 +303,8 @@ async def runrun():
     #     service_container, repository_container, webclient_service
     # )
     # await create_players(service_container, repository_container, webclient_service)
-    await create_player_stats(repository_container, webclient_service)
+    # await create_player_stats(repository_container, webclient_service)
+    await create_team_stats(repository_container, webclient_service)
     # await create_match(
     #     service_container,
     #     repository_container,

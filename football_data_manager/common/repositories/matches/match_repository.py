@@ -89,6 +89,15 @@ class MatchRepository(PulseliveRepository[MatchEntity]):
             ],
         )
 
+    async def read_by_fixture(self, fixture: FixtureEntity) -> MatchEntity:
+        """
+        Read a match by its associated fixture.
+
+        :param fixture: The fixture entity to filter by
+        :returns: The match entity associated with the given fixture
+        """
+        return await self._read_one_by_field(fixture_id=fixture.id)
+
     @BaseRepository.with_db_session
     async def read_by_team_on_season(
         self,
@@ -139,19 +148,6 @@ class MatchRepository(PulseliveRepository[MatchEntity]):
         card_type: CardTypeEnum,
         clock: int,
     ) -> MatchEntity:
-        """
-        Append a card to the match if it doesn't already exist.
-
-        Args:
-            match: The match entity
-            is_home: Whether the card is for the home team
-            player: The player who received the card
-            card_type: The type of card (yellow/red)
-            clock: The time when the card was given
-
-        Returns:
-            The updated match entity with the card added
-        """
         merged_match = await self.load_items(match)
         target_list = (
             merged_match.home_team_card_associations

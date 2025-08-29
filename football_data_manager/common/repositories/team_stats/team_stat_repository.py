@@ -22,8 +22,8 @@ from football_data_manager.common.repositories.team_stats.team_stat_entity impor
 from football_data_manager.common.repositories.team_stats.team_stat_home_fixture_association import (
     TeamStatHomeFixtureAssociation,
 )
-from football_data_manager.common.repositories.team_stats.team_stat_overall_fixture_association import (
-    TeamStatOverallFixtureAssociation,
+from football_data_manager.common.repositories.team_stats.team_stat_match_association import (
+    TeamStatMatchAssociation,
 )
 from football_data_manager.common.services.db.db_service import DbService
 from football_data_manager.common.utils.type_helper.datetime_helper import (
@@ -58,7 +58,7 @@ class TeamStatRepository(PulseliveRepository[TeamStatEntity]):
             [
                 TeamStatHomeFixtureAssociation.FIXTURE_COLLECTION_NAME,
                 TeamStatAwayFixtureAssociation.FIXTURE_COLLECTION_NAME,
-                TeamStatOverallFixtureAssociation.FIXTURE_COLLECTION_NAME,
+                TeamStatMatchAssociation.MATCH_COLLECTION_NAME,
             ],
         )
 
@@ -75,27 +75,19 @@ class TeamStatRepository(PulseliveRepository[TeamStatEntity]):
         return await self._read_by_field(season_id=season.id)
 
     async def append_fixtures(
-        self,
-        team_stat: TeamStatEntity,
-        fixture_matches: list[tuple[FixtureEntity, MatchEntity]],
+        self, team_stat: TeamStatEntity, fixture: FixtureEntity, match: MatchEntity
     ) -> TeamStatEntity:
-        """
-        Append fixtures to the team stat entity based on home/away status.
+        if match.fixture_id != fixture.id:
+            raise ValueError(
+                f"Fixture {fixture.id} does not match match {match.id} association"
+            )
 
-        Categorizes fixtures as home, away, or overall and creates appropriate
-        associations if they don't already exist. Uses efficient set-based
-        duplicate checking to avoid performance overhead.
-
-        :param team_stat: The team stat entity to append fixtures to
-        :param fixture_matches: List of match entities to append
-        :returns: The updated team stat entity with new match associations
-        """
         # Load existing associations for duplicate checking
         team_stat = await self.load_items(team_stat)
 
         # Create efficient lookup sets for existing fixtures
         existing_overall_fixtures = {
-            assoc.fixture_id for assoc in team_stat.overall_fixture_associations
+            assoc.match_id for assoc in team_stat.overall_fixture_associations
         }
 
         for fixture, match in fixture_matches:
@@ -107,9 +99,9 @@ class TeamStatRepository(PulseliveRepository[TeamStatEntity]):
 
             # Create overall association (always created for every match)
             team_stat.overall_fixture_associations.append(
-                TeamStatOverallFixtureAssociation(
+                TeamStatMatchAssociation(
                     team_stat=team_stat,
-                    fixture=fixture,
+                    match=fixture,
                     kickoff_time=fixture.kickoff_time,
                     is_home=fixture.home_team_id == team_stat.team_id,
                 )
@@ -170,7 +162,7 @@ class TeamStatRepository(PulseliveRepository[TeamStatEntity]):
         kickoff_time = None
         fixture_index = None
         for index, assoc in enumerate(team_stat.overall_fixture_associations):
-            if assoc.fixture_id == match.fixture_id:
+            if assoc.match_id == match.fixture_id:
                 kickoff_time = assoc.kickoff_time
                 fixture_index = index
                 break
@@ -198,7 +190,7 @@ class TeamStatRepository(PulseliveRepository[TeamStatEntity]):
                 raise ValueError(
                     f"Match order validation failed: fixture at index {fixture_index} "
                     f"does not match expected sequence position {expected_match_count}. "
-                    f"Expected fixture: {expected_fixture.fixture_id} (kickoff: {expected_fixture.kickoff_time}) "
+                    f"Expected fixture: {expected_fixture.match_id} (kickoff: {expected_fixture.kickoff_time}) "
                     f"but received fixture: {match.fixture_id}"
                 )
             else:
@@ -316,7 +308,7 @@ class TeamStatRepository(PulseliveRepository[TeamStatEntity]):
 
         # Create lookup for valid fixture IDs
         valid_fixture_ids = {
-            assoc.fixture_id for assoc in team_stat.overall_fixture_associations
+            assoc.match_id for assoc in team_stat.overall_fixture_associations
         }
 
         # Validate all matches belong to this team's fixtures
@@ -332,11 +324,11 @@ class TeamStatRepository(PulseliveRepository[TeamStatEntity]):
         team_stat.home_fixture_associations.sort(key=lambda a: a.kickoff_time)
         team_stat.away_fixture_associations.sort(key=lambda a: a.kickoff_time)
         fixture_order = {
-            assoc.fixture_id: idx
+            assoc.match_id: idx
             for idx, assoc in enumerate(team_stat.overall_fixture_associations)
         }
         sorted_matches = sorted(
-            matches, key=lambda m: fixture_order.get(m.fixture_id, float("inf"))
+            matches, key=lambda m: fixture_order.get(m.match_id, float("inf"))
         )
 
         # Reset all statistics to initial values

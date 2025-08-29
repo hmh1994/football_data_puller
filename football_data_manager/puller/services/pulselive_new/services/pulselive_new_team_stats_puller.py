@@ -4,6 +4,9 @@ from football_data_manager.common.enums.period_enum import PeriodEnum
 from football_data_manager.common.repositories.competitions.competition_entity import (
     CompetitionEntity,
 )
+from football_data_manager.common.repositories.fixtures.fixture_entity import (
+    FixtureEntity,
+)
 from football_data_manager.common.repositories.fixtures.fixture_repository import (
     FixtureRepository,
 )
@@ -13,9 +16,7 @@ from football_data_manager.common.repositories.grounds.ground_entity import (
 from football_data_manager.common.repositories.grounds.ground_repository import (
     GroundRepository,
 )
-from football_data_manager.common.repositories.matches.match_entity import (
-    MatchEntity,
-)
+from football_data_manager.common.repositories.matches.match_entity import MatchEntity
 from football_data_manager.common.repositories.matches.match_repository import (
     MatchRepository,
 )
@@ -60,6 +61,11 @@ class PulseliveNewTeamStatsPuller:
     __team_stat_repository: TeamStatRepository
     __webclient: PulseliveNewWebclient
 
+    class FixtureAndMatch:
+        def __init__(self, fixture: FixtureEntity, match: MatchEntity):
+            self.fixture = fixture
+            self.match = match
+
     def __init__(
         self,
         repository_container: CommonRepositoryContainer,
@@ -82,6 +88,7 @@ class PulseliveNewTeamStatsPuller:
         team: TeamEntity,
         competition: CompetitionEntity,
         season: SeasonEntity,
+        ground: GroundEntity | None,
     ) -> TeamStatEntity | None:
         """
         Pull team statistics for a specific team, competition and season.
@@ -112,8 +119,6 @@ class PulseliveNewTeamStatsPuller:
                 TeamStatEntity.get_source_id(season, team)
             )
             if team_stat is None:
-                # Get ground information from v1 teams API using team abbreviation
-                ground = await self._get_ground_for_team(team, competition, season)
                 team_stat = TeamStatEntity(
                     ground=ground,
                     season=season,
@@ -121,16 +126,15 @@ class PulseliveNewTeamStatsPuller:
                 )
 
             # Get FULLTIME matches for this team and season
-            matches = await self.__match_repository.read_by_team_on_season(
-                season=season, team=team, period=PeriodEnum.FULLTIME.value
+            fixtures = await self.__fixture_repository.read_by_team_on_season(
+                season=season, team=team
             )
+            fixtures.sort(key=lambda f: f.kickoff_time)
 
             # Update team statistics with API data
             updated_team_stat = await self._update_team_stat_with_api_data(
-                team_stat, team_stats_response, matches
+                team_stat, team_stats_response, fixtures
             )
-            if len(updated_team_stat.overall_fixture_associations) == 0:
-                return None
 
             # Save the updated entity
             await self.__team_stat_repository.update(updated_team_stat)
@@ -145,30 +149,19 @@ class PulseliveNewTeamStatsPuller:
         self,
         team_stat: TeamStatEntity,
         team_stats_response: PulseliveNewV2TeamStatsResponse,
-        fulltime_matches: list[MatchEntity],
+        fixtures: list[FixtureEntity],
     ) -> TeamStatEntity:
-        """
-        Update team stat entity with data from API response.
-
-        Maps API response fields to team stat entity attributes, focusing on
-        detailed performance statistics that correspond to the database schema.
-        Only updates statistics that have corresponding matches in FULLTIME period.
-
-        :param team_stat: Existing team stat entity to update
-        :param team_stats_response: API response with team statistics
-        :param fulltime_matches: List of FULLTIME matches for validation
-        :returns: Updated team stat entity
-        """
         stats = team_stats_response.stats
 
-        # Only update if we have FULLTIME matches to base statistics on
-        if not fulltime_matches:
-            print(f"No FULLTIME matches found for team stat {team_stat.source_id}")
-            return team_stat
+        matches = []
+        for fixture in fixtures:
+            match = await self.__match_repository.read_by_fixture(fixture)
+            if match is not None and match.period == PeriodEnum.FULLTIME:
+                matches.append(self.FixtureAndMatch(fixture, match))
 
         match_fixtures = []
         for match in fulltime_matches:
-            fixture = await self.__fixture_repository.read_by_id(match.fixture_id)
+            fixture = await self.__fixture_repository.read_by_id(match.match_id)
             match_fixtures.append((fixture, match))
         match_fixtures.sort(key=lambda x: x[0].kickoff_time)
 

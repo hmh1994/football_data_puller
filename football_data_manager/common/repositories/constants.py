@@ -34,9 +34,5 @@ MATCH_HOME_TEAM_SUBSTITUTION_ASSOCIATION_TABLE_NAME = (
 NEWS_TEAM_ASSOCIATION_TABLE_NAME = "news_team_association"
 PLAYER_STAT_AWARD_ASSOCIATION_TABLE_NAME = "player_stat_award_association"
 PLAYER_CHAMPIONSHIP_ASSOCIATION_TABLE_NAME = "player_championship_association"
-TEAM_STAT_AWAY_FIXTURE_ASSOCIATION_TABLE_NAME = "team_stat_away_fixture_association"
-TEAM_STAT_HOME_FIXTURE_ASSOCIATION_TABLE_NAME = "team_stat_home_fixture_association"
-TEAM_STAT_OVERALL_FIXTURE_ASSOCIATION_TABLE_NAME = (
-    "team_stat_overall_fixture_association"
-)
+TEAM_STAT_MATCH_ASSOCIATION_TABLE_NAME = "team_stat_match_association"
 TEAM_CHAMPIONSHIP_ASSOCIATION_TABLE_NAME = "team_championship_association"

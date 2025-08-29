@@ -209,6 +209,7 @@ class TeamStatEntity(PulseliveEntity):
         overall, home, and away statistics. Preserves fixture associations.
         """
         # Reset overall statistics
+        self.overall_fixture_associations = []
         self.overall_cumulative_points = []
         self.overall_goals_for = 0
         self.overall_goals_against = 0
@@ -220,6 +221,7 @@ class TeamStatEntity(PulseliveEntity):
         self.overall_points = 0
 
         # Reset home statistics
+        self.home_fixture_associations = []
         self.home_cumulative_points = []
         self.home_goals_for = 0
         self.home_goals_against = 0
@@ -231,6 +233,7 @@ class TeamStatEntity(PulseliveEntity):
         self.home_points = 0
 
         # Reset away statistics
+        self.away_fixture_associations = []
         self.away_cumulative_points = []
         self.away_goals_for = 0
         self.away_goals_against = 0
@@ -240,6 +243,36 @@ class TeamStatEntity(PulseliveEntity):
         self.away_matches_drawn = 0
         self.away_matches_lost = 0
         self.away_points = 0
+
+        # Reset advanced stats
+        self.overall_stat_attack_corners = 0
+        self.overall_stat_attack_crosses = 0
+        self.overall_stat_attack_crosses_successful = 0
+        self.overall_stat_attack_expected_goals = 0.0
+        self.overall_stat_attack_long_balls = 0
+        self.overall_stat_attack_long_balls_successful = 0
+        self.overall_stat_attack_passes = 0
+        self.overall_stat_attack_passes_successful = 0
+        self.overall_stat_attack_shots_on_target = 0
+        self.overall_stat_attack_touches_in_opposition_box = 0
+        self.overall_stat_average_possession = 0.0
+        self.overall_stat_defense_blocks = 0
+        self.overall_stat_defense_clearances = 0
+        self.overall_stat_defense_duels_aerial_total = 0
+        self.overall_stat_defense_duels_aerial_won = 0
+        self.overall_stat_defense_duels_ground_total = 0
+        self.overall_stat_defense_duels_ground_won = 0
+        self.overall_stat_defense_duels_total = 0
+        self.overall_stat_defense_duels_won = 0
+        self.overall_stat_defense_interceptions = 0
+        self.overall_stat_defense_saves = 0
+        self.overall_stat_defense_saves_penalty = 0
+        self.overall_stat_defense_tackles = 0
+        self.overall_stat_defense_tackles_successful = 0
+        self.overall_stat_discipline_fouls = 0
+        self.overall_stat_discipline_red_cards = 0
+        self.overall_stat_discipline_red_cards_direct = 0
+        self.overall_stat_discipline_yellow_cards = 0
 
     def update_increment(
         self,

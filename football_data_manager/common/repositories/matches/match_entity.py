@@ -30,27 +30,22 @@ class MatchEntity(PulseliveEntity):
 
     :ivar attendance: Number of spectators at the match
     :ivar away_team_captain_id: Foreign key to the away team captain
-    :ivar away_team_card_associations: List of cards issued to away team players
     :ivar away_team_formation: Away team formation as array of integers
-    :ivar away_team_goal_associations: List of goals scored by away team
     :ivar away_team_half_time_score: Away team score at half-time
-    :ivar away_team_lineup_associations: Away team starting lineup
     :ivar away_team_manager: Foreign key to the away team manager
     :ivar away_team_score: Final score of the away team
-    :ivar away_team_substitute_associations: Away team substitute players
-    :ivar away_team_substitution_associations: Away team substitutions made
+    :ivar card_associations: List of cards issued to both team players with is_home flag
     :ivar clock: Total match time in minutes
     :ivar fixture_id: Foreign key to the associated fixture
+    :ivar goal_associations: List of goals scored by both team players with is_home flag
     :ivar home_team_captain_id: Foreign key to the home team captain
-    :ivar home_team_card_associations: List of cards issued to home team players
     :ivar home_team_formation: Home team formation as array of integers
-    :ivar home_team_goal_associations: List of goals scored by home team
     :ivar home_team_half_time_score: Home team score at half-time
-    :ivar home_team_lineup_associations: Home team starting lineup
+    :ivar lineup_associations: List of players in starting lineup with is_home flag
     :ivar home_team_manager: Foreign key to the home team manager
     :ivar home_team_score: Final score of the home team
-    :ivar home_team_substitute_associations: Home team substitute players
-    :ivar home_team_substitution_associations: Home team substitutions made
+    :ivar substitute_associations: List of substitute players with is_home flag
+    :ivar substitution_associations: List of substitutions made with is_home flag
     :ivar official_main_referee_id: Foreign key to the main referee
     :ivar official_assistant_1_referee_id: Foreign key to first assistant referee
     :ivar official_assistant_2_referee_id: Foreign key to second assistant referee
@@ -226,16 +221,11 @@ class MatchEntity(PulseliveEntity):
         )
 
         # Associations
-        self.away_team_card_associations = []
-        self.away_team_goal_associations = []
-        self.away_team_lineup_associations = []
-        self.away_team_substitute_associations = []
-        self.away_team_substitution_associations = []
-        self.home_team_card_associations = []
-        self.home_team_goal_associations = []
-        self.home_team_lineup_associations = []
-        self.home_team_substitute_associations = []
-        self.home_team_substitution_associations = []
+        self.card_associations = []
+        self.goal_associations = []
+        self.lineup_associations = []
+        self.substitute_associations = []
+        self.substitution_associations = []
 
     @property
     def is_home_won(self) -> bool | None:

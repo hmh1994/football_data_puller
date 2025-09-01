@@ -7,38 +7,23 @@ from football_data_manager.common.repositories.base_repository import BaseReposi
 from football_data_manager.common.repositories.fixtures.fixture_entity import (
     FixtureEntity,
 )
-from football_data_manager.common.repositories.matches.match_away_team_card_association import (
-    MatchAwayTeamCardAssociation,
-)
-from football_data_manager.common.repositories.matches.match_away_team_goal_association import (
-    MatchAwayTeamGoalAssociation,
-)
-from football_data_manager.common.repositories.matches.match_away_team_lineup_association import (
-    MatchAwayTeamLineupAssociation,
-)
-from football_data_manager.common.repositories.matches.match_away_team_substitute_association import (
-    MatchAwayTeamSubstituteAssociation,
-)
-from football_data_manager.common.repositories.matches.match_away_team_substitution_association import (
-    MatchAwayTeamSubstitutionAssociation,
+from football_data_manager.common.repositories.matches.match_card_association import (
+    MatchCardAssociation,
 )
 from football_data_manager.common.repositories.matches.match_entity import (
     MatchEntity,
 )
-from football_data_manager.common.repositories.matches.match_home_team_card_association import (
-    MatchHomeTeamCardAssociation,
+from football_data_manager.common.repositories.matches.match_goal_association import (
+    MatchGoalAssociation,
 )
-from football_data_manager.common.repositories.matches.match_home_team_goal_association import (
-    MatchHomeTeamGoalAssociation,
+from football_data_manager.common.repositories.matches.match_lineup_association import (
+    MatchLineupAssociation,
 )
-from football_data_manager.common.repositories.matches.match_home_team_lineup_association import (
-    MatchHomeTeamLineupAssociation,
+from football_data_manager.common.repositories.matches.match_substitute_association import (
+    MatchSubstituteAssociation,
 )
-from football_data_manager.common.repositories.matches.match_home_team_substitute_association import (
-    MatchHomeTeamSubstituteAssociation,
-)
-from football_data_manager.common.repositories.matches.match_home_team_substitution_association import (
-    MatchHomeTeamSubstitutionAssociation,
+from football_data_manager.common.repositories.matches.match_substitution_association import (
+    MatchSubstitutionAssociation,
 )
 from football_data_manager.common.repositories.players.player_entity import (
     PlayerEntity,
@@ -76,16 +61,11 @@ class MatchRepository(PulseliveRepository[MatchEntity]):
         return await self._load_lazy_fields(
             match,
             [
-                MatchAwayTeamCardAssociation.CARD_INFO_COLLECTION_NAME,
-                MatchAwayTeamGoalAssociation.GOAL_INFO_COLLECTION_NAME,
-                MatchAwayTeamLineupAssociation.POSITION_COLLECTION_NAME,
-                MatchAwayTeamSubstituteAssociation.PLAYER_INFO_COLLECTION_NAME,
-                MatchAwayTeamSubstitutionAssociation.SUBSTITUTION_COLLECTION_NAME,
-                MatchHomeTeamCardAssociation.CARD_INFO_COLLECTION_NAME,
-                MatchHomeTeamGoalAssociation.GOAL_INFO_COLLECTION_NAME,
-                MatchHomeTeamLineupAssociation.POSITION_COLLECTION_NAME,
-                MatchHomeTeamSubstituteAssociation.PLAYER_INFO_COLLECTION_NAME,
-                MatchHomeTeamSubstitutionAssociation.SUBSTITUTION_COLLECTION_NAME,
+                MatchCardAssociation.CARD_INFO_COLLECTION_NAME,
+                MatchGoalAssociation.GOAL_INFO_COLLECTION_NAME,
+                MatchLineupAssociation.POSITION_COLLECTION_NAME,
+                MatchSubstituteAssociation.PLAYER_INFO_COLLECTION_NAME,
+                MatchSubstitutionAssociation.SUBSTITUTION_COLLECTION_NAME,
             ],
         )
 
@@ -149,28 +129,22 @@ class MatchRepository(PulseliveRepository[MatchEntity]):
         clock: int,
     ) -> MatchEntity:
         merged_match = await self.load_items(match)
-        target_list = (
-            merged_match.home_team_card_associations
-            if is_home
-            else merged_match.away_team_card_associations
-        )
+        target_list = merged_match.card_associations
 
         # Check for duplicate using more efficient set comparison
-        existing_cards = {(c.player_id, c.card_type, c.clock) for c in target_list}
-        card_key = (player.id, card_type, clock)
+        existing_cards = {
+            (c.player_id, c.card_type, c.clock, c.is_home) for c in target_list
+        }
+        card_key = (player.id, card_type, clock, is_home)
 
         if card_key not in existing_cards:
-            params = {
-                "match": merged_match,
-                "player": player,
-                "index": index,
-                "card_type": card_type,
-                "clock": clock,
-            }
-            card_association = (
-                MatchHomeTeamCardAssociation(**params)
-                if is_home
-                else MatchAwayTeamCardAssociation(**params)
+            card_association = MatchCardAssociation(
+                match=merged_match,
+                player=player,
+                index=index,
+                card_type=card_type,
+                clock=clock,
+                is_home=is_home,
             )
             target_list.append(card_association)
         target_list.sort(key=lambda c: c.clock)
@@ -203,30 +177,22 @@ class MatchRepository(PulseliveRepository[MatchEntity]):
             The updated match entity with the goal added
         """
         merged_match = await self.load_items(match)
-        target_list = (
-            merged_match.home_team_goal_associations
-            if is_home
-            else merged_match.away_team_goal_associations
-        )
+        target_list = merged_match.goal_associations
 
         # Check for duplicate using more efficient set comparison
-        existing_goals = {(g.player_id, g.clock) for g in target_list}
-        goal_key = (player.id, clock)
+        existing_goals = {(g.player_id, g.clock, g.is_home) for g in target_list}
+        goal_key = (player.id, clock, is_home)
 
         if goal_key not in existing_goals:
-            params = {
-                "match": merged_match,
-                "player": player,
-                "assist_player": assist_player,
-                "index": index,
-                "clock": clock,
-                "is_penalty": is_penalty,
-                "is_own_goal": is_own_goal,
-            }
-            goal_association = (
-                MatchHomeTeamGoalAssociation(**params)
-                if is_home
-                else MatchAwayTeamGoalAssociation(**params)
+            goal_association = MatchGoalAssociation(
+                match=merged_match,
+                player=player,
+                assist_player=assist_player,
+                index=index,
+                clock=clock,
+                is_penalty=is_penalty,
+                is_own_goal=is_own_goal,
+                is_home=is_home,
             )
             target_list.append(goal_association)
         target_list.sort(key=lambda g: g.clock)
@@ -257,31 +223,23 @@ class MatchRepository(PulseliveRepository[MatchEntity]):
             The updated match entity with the lineup player added
         """
         merged_match = await self.load_items(match)
-        target_list = (
-            merged_match.home_team_lineup_associations
-            if is_home
-            else merged_match.away_team_lineup_associations
-        )
+        target_list = merged_match.lineup_associations
 
         # Check for duplicate using more efficient set comparison
-        existing_players = {l.player_id for l in target_list}
+        existing_players = {(l.player_id, l.is_home) for l in target_list}
 
-        if player.id not in existing_players:
-            params = {
-                "match": merged_match,
-                "player": player,
-                "position": position,
-                "shirt_number": shirt_number,
-                "row": row,
-                "column": column,
-            }
-            lineup_association = (
-                MatchHomeTeamLineupAssociation(**params)
-                if is_home
-                else MatchAwayTeamLineupAssociation(**params)
+        if (player.id, is_home) not in existing_players:
+            lineup_association = MatchLineupAssociation(
+                match=merged_match,
+                player=player,
+                position=position,
+                shirt_number=shirt_number,
+                row=row,
+                column=column,
+                is_home=is_home,
             )
             target_list.append(lineup_association)
-        target_list.sort(key=lambda l: (l.row, l.column))
+        target_list.sort(key=lambda l: (l.is_home, l.row, l.column))
         return merged_match
 
     async def append_substitute(
@@ -305,29 +263,21 @@ class MatchRepository(PulseliveRepository[MatchEntity]):
             The updated match entity with the substitute added
         """
         merged_match = await self.load_items(match)
-        target_list = (
-            merged_match.home_team_substitute_associations
-            if is_home
-            else merged_match.away_team_substitute_associations
-        )
+        target_list = merged_match.substitute_associations
 
         # Check for duplicate using more efficient set comparison
-        existing_players = {s.player_id for s in target_list}
+        existing_players = {(s.player_id, s.is_home) for s in target_list}
 
-        if player.id not in existing_players:
-            params = {
-                "match": merged_match,
-                "player": player,
-                "position": position,
-                "shirt_number": shirt_number,
-            }
-            substitute_association = (
-                MatchHomeTeamSubstituteAssociation(**params)
-                if is_home
-                else MatchAwayTeamSubstituteAssociation(**params)
+        if (player.id, is_home) not in existing_players:
+            substitute_association = MatchSubstituteAssociation(
+                match=merged_match,
+                player=player,
+                position=position,
+                shirt_number=shirt_number,
+                is_home=is_home,
             )
             target_list.append(substitute_association)
-        target_list.sort(key=lambda s: s.shirt_number)
+        target_list.sort(key=lambda s: (s.is_home, s.shirt_number))
         return merged_match
 
     async def append_substitution(
@@ -352,30 +302,22 @@ class MatchRepository(PulseliveRepository[MatchEntity]):
             The updated match entity with the substitution added
         """
         merged_match = await self.load_items(match)
-        target_list = (
-            merged_match.home_team_substitution_associations
-            if is_home
-            else merged_match.away_team_substitution_associations
-        )
+        target_list = merged_match.substitution_associations
 
         # Check for duplicate using more efficient set comparison
         existing_substitutions = {
-            (s.in_player_id, s.out_player_id) for s in target_list
+            (s.in_player_id, s.out_player_id, s.is_home) for s in target_list
         }
-        substitution_key = (in_player.id, out_player.id)
+        substitution_key = (in_player.id, out_player.id, is_home)
 
         if substitution_key not in existing_substitutions:
-            params = {
-                "match": merged_match,
-                "in_player": in_player,
-                "out_player": out_player,
-                "clock": clock,
-            }
-            substitution_association = (
-                MatchHomeTeamSubstitutionAssociation(**params)
-                if is_home
-                else MatchAwayTeamSubstitutionAssociation(**params)
+            substitution_association = MatchSubstitutionAssociation(
+                match=merged_match,
+                in_player=in_player,
+                out_player=out_player,
+                clock=clock,
+                is_home=is_home,
             )
             target_list.append(substitution_association)
-        target_list.sort(key=lambda s: s.clock)
+        target_list.sort(key=lambda s: (s.is_home, s.clock))
         return merged_match

@@ -82,5 +82,7 @@ class CommonRepositoryContainer(DeclarativeContainer):
     player_repository = Singleton(PlayerRepository, db_service=db_service)
     season_repository = Singleton(SeasonRepository, db_service=db_service)
     staff_repository = Singleton(StaffRepository, db_service=db_service)
-    team_stat_repository = Singleton(TeamStatRepository, db_service=db_service)
+    team_stat_repository = Singleton(
+        TeamStatRepository, db_service=db_service, match_repository=match_repository
+    )
     team_repository = Singleton(TeamRepository, db_service=db_service)

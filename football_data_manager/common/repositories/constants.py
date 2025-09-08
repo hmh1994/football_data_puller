@@ -13,29 +13,11 @@ STAFFS_TABLE_NAME = "staffs"
 TEAM_STATS_TABLE_NAME = "team_stats"
 TEAMS_TABLE_NAME = "teams"
 
-MATCH_AWAY_TEAM_CARD_ASSOCIATION_TABLE_NAME = "match_away_team_card_association"
 MATCH_CARD_ASSOCIATION_TABLE_NAME = "match_card_association"
-MATCH_AWAY_TEAM_GOAL_ASSOCIATION_TABLE_NAME = "match_away_team_goal_association"
 MATCH_GOAL_ASSOCIATION_TABLE_NAME = "match_goal_association"
-MATCH_AWAY_TEAM_LINEUP_ASSOCIATION_TABLE_NAME = "match_away_team_lineup_association"
 MATCH_LINEUP_ASSOCIATION_TABLE_NAME = "match_lineup_association"
-MATCH_AWAY_TEAM_SUBSTITUTE_ASSOCIATION_TABLE_NAME = (
-    "match_away_team_substitute_association"
-)
 MATCH_SUBSTITUTE_ASSOCIATION_TABLE_NAME = "match_substitute_association"
-MATCH_AWAY_TEAM_SUBSTITUTION_ASSOCIATION_TABLE_NAME = (
-    "match_away_team_substitution_association"
-)
 MATCH_SUBSTITUTION_ASSOCIATION_TABLE_NAME = "match_substitution_association"
-MATCH_HOME_TEAM_CARD_ASSOCIATION_TABLE_NAME = "match_home_team_card_association"
-MATCH_HOME_TEAM_GOAL_ASSOCIATION_TABLE_NAME = "match_home_team_goal_association"
-MATCH_HOME_TEAM_LINEUP_ASSOCIATION_TABLE_NAME = "match_home_team_lineup_association"
-MATCH_HOME_TEAM_SUBSTITUTE_ASSOCIATION_TABLE_NAME = (
-    "match_home_team_substitute_association"
-)
-MATCH_HOME_TEAM_SUBSTITUTION_ASSOCIATION_TABLE_NAME = (
-    "match_home_team_substitution_association"
-)
 NEWS_TEAM_ASSOCIATION_TABLE_NAME = "news_team_association"
 PLAYER_STAT_AWARD_ASSOCIATION_TABLE_NAME = "player_stat_award_association"
 PLAYER_CHAMPIONSHIP_ASSOCIATION_TABLE_NAME = "player_championship_association"

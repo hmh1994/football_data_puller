@@ -73,9 +73,9 @@ class TheAthleticPullerService:
                 for abbr in self.target_competition_abbr
             ]
         )
-        newses = [n for sublist in news_list for n in sublist]
-        print(f"News entities count: {len(newses)}")
-        await self.__news_repository.create_all(newses)
+        news = [n for sublist in news_list for n in sublist]
+        print(f"News entities count: {len(news)}")
+        await self.__news_repository.create_all(news)
 
     async def __pull_league_news_list(self, league_abbr: str) -> list[NewsEntity]:
         """

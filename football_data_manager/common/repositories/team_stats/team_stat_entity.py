@@ -29,7 +29,6 @@ class TeamStatEntity(PulseliveEntity):
 
     :ivar id: Unique identifier for the team stat
     :ivar away_cumulative_points: Cumulative points progression in away matches
-    :ivar away_fixture_associations: List of away fixture associations
     :ivar away_goals_against: Goals conceded in away matches
     :ivar away_goals_for: Goals scored in away matches
     :ivar away_goals_difference: Goal difference in away matches
@@ -41,7 +40,6 @@ class TeamStatEntity(PulseliveEntity):
     :ivar away_position: Away standings position
     :ivar ground_id: Foreign key to home ground entity
     :ivar home_cumulative_points: Cumulative points progression in home matches
-    :ivar home_fixture_associations: List of home fixture associations
     :ivar home_goals_against: Goals conceded in home matches
     :ivar home_goals_for: Goals scored in home matches
     :ivar home_goals_difference: Goal difference in home matches
@@ -52,8 +50,8 @@ class TeamStatEntity(PulseliveEntity):
     :ivar home_points: Total points from home matches
     :ivar home_position: Home standings position
     :ivar manager_id: Foreign key to team manager entity (optional)
+    :ivar match_associations: List of all match associations
     :ivar overall_cumulative_points: Cumulative points progression in all matches
-    :ivar overall_fixture_associations: List of all fixture associations
     :ivar overall_matches: Total matches played
     :ivar overall_matches_drawn: Total matches drawn
     :ivar overall_matches_lost: Total matches lost
@@ -164,10 +162,8 @@ class TeamStatEntity(PulseliveEntity):
         :param team: Team entity associated with the statistics
         """
         super().__init__(source_id=self.get_source_id(season, team))
-        self.away_fixture_associations = []
         self.ground_id = ground.id
-        self.home_fixture_associations = []
-        self.overall_fixture_associations = []
+        self.match_associations = []
         self.season_id = season.id
         self.team_id = team.id
         self.reset_statistics()
@@ -208,8 +204,9 @@ class TeamStatEntity(PulseliveEntity):
         Resets goals, points, matches played, and win/draw/loss counts for
         overall, home, and away statistics. Preserves fixture associations.
         """
+        self.match_associations = []
+
         # Reset overall statistics
-        self.overall_fixture_associations = []
         self.overall_cumulative_points = []
         self.overall_goals_for = 0
         self.overall_goals_against = 0
@@ -221,7 +218,6 @@ class TeamStatEntity(PulseliveEntity):
         self.overall_points = 0
 
         # Reset home statistics
-        self.home_fixture_associations = []
         self.home_cumulative_points = []
         self.home_goals_for = 0
         self.home_goals_against = 0
@@ -233,7 +229,6 @@ class TeamStatEntity(PulseliveEntity):
         self.home_points = 0
 
         # Reset away statistics
-        self.away_fixture_associations = []
         self.away_cumulative_points = []
         self.away_goals_for = 0
         self.away_goals_against = 0
@@ -274,42 +269,118 @@ class TeamStatEntity(PulseliveEntity):
         self.overall_stat_discipline_red_cards_direct = 0
         self.overall_stat_discipline_yellow_cards = 0
 
-    def update_increment(
+    def update_match_result(
         self,
         is_home: bool,
-        team_score_increment: int,
-        opponent_score_increment: int,
-        points_earned_increment: int,
+        team_score: int,
+        opponent_score: int,
     ):
         """
         Process a new match completely with all statistics.
 
         :param is_home: Whether the team is playing at home
-        :param team_score_increment: Goals scored by the team
-        :param opponent_score_increment: Goals scored by the opponent
-        :param points_earned_increment: Points earned from the match
+        :param team_score: Goals scored by the team
+        :param opponent_score: Goals scored by the opponent
         :returns: The updated team stat entity
         """
         # Calculate match statistics
-        goal_difference = team_score_increment - opponent_score_increment
+        goal_difference = team_score - opponent_score
+        points_earned = 3 if goal_difference > 0 else 1 if goal_difference == 0 else 0
 
         # Update overall statistics
-        self.overall_goals_for += team_score_increment
-        self.overall_goals_against += opponent_score_increment
+        self.overall_goals_for += team_score
+        self.overall_goals_against += opponent_score
         self.overall_goals_difference += goal_difference
-        self.overall_points += points_earned_increment
+        self.overall_points += points_earned
+        self.overall_matches += 1
+        self.overall_matches_won += points_earned == 3
+        self.overall_matches_drawn += points_earned == 1
+        self.overall_matches_lost += points_earned == 0
+        self.append_overall_point(points_earned)
 
         # Update home/away specific statistics
         if is_home:
-            self.home_goals_for += team_score_increment
-            self.home_goals_against += opponent_score_increment
+            self.home_goals_for += team_score
+            self.home_goals_against += opponent_score
             self.home_goals_difference += goal_difference
-            self.home_points += points_earned_increment
+            self.home_points += points_earned
+            self.home_matches += 1
+            self.home_matches_won += points_earned == 3
+            self.home_matches_drawn += points_earned == 1
+            self.home_matches_lost += points_earned == 0
+            self.append_home_point(points_earned)
         else:
-            self.away_goals_for += team_score_increment
-            self.away_goals_against += opponent_score_increment
+            self.away_goals_for += team_score
+            self.away_goals_against += opponent_score
             self.away_goals_difference += goal_difference
-            self.away_points += points_earned_increment
+            self.away_points += points_earned
+            self.away_matches += 1
+            self.away_matches_won += points_earned == 3
+            self.away_matches_drawn += points_earned == 1
+            self.away_matches_lost += points_earned == 0
+            self.append_away_point(points_earned)
+
+    def update_stats(
+        self,
+        attack_corners: int,
+        attack_crosses: int,
+        attack_crosses_successful: int,
+        attack_expected_goals: float,
+        attack_long_balls: int,
+        attack_long_balls_successful: int,
+        attack_passes: int,
+        attack_passes_successful: int,
+        attack_shots_on_target: int,
+        attack_touches_in_opposition_box: int,
+        average_possession: float,
+        defense_blocks: int,
+        defense_clearances: int,
+        defense_duels_aerial_total: int,
+        defense_duels_aerial_won: int,
+        defense_duels_ground_total: int,
+        defense_duels_ground_won: int,
+        defense_duels_total: int,
+        defense_duels_won: int,
+        defense_interceptions: int,
+        defense_saves: int,
+        defense_saves_penalty: int,
+        defense_tackles: int,
+        defense_tackles_successful: int,
+        discipline_fouls: int,
+        discipline_red_cards: int,
+        discipline_red_cards_direct: int,
+        discipline_yellow_cards: int,
+    ):
+        self.overall_stat_attack_corners = attack_corners
+        self.overall_stat_attack_crosses = attack_crosses
+        self.overall_stat_attack_crosses_successful = attack_crosses_successful
+        self.overall_stat_attack_expected_goals = attack_expected_goals
+        self.overall_stat_attack_long_balls = attack_long_balls
+        self.overall_stat_attack_long_balls_successful = attack_long_balls_successful
+        self.overall_stat_attack_passes = attack_passes
+        self.overall_stat_attack_passes_successful = attack_passes_successful
+        self.overall_stat_attack_shots_on_target = attack_shots_on_target
+        self.overall_stat_attack_touches_in_opposition_box = (
+            attack_touches_in_opposition_box
+        )
+        self.overall_stat_average_possession = average_possession
+        self.overall_stat_defense_blocks = defense_blocks
+        self.overall_stat_defense_clearances = defense_clearances
+        self.overall_stat_defense_duels_aerial_total = defense_duels_aerial_total
+        self.overall_stat_defense_duels_aerial_won = defense_duels_aerial_won
+        self.overall_stat_defense_duels_ground_total = defense_duels_ground_total
+        self.overall_stat_defense_duels_ground_won = defense_duels_ground_won
+        self.overall_stat_defense_duels_total = defense_duels_total
+        self.overall_stat_defense_duels_won = defense_duels_won
+        self.overall_stat_defense_interceptions = defense_interceptions
+        self.overall_stat_defense_saves = defense_saves
+        self.overall_stat_defense_saves_penalty = defense_saves_penalty
+        self.overall_stat_defense_tackles = defense_tackles
+        self.overall_stat_defense_tackles_successful = defense_tackles_successful
+        self.overall_stat_discipline_fouls = discipline_fouls
+        self.overall_stat_discipline_red_cards = discipline_red_cards
+        self.overall_stat_discipline_red_cards_direct = discipline_red_cards_direct
+        self.overall_stat_discipline_yellow_cards = discipline_yellow_cards
 
     def append_overall_point(self, point: int):
         """

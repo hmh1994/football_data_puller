@@ -28,7 +28,7 @@ class NewsRepository(BaseRepository[NewsEntity]):
         Load teams for the given news entity.
 
         Uses lazy loading to fetch the teams associated with the news entity
-        through the teams_associations relationship.
+        through the team_associations relationship.
 
         :param news: The news entity to load teams for
         :returns: The news entity with teams loaded
@@ -52,10 +52,10 @@ class NewsRepository(BaseRepository[NewsEntity]):
         """
         merged_news = await self.load_teams(news)
         existing_team_ids = [
-            association.team_id for association in merged_news.teams_associations
+            association.team_id for association in merged_news.team_associations
         ]
         for team in teams:
             if team.id not in existing_team_ids:
                 association = NewsTeamAssociation(news=merged_news, team=team)
-                merged_news.teams_associations.append(association)
+                merged_news.team_associations.append(association)
         return merged_news

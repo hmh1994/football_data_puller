@@ -26,11 +26,6 @@ class NewsTeamAssociation(Base):
 
     TEAM_COLLECTION_NAME = "team_associations"
 
-    team_id = Column(
-        String,
-        ForeignKey(TeamEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
-        primary_key=True,
-    )
     news_id = Column(
         String,
         ForeignKey(NewsEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
@@ -43,6 +38,11 @@ class NewsTeamAssociation(Base):
             lazy="noload",
             cascade="all, delete-orphan",
         ),
+    )
+    team_id = Column(
+        String,
+        ForeignKey(TeamEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
+        primary_key=True,
     )
 
     def __init__(self, news: NewsEntity, team: TeamEntity):

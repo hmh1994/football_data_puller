@@ -245,6 +245,7 @@ async def create_team_stats(
     team_repository = repository_container.team_repository()
     team_stat_puller = PulseliveNewTeamStatsPuller(repository_container, webclient)
     team_stat_repository = repository_container.team_stat_repository()
+    ground_repository = repository_container.ground_repository()
     match_repository = repository_container.match_repository()
     team_stats = []
     for season in seasons:
@@ -256,19 +257,16 @@ async def create_team_stats(
         )
         for team in teams.data:
             team_entity = await team_repository.read_by_pulselive_id(str(team.id))
+            ground_entity = await ground_repository.read_by_name_en(team.stadium.name)
             team_stat = await team_stat_puller.pull_team_stats(
-                team_entity, competition, season
+                team_entity, competition, season, ground_entity
             )
             if team_stat:
                 season_team_stats.append(team_stat)
         if season_team_stats:
             for team_stat in season_team_stats:
-                team_entity = await team_repository.read_by_id(team_stat.team_id)
-                matches = await match_repository.read_by_team_on_season(
-                    season, team_entity
-                )
                 team_stat = await team_stat_repository.update_position(
-                    team_stat, season_team_stats, matches
+                    team_stat, season_team_stats
                 )
                 await team_stat_repository.update(team_stat)
                 team_stats.append(team_stat)
@@ -310,7 +308,7 @@ async def runrun():
     #     repository_container,
     #     webclient_service,
     # )
-    # await update_news(config_service, db_service)
+    # await create_news(config_service, db_service)
 
 
 run(runrun())

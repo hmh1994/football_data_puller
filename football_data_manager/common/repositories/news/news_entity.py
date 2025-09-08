@@ -20,7 +20,7 @@ class NewsEntity(BaseEntity):
     :ivar author_kr: List of authors in Korean
     :ivar content_en: News content in English
     :ivar content_kr: News content in Korean
-    :ivar teams_associations: List of teams mentioned in the news
+    :ivar team_associations: List of teams mentioned in the news
     :ivar publish_date: Date and time when the news was published
     :ivar url: URL of the news article
     :ivar source: Source of the news article
@@ -82,7 +82,7 @@ class NewsEntity(BaseEntity):
         self.author_kr = author_kr
         self.content_en = content_en
         self.content_kr = content_kr
-        self.teams_associations = []
+        self.team_associations = []
         self.publish_date = publish_date
         self.url = url
         self.thumbnail_url = thumbnail_url

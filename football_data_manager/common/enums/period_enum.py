@@ -7,8 +7,10 @@ class PeriodEnum(StrEnum):
     Enum for the period of football match.
     """
 
+    FIRSTHALF = "firsthalf"
     FULLTIME = "fulltime"
     PREMATCH = "prematch"
+    SECONDHALF = "secondhalf"
     UNKNOWN = "unknown"
 
     @classmethod

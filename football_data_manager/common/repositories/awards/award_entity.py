@@ -1,5 +1,3 @@
-from hashlib import md5
-
 from sqlalchemy import Column, String
 
 from football_data_manager.common.repositories.constants import AWARDS_TABLE_NAME
@@ -39,6 +37,7 @@ class AwardEntity(PulseliveEntity):
         self,
         name_en: str,
         name_kr: str,
+        source_id: str,
         description_en: str | None = None,
         description_kr: str | None = None,
         icon_url: str | None = None,
@@ -52,24 +51,9 @@ class AwardEntity(PulseliveEntity):
         :param description_kr: Award type description in Korean (optional)
         :param icon_url: URL of the award type icon (optional)
         """
-        super().__init__(source_id=self.get_source_id(name_en))
+        super().__init__(source_id=source_id)
         self.name_en = name_en
         self.name_kr = name_kr
         self.description_en = description_en
         self.description_kr = description_kr
         self.icon_url = icon_url
-
-    @staticmethod
-    def get_source_id(name_en: str) -> str:
-        """
-        Generate a unique source ID for the award entity.
-
-        Creates a hash-based source ID from the English award name to ensure
-        uniqueness while maintaining deterministic ID generation.
-
-        :param name_en: Name of the award in English
-        :returns: Unique source ID as a string
-        """
-        normal_name = name_en.replace(" ", "_").upper().encode("utf-8")
-        hashed_name = md5(normal_name).hexdigest()
-        return str(int(hashed_name, 16) % 2**16)

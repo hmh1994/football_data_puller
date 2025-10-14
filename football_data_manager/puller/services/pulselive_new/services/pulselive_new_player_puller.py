@@ -112,9 +112,6 @@ class PulseliveNewPlayerPuller:
 
         # Process players
         players = await self.__process_players(squad_response.players)
-
-        # Close resource validation client
-        await self.__resource_client.close()
         return players
 
     async def __process_players(
@@ -134,13 +131,13 @@ class PulseliveNewPlayerPuller:
 
         for item in player_items:
             # Process player
-            player = await self.__process_player(item)
+            player = await self.process_player(item)
             if player is not None:
                 players.append(player)
 
         return players
 
-    async def __process_player(
+    async def process_player(
         self, player_item: PulseliveNewPlayerDetailResponse
     ) -> PlayerEntity | None:
         """
@@ -186,6 +183,8 @@ class PulseliveNewPlayerPuller:
             print(
                 f"Unknown preferred foot '{player_item.preferred_foot}' for player '{player_item.name.simple_name}'"
             )
+        if player_item.name.simple_name.strip() == "":
+            raise ValueError(f"Empty name for player {player_item.model_dump_json()}")
 
         # Create new player entity
         player = PlayerEntity(
@@ -282,3 +281,12 @@ class PulseliveNewPlayerPuller:
             return photo_url
 
         return None
+
+    async def close(self):
+        """
+        Close the resource validation client and clean up resources.
+
+        Should be called when the player puller is no longer needed to properly
+        close HTTP connections and free resources.
+        """
+        await self.__resource_client.close()

@@ -1,4 +1,4 @@
-from pydantic import field_validator, ValidationInfo
+from pydantic import field_validator
 
 from football_data_manager.common.utils.pydantic_helper.camelcase_model import (
     CamelCaseModel,
@@ -14,7 +14,7 @@ from football_data_manager.puller.services.pulselive_new.models.responses.pulsel
 class PulseliveNewPlayerTeamResponse(CamelCaseModel):
     name: str
     id: str
-    short_name: str
+    short_name: str | None = None
 
 
 class PulseliveNewPlayerIdResponse(CamelCaseModel):
@@ -24,40 +24,27 @@ class PulseliveNewPlayerIdResponse(CamelCaseModel):
 
 
 class PulseliveNewPlayerResponse(CamelCaseModel):
-    country: PulseliveNewCountryResponse | None = None
-    current_team: PulseliveNewPlayerTeamResponse
+    """
+    Base player response from PulseLive API.
+
+    Contains basic player information including ID, name, position, and country details
+    used across different PulseLive endpoints.
+
+    :ivar id: Player ID response containing player_id
+    :ivar position: Player position (e.g., 'Goalkeeper', 'Defender', 'Midfielder', 'Forward')
+    :ivar country: Country information including ISO code and name
+    :ivar name: Person name information
+    """
+
+    country: PulseliveNewCountryResponse
+    current_team: PulseliveNewPlayerTeamResponse | None = None
     id: PulseliveNewPlayerIdResponse
     name: PulseliveNewPersonResponse
     position: str
 
     @field_validator("id", mode="before")
-    def parse_id(cls, v) -> PulseliveNewPlayerIdResponse:
-        """Parse id."""
+    def parse_id(cls, v) -> dict:
+        """Parse player ID from string to PulseliveNewPlayerIdResponse format."""
         if isinstance(v, str):
-            return PulseliveNewPlayerIdResponse(player_id=v)
+            return {"player_id": v}
         return v
-
-    @field_validator("name", mode="before")
-    def parse_name(cls, v, info: ValidationInfo) -> PulseliveNewPersonResponse:
-        """
-        Parse name fields into PulseliveNewPersonResponse object.
-
-        Combines firstName, lastName, and name from the raw data into a single
-        PulseliveNewPersonResponse object for structured name handling.
-        """
-        # If v is already a PulseliveNewPersonResponse, return it
-        if isinstance(v, PulseliveNewPersonResponse):
-            return v
-
-        # Get all field values from the validation context
-        all_values = info.data
-
-        # Extract name components from raw data
-        first_name = all_values.get("firstName", "")
-        last_name = all_values.get("lastName", "")
-        display_name = v if isinstance(v, str) else all_values.get("name")
-
-        # Create PulseliveNewPersonResponse object
-        return PulseliveNewPersonResponse(
-            first_name=first_name, last_name=last_name, display_name=display_name
-        )

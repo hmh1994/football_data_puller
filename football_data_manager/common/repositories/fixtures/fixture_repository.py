@@ -37,10 +37,10 @@ class FixtureRepository(PulseliveRepository[FixtureEntity]):
     ) -> list[FixtureEntity]:
         """
         Read fixtures for a specific team in a given season.
-        
+
         Retrieves all fixtures where the specified team is either home or away team
         within the given season, sorted by game week for chronological ordering.
-        
+
         :param session: Database session for the query
         :param season: Season entity to filter fixtures
         :param team: Team entity to filter fixtures (home or away)
@@ -53,5 +53,23 @@ class FixtureRepository(PulseliveRepository[FixtureEntity]):
                 self.model.away_team_id == team.id,
             ),
         )
+        result = await session.execute(stmt)
+        return sorted(list(result.unique().scalars().all()), key=lambda x: x.game_week)
+
+    @BaseRepository.with_db_session
+    async def read_by_season(
+        self, session: AsyncSession, season: SeasonEntity
+    ) -> list[FixtureEntity]:
+        """
+        Read all fixtures for a given season.
+
+        Retrieves all fixtures within the specified season, sorted by game week
+        for chronological ordering.
+
+        :param session: Database session for the query
+        :param season: Season entity to filter fixtures
+        :returns: List of fixture entities sorted by game week
+        """
+        stmt = select(self.model).filter(self.model.season_id == season.id)
         result = await session.execute(stmt)
         return sorted(list(result.unique().scalars().all()), key=lambda x: x.game_week)

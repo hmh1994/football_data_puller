@@ -145,9 +145,11 @@ class PulseliveNewMatchPuller:
                 f"Fixture {fixture.id} does not belong to season {season.id}"
             )
 
-        match = await self.__match_repository.read_by_pulselive_id(fixture.source_id)
-        if match is not None:
-            return match
+        prev_match = await self.__match_repository.read_by_pulselive_id(
+            fixture.source_id
+        )
+        if prev_match is not None and prev_match.period == PeriodEnum.FULLTIME:
+            return prev_match
 
         match_info = await self.__webclient.get_v2_match(fixture.source_id)
         events = await self.__webclient.get_v1_match_event(fixture.source_id)
@@ -156,7 +158,10 @@ class PulseliveNewMatchPuller:
         match = await self.__process_match(
             fixture, competition, season, match_info, events, lineup, officials
         )
-        return await self.__match_repository.create(match)
+        if prev_match:
+            return await self.__match_repository.update(prev_match.copy(match))
+        else:
+            return await self.__match_repository.create(match)
 
     async def __process_match(
         self,
@@ -293,7 +298,7 @@ class PulseliveNewMatchPuller:
         return (
             [p for p in players if not p.is_substitute],
             [p for p in players if p.is_substitute],
-            captain.player,
+            captain.player if captain else None,
         )
 
     async def __get_manager(

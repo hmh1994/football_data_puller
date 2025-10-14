@@ -1,3 +1,4 @@
+from typing import Self
 from uuid import uuid4
 
 from sqlalchemy import Column, String, DateTime, Enum
@@ -45,3 +46,11 @@ class BaseEntity(Base):
         self.source = source
         self.source_id = source_id
         self.updated_at = now
+
+    def copy(self, others: Self) -> Self:
+        others.id = self.id
+        others.created_at = self.created_at
+        others.source = self.source
+        others.source_id = self.source_id
+        others.updated_at = self.updated_at
+        return others

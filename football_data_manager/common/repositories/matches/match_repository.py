@@ -119,6 +119,31 @@ class MatchRepository(PulseliveRepository[MatchEntity]):
         result = await session.execute(stmt)
         return list(result.scalars().all())
 
+    @BaseRepository.with_db_session
+    async def read_by_season(
+        self, session: AsyncSession, season: SeasonEntity
+    ) -> list[MatchEntity]:
+        """
+        Read all matches for a given season.
+
+        Retrieves all matches within the specified season by joining with fixture entities
+        to filter by season, ordered by game week for chronological ordering.
+
+        :param session: Database session for the query
+        :param season: Season entity to filter matches
+        :returns: List of match entities for the specified season
+        """
+        # Build query to join MatchEntity with FixtureEntity and filter by season
+        stmt = (
+            select(MatchEntity)
+            .join(FixtureEntity, MatchEntity.fixture_id == FixtureEntity.id)
+            .where(FixtureEntity.season_id == season.id)
+            .order_by(FixtureEntity.game_week)
+        )
+
+        result = await session.execute(stmt)
+        return list(result.scalars().all())
+
     async def append_card(
         self,
         match: MatchEntity,

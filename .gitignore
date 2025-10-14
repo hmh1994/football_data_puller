@@ -310,3 +310,9 @@ $RECYCLE.BIN/
 ### config
 config/*
 !config/sample.env
+
+### claude
+CLAUDE.md
+.claude
+.claudedocs
+.serena

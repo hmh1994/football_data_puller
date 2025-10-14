@@ -7,6 +7,9 @@ from football_data_manager.common.services.config.models.api_config import ApiCo
 from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_list_response import (
     PulseliveNewListResponse,
 )
+from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v1_award_response import (
+    PulseliveNewV1AwardResponse,
+)
 from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v1_competition_detail_response import (
     PulseliveNewV1CompetitionDetailResponse,
 )
@@ -40,11 +43,11 @@ from football_data_manager.puller.services.pulselive_new.models.responses.pulsel
 from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v2_player_stat_response import (
     PulseliveNewV2PlayerStatsResponse,
 )
-from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v2_team_stats_response import (
-    PulseliveNewV2TeamStatsResponse,
-)
 from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v2_squad_response import (
     PulseliveNewV2SquadResponse,
+)
+from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v2_team_stats_response import (
+    PulseliveNewV2TeamStatsResponse,
 )
 from football_data_manager.puller.services.pulselive_new.models.responses.pulselive_new_v3_match_lineup_response import (
     PulseliveNewV3MatchLineupResponse,
@@ -55,6 +58,23 @@ class PulseliveNewWebclient(AbstractWebClientService):
 
     def __init__(self, config: ApiConfig):
         super().__init__(URL(config.url.unicode_string()))
+
+    async def get_v1_awards(
+        self, competition_id: str, season_id: str
+    ) -> PulseliveNewV1AwardResponse:
+        """
+        Get awards for a specific competition season.
+
+        Retrieves all awards given during the season including Manager of the Month,
+        Player of the Month, Goal of the Month, and Save of the Month awards.
+
+        :param competition_id: Competition ID
+        :param season_id: Season ID
+        :returns: Awards information including manager awards and player awards
+        """
+        path = f"v1/competitions/{competition_id}/seasons/{season_id}/awards"
+        response = await self.get(path=URL(path))
+        return PulseliveNewV1AwardResponse.model_validate(response)
 
     async def get_v1_competitions(
         self, limit: int = 10, _next: str | None = None
@@ -273,7 +293,7 @@ class PulseliveNewWebclient(AbstractWebClientService):
         metrics for the specified team and season.
 
         :param competition_id: Competition ID
-        :param season_id: Season ID  
+        :param season_id: Season ID
         :param team_id: Team ID to fetch statistics for
         :returns: Team statistics for the specified season
         """

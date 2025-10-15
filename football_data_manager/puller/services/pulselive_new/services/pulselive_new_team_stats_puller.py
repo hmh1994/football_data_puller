@@ -191,6 +191,11 @@ class PulseliveNewTeamStatsPuller:
                 )
             ),
             attack_crosses_successful=successful_crosses,
+            attack_expected_assists=(
+                float(stats.expected_assists)
+                if stats.expected_assists is not None
+                else 0.0
+            ),
             attack_expected_goals=(
                 float(stats.expected_goals) if stats.expected_goals is not None else 0.0
             ),
@@ -219,6 +224,9 @@ class PulseliveNewTeamStatsPuller:
                 if stats.shots_on_target_incl_goals is not None
                 else 0
             ),
+            attack_total_shots=(
+                int(stats.total_shots) if stats.total_shots is not None else 0
+            ),
             attack_touches_in_opposition_box=(
                 int(stats.touches_in_opp_box)
                 if stats.touches_in_opp_box is not None
@@ -231,6 +239,9 @@ class PulseliveNewTeamStatsPuller:
             ),
             defense_blocks=(
                 int(stats.blocked_shots) if stats.blocked_shots is not None else 0
+            ),
+            defense_clean_sheets=(
+                int(stats.clean_sheets) if stats.clean_sheets is not None else 0
             ),
             defense_clearances=(
                 int(stats.total_clearances) if stats.total_clearances is not None else 0

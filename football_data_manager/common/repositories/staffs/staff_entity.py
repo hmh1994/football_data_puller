@@ -49,3 +49,4 @@ class StaffEntity(PulseliveEntity):
         self.display_name_en = display_name_en
         self.display_name_kr = display_name_kr
         self.full_name = full_name
+        self.award_associations = []

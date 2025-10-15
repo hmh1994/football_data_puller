@@ -41,7 +41,7 @@ class PulseliveNewMatchStatPuller:
         self.__team_repository = repository_container.team_repository()
         self.__webclient = pulselive_service
 
-    async def pull_match_stat(self, match: MatchEntity) -> MatchStatEntity:
+    async def pull_match_stat(self, match: MatchEntity) -> list[MatchStatEntity]:
         match_stat = await self.__webclient.get_v1_match_stat(match.source_id)
         home_match_stat, away_match_stat = await self.__process_match_stat(
             match, match_stat

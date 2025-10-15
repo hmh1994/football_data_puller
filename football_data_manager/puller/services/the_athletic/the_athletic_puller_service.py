@@ -97,6 +97,9 @@ class TheAthleticPullerService:
         article = await self.__pull_news_body(content)
         if article is None:
             return None
+        if article.articleBody is None:
+            print(f"Skipping news (no articleBody): [{content.consumable_id}] {article.headline}")
+            return None
         print(f"News entity pulled: [{content.consumable_id}] {article.headline}")
         translate_response = await self.__translate_article(article)
         if translate_response is None:

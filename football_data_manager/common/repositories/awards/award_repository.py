@@ -10,7 +10,7 @@ from football_data_manager.common.services.db.db_service import DbService
 class AwardRepository(PulseliveRepository[AwardEntity]):
     """
     Repository for managing award entities.
-    
+
     Provides specialized functionality for handling football awards and achievements
     with multilingual support. Extends PulseliveRepository to inherit source-specific operations.
     """
@@ -18,7 +18,7 @@ class AwardRepository(PulseliveRepository[AwardEntity]):
     def __init__(self, db_service: DbService):
         """
         Initialize the award repository.
-        
+
         :param db_service: Database service for database operations
         """
         super().__init__(db_service, AwardEntity)
@@ -26,7 +26,7 @@ class AwardRepository(PulseliveRepository[AwardEntity]):
     async def get_award_name_kr(self, name_en: str) -> str | None:
         """
         Get the Korean name of an award by its English name.
-        
+
         :param name_en: The English name of the award
         :returns: The Korean name of the award, or None if not found
         """
@@ -36,7 +36,7 @@ class AwardRepository(PulseliveRepository[AwardEntity]):
     async def get_award_description(self, name_en: str) -> tuple[str, str] | None:
         """
         Get the descriptions of an award by its English name.
-        
+
         :param name_en: The English name of the award
         :returns: A tuple containing (English description, Korean description), or None if not found
         """
@@ -49,7 +49,7 @@ class AwardRepository(PulseliveRepository[AwardEntity]):
     async def get_icon_url(self, name_en: str) -> str | None:
         """
         Get the icon URL of an award by its English name.
-        
+
         :param name_en: The English name of the award
         :returns: The icon URL of the award, or None if not found
         """

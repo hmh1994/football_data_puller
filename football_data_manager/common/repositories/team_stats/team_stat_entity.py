@@ -61,6 +61,8 @@ class TeamStatEntity(PulseliveEntity):
     :ivar overall_goals_difference: Overall goal difference
     :ivar overall_points: Total points from all matches
     :ivar overall_position: Overall standings position
+    :ivar overall_stat_attack_expected_assists: Expected assists value
+    :ivar overall_stat_defense_clean_sheets: Number of clean sheets
     :ivar season_id: Foreign key to season entity
     :ivar team_id: Foreign key to team entity
     :ivar source: Source of the entity data, set to PULSELIVE
@@ -111,15 +113,18 @@ class TeamStatEntity(PulseliveEntity):
     overall_stat_attack_corners = Column(Integer, nullable=True)  # cornersTakenInclShortCorners
     overall_stat_attack_crosses = Column(Integer, nullable=True)  # successfulCrossesAndCorners + unsuccessfulCrossesAndCorners
     overall_stat_attack_crosses_successful = Column(Integer, nullable=True)  # successfulCrossesAndCorners
+    overall_stat_attack_expected_assists = Column(Double, nullable=True)  # expectedAssists
     overall_stat_attack_expected_goals = Column(Double, nullable=True)  # expectedGoals
     overall_stat_attack_long_balls = Column(Integer, nullable=True)  # successfulLongPasses + unsuccessfulLongPasses
     overall_stat_attack_long_balls_successful = Column(Integer, nullable=True)  # successfulLongPasses
     overall_stat_attack_passes = Column(Integer, nullable=True)  # totalPasses
     overall_stat_attack_passes_successful = Column(Integer, nullable=True)  # successfulShortPasses + successfulLongPasses
     overall_stat_attack_shots_on_target = Column(Integer, nullable=True)  # shotsOnTargetIncGoals
+    overall_stat_attack_total_shots = Column(Integer, nullable=True) # totalShots
     overall_stat_attack_touches_in_opposition_box = Column(Integer, nullable=True)  # touchesInOppBox
     overall_stat_average_possession = Column(Double, nullable=True)  # possessionPercentage
     overall_stat_defense_blocks = Column(Integer, nullable=True)  # blockedShots
+    overall_stat_defense_clean_sheets = Column(Integer, nullable=True)  # cleanSheets
     overall_stat_defense_clearances = Column(Integer, nullable=True)  # totalClearances
     overall_stat_defense_duels_aerial_total = Column(Integer, nullable=True)  # aerialDuels
     overall_stat_defense_duels_aerial_won = Column(Integer, nullable=True)  # aerialDuelsWon
@@ -243,15 +248,18 @@ class TeamStatEntity(PulseliveEntity):
         self.overall_stat_attack_corners = 0
         self.overall_stat_attack_crosses = 0
         self.overall_stat_attack_crosses_successful = 0
+        self.overall_stat_attack_expected_assists = 0.0
         self.overall_stat_attack_expected_goals = 0.0
         self.overall_stat_attack_long_balls = 0
         self.overall_stat_attack_long_balls_successful = 0
         self.overall_stat_attack_passes = 0
         self.overall_stat_attack_passes_successful = 0
         self.overall_stat_attack_shots_on_target = 0
+        self.overall_stat_attack_total_shots = 0
         self.overall_stat_attack_touches_in_opposition_box = 0
         self.overall_stat_average_possession = 0.0
         self.overall_stat_defense_blocks = 0
+        self.overall_stat_defense_clean_sheets = 0
         self.overall_stat_defense_clearances = 0
         self.overall_stat_defense_duels_aerial_total = 0
         self.overall_stat_defense_duels_aerial_won = 0
@@ -325,15 +333,18 @@ class TeamStatEntity(PulseliveEntity):
         attack_corners: int,
         attack_crosses: int,
         attack_crosses_successful: int,
+        attack_expected_assists: float,
         attack_expected_goals: float,
         attack_long_balls: int,
         attack_long_balls_successful: int,
         attack_passes: int,
         attack_passes_successful: int,
         attack_shots_on_target: int,
+        attack_total_shots: int,
         attack_touches_in_opposition_box: int,
         average_possession: float,
         defense_blocks: int,
+        defense_clean_sheets: int,
         defense_clearances: int,
         defense_duels_aerial_total: int,
         defense_duels_aerial_won: int,
@@ -354,17 +365,20 @@ class TeamStatEntity(PulseliveEntity):
         self.overall_stat_attack_corners = attack_corners
         self.overall_stat_attack_crosses = attack_crosses
         self.overall_stat_attack_crosses_successful = attack_crosses_successful
+        self.overall_stat_attack_expected_assists = attack_expected_assists
         self.overall_stat_attack_expected_goals = attack_expected_goals
         self.overall_stat_attack_long_balls = attack_long_balls
         self.overall_stat_attack_long_balls_successful = attack_long_balls_successful
         self.overall_stat_attack_passes = attack_passes
         self.overall_stat_attack_passes_successful = attack_passes_successful
         self.overall_stat_attack_shots_on_target = attack_shots_on_target
+        self.overall_stat_attack_total_shots = attack_total_shots
         self.overall_stat_attack_touches_in_opposition_box = (
             attack_touches_in_opposition_box
         )
         self.overall_stat_average_possession = average_possession
         self.overall_stat_defense_blocks = defense_blocks
+        self.overall_stat_defense_clean_sheets = defense_clean_sheets
         self.overall_stat_defense_clearances = defense_clearances
         self.overall_stat_defense_duels_aerial_total = defense_duels_aerial_total
         self.overall_stat_defense_duels_aerial_won = defense_duels_aerial_won

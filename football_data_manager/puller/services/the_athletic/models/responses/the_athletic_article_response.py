@@ -8,7 +8,7 @@ class TheAthleticArticleResponse(CamelCaseModel):
     dateCreated: str
     datePublished: str
     dateModified: str
-    articleBody: str
+    articleBody: str | None = None
     description: str
     headline: str
     thumbnailUrl: str

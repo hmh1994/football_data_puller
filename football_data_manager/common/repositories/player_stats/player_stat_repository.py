@@ -1,5 +1,8 @@
 from datetime import datetime
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from football_data_manager.common.repositories.awards.award_entity import (
     AwardEntity,
 )
@@ -9,9 +12,11 @@ from football_data_manager.common.repositories.player_stats.player_stat_award_as
 from football_data_manager.common.repositories.player_stats.player_stat_entity import (
     PlayerStatEntity,
 )
+from football_data_manager.common.repositories.players.player_entity import PlayerEntity
 from football_data_manager.common.repositories.pulselive_repository import (
     PulseliveRepository,
 )
+from football_data_manager.common.repositories.seasons.season_entity import SeasonEntity
 from football_data_manager.common.services.db.db_service import DbService
 
 
@@ -36,28 +41,60 @@ class PlayerStatRepository(PulseliveRepository[PlayerStatEntity]):
             player_stat, [PlayerStatAwardAssociation.AWARD_COLLECTION_NAME]
         )
 
-    async def append_award(
+    @PulseliveRepository.with_db_session
+    async def read_by_player_season(
+        self,
+        session: AsyncSession,
+        player: PlayerEntity,
+        season: SeasonEntity,
+    ) -> PlayerStatEntity | None:
+        """
+        Get player stat entity for specific player and season.
+
+        Looks up player statistics for a given player in a specific season.
+        This is used for associating awards with the correct player stat record.
+
+        :param session: Database session
+        :param player: Player entity
+        :param season: Season entity
+        :returns: Player stat entity or None if not found
+        """
+        stmt = select(PlayerStatEntity).where(
+            PlayerStatEntity.player_id == player.id,
+            PlayerStatEntity.season_id == season.id,
+        )
+        result = await session.execute(stmt)
+        return result.scalars().first()
+
+    async def append_award_association(
         self, player_stat: PlayerStatEntity, award: AwardEntity, date: datetime
     ) -> PlayerStatEntity:
         """
-        Update the player stat with the given award.
-        This method checks if the award already exists in the player stat's award associations.
-        :param player_stat: The player stat entity to update.
-        :param award: The award entity to append.
-        :param date: The date associated with the award.
-        :return: The updated player stat entity with the award appended if it did not already exist.
+        Append an award association to the player stat if it doesn't already exist.
+
+        Uses efficient set-based duplicate checking with O(1) lookup performance.
+        Automatically loads award associations and maintains chronological ordering by date.
+
+        :param player_stat: Player stat entity to update
+        :param award: Award entity to associate
+        :param date: Date when the award was given
+        :returns: Updated player stat entity with award association added if not duplicate
         """
         merged_player_stat = await self.load_award_associations(player_stat)
-        award_id_list = [
-            association.award_id
+
+        # Efficient set-based duplicate checking with composite key (award_id, date) - O(1) lookup
+        existing_awards = {
+            (association.award_id, association.date)
             for association in merged_player_stat.award_associations
-        ]
-        if award.id not in award_id_list:
+        }
+
+        if (award.id, date) not in existing_awards:
             association = PlayerStatAwardAssociation(
                 player_stat=merged_player_stat, award=award, date=date
             )
             merged_player_stat.award_associations.append(association)
-        merged_player_stat.award_associations.sort(key=lambda s: s.date)
+            merged_player_stat.award_associations.sort(key=lambda s: s.date)
+
         return merged_player_stat
 
     async def upsert_player_stat(

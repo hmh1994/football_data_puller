@@ -380,12 +380,15 @@ async def update_match(
                 print(
                     f"Pulling match stats for match {updated_match.id} (period: {updated_match.period})"
                 )
-                fresh_match_stat = await match_stat_puller.pull_match_stat(
+                fresh_match_stats = await match_stat_puller.pull_match_stat(
                     updated_match
                 )
-                if fresh_match_stat:
-                    updated_stat = await match_stat_repository.update(fresh_match_stat)
-                    updated_match_stats.append(updated_stat)
+                if fresh_match_stats:
+                    for fresh_match_stat in fresh_match_stats:
+                        updated_stat = await match_stat_repository.update(
+                            fresh_match_stat
+                        )
+                        updated_match_stats.append(updated_stat)
                     print(
                         f"Successfully updated match stats for match {updated_match.id}"
                     )
@@ -426,14 +429,15 @@ async def update_match(
                     f"Pulling match stats for started PREMATCH match {updated_match.id} (period: {updated_match.period})"
                 )
                 try:
-                    fresh_match_stat = await match_stat_puller.pull_match_stat(
+                    fresh_match_stats = await match_stat_puller.pull_match_stat(
                         updated_match
                     )
-                    if fresh_match_stat:
-                        updated_stat = await match_stat_repository.update(
-                            fresh_match_stat
-                        )
-                        updated_prematch_started_match_stats.append(updated_stat)
+                    if fresh_match_stats:
+                        for fresh_match_stat in fresh_match_stats:
+                            updated_stat = await match_stat_repository.update(
+                                fresh_match_stat
+                            )
+                            updated_prematch_started_match_stats.append(updated_stat)
                         print(
                             f"Successfully updated match stats for started PREMATCH match {updated_match.id}"
                         )
@@ -548,7 +552,7 @@ async def create_team_stats(
     team_stats = []
     for season in seasons:
         season_team_stats = []
-        if season.year_start < 2024 or season.year_start >= 2025:
+        if season.year_start < 2025:
             continue
         teams = await webclient.get_v1_teams(
             competition_id=competition.source_id, season_id=season.season_source_id
@@ -569,6 +573,64 @@ async def create_team_stats(
                 await team_stat_repository.update(team_stat)
                 team_stats.append(team_stat)
     return team_stats
+
+
+async def create_award(
+    service_container: CommonServiceContainer,
+    repository_container: CommonRepositoryContainer,
+    webclient: PulseliveNewWebclient,
+):
+    """
+    Pull and create award data for the current season.
+
+    Retrieves player and staff awards from PulseLive API and creates
+    award entities with associations to player stats and staff entities.
+    Persists all updated entities to database after processing.
+    """
+    from football_data_manager.puller.services.pulselive_new.services.pulselive_new_award_puller import (
+        PulseliveNewAwardPuller,
+    )
+
+    competition_repository = repository_container.competition_repository()
+    competition = await competition_repository.read_by_pulselive_id(8)
+    if not competition:
+        return []
+
+    season_repository = repository_container.season_repository()
+    seasons = await season_repository.read_by_competition(competition)
+    if not seasons:
+        return []
+
+    seasons.sort(key=lambda s: s.year_start, reverse=True)
+
+    award_puller = PulseliveNewAwardPuller(
+        repository_container, webclient, service_container
+    )
+
+    player_stat_repository = repository_container.player_stat_repository()
+    staff_repository = repository_container.staff_repository()
+
+    for season in seasons:
+        if season.year_start not in [2024, 2025]:
+            continue
+
+        print(f"Processing awards for season {season.year_start}...")
+
+        awards, player_stats, staffs = await award_puller.pull_awards_for_season(
+            competition, season
+        )
+
+        # Immediately persist this season's updates to database
+        for player_stat in player_stats:
+            await player_stat_repository.update(player_stat)
+
+        for staff in staffs:
+            await staff_repository.update(staff)
+
+        print(
+            f"✅ Season {season.year_start}: {len(awards)} awards, {len(player_stats)} player stats, {len(staffs)} staffs updated"
+        )
+    return None
 
 
 async def create_news(config_service: ConfigService, db_service: DbService):
@@ -600,13 +662,18 @@ async def runrun():
     # )
     # await create_players(service_container, repository_container, webclient_service)
     # await create_player_stats(repository_container, webclient_service)
-    # await create_team_stats(repository_container, webclient_service)
-    await create_match(
-        service_container,
-        repository_container,
-        webclient_service,
-    )
+    await create_team_stats(repository_container, webclient_service)
+    # await create_match(
+    #     service_container,
+    #     repository_container,
+    #     webclient_service,
+    # )
     # await update_match(
+    #     service_container,
+    #     repository_container,
+    #     webclient_service,
+    # )
+    # await create_award(
     #     service_container,
     #     repository_container,
     #     webclient_service,

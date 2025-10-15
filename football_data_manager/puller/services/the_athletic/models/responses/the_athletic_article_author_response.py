@@ -4,4 +4,4 @@ from football_data_manager.common.utils.pydantic_helper.camelcase_model import C
 class TheAthleticArticleAuthorResponse(CamelCaseModel):
     name: str
     url: str
-    sameAs: str | None = None
+    sameAs: str | list[str] | None = None

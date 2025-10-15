@@ -6,26 +6,26 @@ from sqlalchemy.orm import relationship, backref
 from football_data_manager.common.repositories import Base
 from football_data_manager.common.repositories.awards.award_entity import AwardEntity
 from football_data_manager.common.repositories.constants import (
-    PLAYER_STAT_AWARD_ASSOCIATION_TABLE_NAME,
+    STAFF_AWARD_ASSOCIATION_TABLE_NAME,
 )
-from football_data_manager.common.repositories.player_stats.player_stat_entity import (
-    PlayerStatEntity,
-)
+from football_data_manager.common.repositories.staffs.staff_entity import StaffEntity
 
 
-class PlayerStatAwardAssociation(Base):
+class StaffAwardAssociation(Base):
     """
-    Concrete association class for player stat awards.
+    Association class for staff awards.
 
-    Associates awards with player statistics for specific seasons.
-    Extends AbstractPlayerStatAwardAssociation with player stat relationship.
+    Associates awards with staff members (coaches, managers) for specific dates.
+    Used to track Manager of the Month, Manager of the Season, and other
+    staff-related awards.
 
     :ivar award_id: Foreign key to the award entity
+    :ivar staff_id: Foreign key to the staff entity
     :ivar date: Date when the award was given
-    :ivar player_stat_id: Foreign key to the player stat entity
+    :ivar staff: Relationship to staff entity
     """
 
-    __tablename__ = PLAYER_STAT_AWARD_ASSOCIATION_TABLE_NAME
+    __tablename__ = STAFF_AWARD_ASSOCIATION_TABLE_NAME
 
     AWARD_COLLECTION_NAME = "award_associations"
 
@@ -34,33 +34,31 @@ class PlayerStatAwardAssociation(Base):
         ForeignKey(AwardEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
         primary_key=True,
     )
-    player_stat_id = Column(
+    staff_id = Column(
         String,
-        ForeignKey(PlayerStatEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
+        ForeignKey(StaffEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
         primary_key=True,
     )
     date = Column(DateTime, nullable=False, primary_key=True)
-    player_stat = relationship(
-        "PlayerStatEntity",
+    staff = relationship(
+        "StaffEntity",
         backref=backref(
             name=AWARD_COLLECTION_NAME,
             lazy="noload",
             cascade="all, delete-orphan",
-            order_by="PlayerStatAwardAssociation.date",
+            order_by="StaffAwardAssociation.date",
         ),
     )
 
-    def __init__(
-        self, player_stat: PlayerStatEntity, award: AwardEntity, date: datetime
-    ):
+    def __init__(self, staff: StaffEntity, award: AwardEntity, date: datetime):
         """
-        Initialize a new player stat award association.
+        Initialize a new staff award association.
 
-        :param player_stat: Player stat entity receiving the award
+        :param staff: Staff entity receiving the award
         :param award: Award entity being given
         :param date: Date when the award was given
         """
         super().__init__()
         self.award_id = award.id
         self.date = date
-        self.player_stat_id = player_stat.id
+        self.staff_id = staff.id

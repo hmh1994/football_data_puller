@@ -45,7 +45,7 @@ class PlayerChampionshipAssociation(Base):
         PlayerEntity,
         backref=backref(
             name=SEASON_COLLECTION_NAME,
-            lazy="noload",
+            lazy="select",
             cascade="all, delete-orphan",
             order_by="PlayerChampionshipAssociation.date_end",
         ),

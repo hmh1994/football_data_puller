@@ -57,28 +57,32 @@ class PlayerRepository(PulseliveRepository[PlayerEntity]):
         result = await self._read_one_by_field(nationality_en=nationality_en)
         return result.nationality_kr if result else None
 
-    async def update_championship_season(
+    async def append_championship_season(
         self, player: PlayerEntity, season: SeasonEntity
     ) -> PlayerEntity:
         """
-        Apply a championship season association to the player.
+        Append a championship season to the player if it doesn't already exist.
 
-        Creates or updates the association between a player and a championship season.
-        Loads existing associations first, then adds the new season if not already present.
+        Follows the same pattern as match_repository.append_* methods with
+        efficient duplicate checking and automatic association creation.
 
-        :param player: Player entity to update
-        :param season: Championship season entity to associate
-        :returns: The updated player entity with new season association
+        :param player: The player entity
+        :param season: The championship season to associate
+        :returns: The updated player entity with the championship season added
         """
         merged_player = await self.load_championship_seasons(player)
-        season_id_list = [
-            s.season_id for s in merged_player.championship_season_associations
-        ]
-        if season.id not in season_id_list:
+
+        # Check for duplicate using efficient set-based comparison
+        existing_season_ids = {
+            assoc.season_id for assoc in merged_player.championship_season_associations
+        }
+
+        if season.id not in existing_season_ids:
             association = PlayerChampionshipAssociation(
                 player=merged_player, season=season, date_end=season.date_end
             )
             merged_player.championship_season_associations.append(association)
+
         merged_player.championship_season_associations.sort(key=lambda s: s.date_end)
         return merged_player
 

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, String, ForeignKey
+from sqlalchemy import Column, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship, backref
 
 from football_data_manager.common.repositories import Base
@@ -42,12 +42,12 @@ class TeamChampionshipAssociation(Base):
         TeamEntity,
         backref=backref(
             name=SEASON_COLLECTION_NAME,
-            lazy="noload",
+            lazy="select",
             cascade="all, delete-orphan",
             order_by="TeamChampionshipAssociation.date_end",
         ),
     )
-    date_end = Column(String, nullable=False)
+    date_end = Column(DateTime, nullable=False)
 
     def __init__(self, team: TeamEntity, season: SeasonEntity, date_end: datetime):
         """

@@ -76,27 +76,31 @@ class TeamRepository(PulseliveRepository[TeamEntity]):
         """
         return await self._read_one_by_field(short_name_en=name)
 
-    async def update_championship_seasons(
+    async def append_championship_season(
         self, team: TeamEntity, season: SeasonEntity
     ) -> TeamEntity:
         """
-        Apply a championship season association to the team.
+        Append a championship season to the team if it doesn't already exist.
 
-        Creates or updates the association between a team and a championship season.
-        Loads existing associations first, then adds the new season if not already present.
+        Follows the same pattern as match_repository.append_* methods with
+        efficient duplicate checking and automatic association creation.
 
-        :param team: Team entity to update
-        :param season: Championship season entity to associate
-        :returns: The updated team entity with new season association
+        :param team: The team entity
+        :param season: The championship season to associate
+        :returns: The updated team entity with the championship season added
         """
         merged_team = await self.load_championship_seasons(team)
-        season_id_list = [
-            s.season_id for s in merged_team.championship_season_associations
-        ]
-        if season.id not in season_id_list:
+
+        # Check for duplicate using efficient set-based comparison
+        existing_season_ids = {
+            assoc.season_id for assoc in merged_team.championship_season_associations
+        }
+
+        if season.id not in existing_season_ids:
             association = TeamChampionshipAssociation(
                 team=merged_team, season=season, date_end=season.date_end
             )
             merged_team.championship_season_associations.append(association)
+
         merged_team.championship_season_associations.sort(key=lambda s: s.date_end)
         return merged_team

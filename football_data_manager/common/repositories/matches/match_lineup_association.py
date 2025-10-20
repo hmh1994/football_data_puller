@@ -43,7 +43,7 @@ class MatchLineupAssociation(Base):
         "MatchEntity",
         backref=backref(
             name=POSITION_COLLECTION_NAME,
-            lazy="noload",
+            lazy="select",
             cascade="all, delete-orphan",
             order_by="MatchLineupAssociation.shirt_number",
         ),

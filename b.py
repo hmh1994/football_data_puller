@@ -178,7 +178,9 @@ async def create_match(
     matches = []
     match_stats = []
     for season in seasons:
-        if season.year_start < 2024:  # TODO: Remove Filtering
+        if (
+            season.year_start < 2024 or season.year_start >= 2025
+        ):  # TODO: Remove Filtering
             continue
         for matchweek in range(1, 40):
             f = await fixture_puller.pull_fixtures(competition, season, matchweek)
@@ -231,7 +233,6 @@ async def update_match(
     current_season = seasons[0]  # Most recent season
 
     # Initialize puller services
-    fixture_puller = PulseliveNewFixturePuller(repository_container, webclient)
     player_puller = PulseliveNewPlayerPuller(
         repository_container, webclient, service_container
     )
@@ -642,6 +643,302 @@ async def create_news(config_service: ConfigService, db_service: DbService):
     await puller_service.pull_news()
 
 
+async def update_championship(
+    service_container: CommonServiceContainer,
+    repository_container: CommonRepositoryContainer,
+) -> Dict:
+    """
+    Update championship associations for completed seasons.
+
+    Identifies completed seasons (date_end has passed), determines winning teams,
+    and updates both team and player championship associations. Players must have
+    appeared in 5+ matches during the season to qualify.
+
+    :param service_container: Service container for configuration and utilities
+    :param repository_container: Repository container for database operations
+    :returns: Dictionary with update statistics and processed entities
+    """
+    print("=" * 80)
+    print("Championship Update Process")
+    print("=" * 80)
+
+    # Phase 1: Setup & Initialization
+    print("\nPhase 1: Initializing services and repositories...")
+
+    competition_repository = repository_container.competition_repository()
+    season_repository = repository_container.season_repository()
+    team_repository = repository_container.team_repository()
+    player_repository = repository_container.player_repository()
+    team_stat_repository = repository_container.team_stat_repository()
+    match_repository = repository_container.match_repository()
+
+    # Phase 2: Season Analysis
+    print("Phase 2: Analyzing completed seasons...")
+
+    # Get target competition (Pulselive ID = 8)
+    competition = await competition_repository.read_by_pulselive_id(8)
+    if not competition:
+        print("Error: Competition not found")
+        return {"error": "Competition not found"}
+
+    # Read all seasons for the competition
+    seasons = await season_repository.read_by_competition(competition)
+    if not seasons:
+        print("Warning: No seasons found")
+        return {"warning": "No seasons found"}
+
+    # Get current time
+    current_time = create_utc_now()
+
+    # Filter completed seasons (date_end has passed)
+    completed_seasons = [season for season in seasons if season.date_end < current_time]
+
+    # Sort chronologically
+    completed_seasons.sort(key=lambda s: s.year_start)
+
+    print(
+        f"Found {len(completed_seasons)} completed seasons out of {len(seasons)} total seasons"
+    )
+
+    # Initialize results tracking
+    results = {"seasons_processed": [], "summary": {"errors": []}}
+
+    # Phase 3-6: Process each completed season
+    for season in completed_seasons:
+        print(f"\n{'=' * 40}")
+        print(f"Processing Season {season.year_start}")
+        print(f"{'=' * 40}")
+
+        season_result = {
+            "season": season,
+            "year": season.year_start,
+            "winner": None,
+            "team_updated": False,
+            "qualifying_players_count": 0,
+            "players_updated_count": 0,
+            "players_skipped_count": 0,
+        }
+
+        try:
+            # Phase 3: Winner Identification
+            print("Phase 3: Identifying championship winner...")
+
+            # Get all team stats for season
+            team_stats = await team_stat_repository.read_by_season(season)
+
+            if not team_stats:
+                print(f"Warning: No team stats found for season {season.year_start}")
+                results["summary"]["errors"].append(
+                    f"No team stats for season {season.year_start}"
+                )
+                results["seasons_processed"].append(season_result)
+                continue
+
+            # Filter for overall_position 1 (winner)
+            winners = [stat for stat in team_stats if stat.overall_position == 1]
+
+            if len(winners) == 0:
+                print(f"Warning: No winner found for season {season.year_start}")
+                results["summary"]["errors"].append(
+                    f"No winner for season {season.year_start}"
+                )
+                results["seasons_processed"].append(season_result)
+                continue
+
+            if len(winners) > 1:
+                print(f"Warning: Multiple winners found for season {season.year_start}")
+                results["summary"]["errors"].append(
+                    f"Multiple winners for season {season.year_start}"
+                )
+                results["seasons_processed"].append(season_result)
+                continue
+
+            # Get team entity from winning team stat
+            winner_team = await team_repository.read_by_id(winners[0].team_id)
+            if not winner_team:
+                print(f"Error: Winner team not found for season {season.year_start}")
+                results["summary"]["errors"].append(
+                    f"Winner team not found for season {season.year_start}"
+                )
+                results["seasons_processed"].append(season_result)
+                continue
+
+            season_result["winner"] = winner_team
+            print(f"Winner identified: {winner_team.name_en}")
+
+            # Phase 4: Team Championship Update
+            print("Phase 4: Updating team championship association...")
+
+            try:
+                print(
+                    f"DEBUG: Calling append_championship_season for {winner_team.name_en}..."
+                )
+                updated_team = await team_repository.append_championship_season(
+                    winner_team, season
+                )
+                print(f"DEBUG: append_championship_season completed, calling update...")
+                await team_repository.update(updated_team)
+                print(f"DEBUG: update completed successfully")
+                season_result["team_updated"] = True
+                print(f"✅ Team championship updated for {winner_team.name_en}")
+            except Exception as e:
+                print(f"Error updating team championship: {e}")
+                import traceback
+
+                traceback.print_exc()
+                results["summary"]["errors"].append(
+                    f"Team update error for season {season.year_start}: {e}"
+                )
+
+            # Phase 5: Qualifying Player Identification
+            print("Phase 5: Identifying qualifying players (5+ appearances)...")
+
+            # Get all matches for team in season
+            print(
+                f"DEBUG: Calling read_by_team_on_season for {winner_team.name_en} in season {season.year_start}..."
+            )
+            matches = await match_repository.read_by_team_on_season(
+                season=season, team=winner_team
+            )
+            print(
+                f"DEBUG: Found {len(matches)} matches for {winner_team.name_en} in season {season.year_start}"
+            )
+
+            # Track player appearance counts
+            player_appearances = {}
+
+            for idx, match in enumerate(matches):
+                # Load match associations (lineups, substitutes)
+                loaded_match = await match_repository.load_items(match)
+
+                # Determine if team is home or away
+                is_home = loaded_match.home_team_id == winner_team.id
+
+                if idx == 0:  # Log first match details
+                    print(
+                        f"DEBUG: First match {loaded_match.id} - home_team_id: {loaded_match.home_team_id}, away_team_id: {loaded_match.away_team_id}"
+                    )
+                    print(
+                        f"DEBUG: winner_team.id: {winner_team.id}, is_home: {is_home}"
+                    )
+                    print(
+                        f"DEBUG: lineup_associations count: {len(loaded_match.lineup_associations)}"
+                    )
+                    print(
+                        f"DEBUG: substitution_associations count: {len(loaded_match.substitution_associations)}"
+                    )
+
+                # Count lineup appearances
+                for lineup_assoc in loaded_match.lineup_associations:
+                    if lineup_assoc.is_home == is_home:
+                        player_id = lineup_assoc.player_id
+                        player_appearances[player_id] = (
+                            player_appearances.get(player_id, 0) + 1
+                        )
+
+                # Count substitute appearances (only if they actually played)
+                for sub_assoc in loaded_match.substitution_associations:
+                    if sub_assoc.is_home == is_home:
+                        in_player_id = sub_assoc.in_player_id
+                        player_appearances[in_player_id] = (
+                            player_appearances.get(in_player_id, 0) + 1
+                        )
+
+            # Filter players with 5+ appearances
+            qualifying_player_ids = [
+                player_id
+                for player_id, count in player_appearances.items()
+                if count >= 5
+            ]
+
+            season_result["qualifying_players_count"] = len(qualifying_player_ids)
+            print(
+                f"Found {len(qualifying_player_ids)} qualifying players for {winner_team.name_en}"
+            )
+
+            # Phase 6: Player Championship Update
+            print("Phase 6: Updating player championship associations...")
+
+            for player_id in qualifying_player_ids:
+                try:
+                    player = await player_repository.read_by_id(player_id)
+                    if not player:
+                        print(f"Warning: Player {player_id} not found")
+                        season_result["players_skipped_count"] += 1
+                        continue
+
+                    updated_player = await player_repository.append_championship_season(
+                        player, season
+                    )
+                    await player_repository.update(updated_player)
+                    season_result["players_updated_count"] += 1
+
+                    if season_result["players_updated_count"] % 5 == 0:
+                        print(
+                            f"  Updated {season_result['players_updated_count']}/{len(qualifying_player_ids)} players..."
+                        )
+
+                except Exception as e:
+                    print(f"Error updating player {player_id}: {e}")
+                    season_result["players_skipped_count"] += 1
+                    results["summary"]["errors"].append(
+                        f"Player {player_id} update error: {e}"
+                    )
+
+            print(
+                f"✅ Updated {season_result['players_updated_count']} players, skipped {season_result['players_skipped_count']}"
+            )
+
+        except Exception as e:
+            print(f"Error processing season {season.year_start}: {e}")
+            results["summary"]["errors"].append(
+                f"Season {season.year_start} processing error: {e}"
+            )
+
+        results["seasons_processed"].append(season_result)
+
+    # Phase 7: Results & Reporting
+    print("\n" + "=" * 80)
+    print("Championship Update Summary")
+    print("=" * 80)
+
+    total_teams_updated = sum(
+        1 for sr in results["seasons_processed"] if sr["team_updated"]
+    )
+    total_players_updated = sum(
+        sr["players_updated_count"] for sr in results["seasons_processed"]
+    )
+    total_players_processed = sum(
+        sr["qualifying_players_count"] for sr in results["seasons_processed"]
+    )
+
+    for season_result in results["seasons_processed"]:
+        print(f"\nSeason {season_result['year']}:")
+        print(
+            f"  Winner: {season_result['winner'].name_en if season_result['winner'] else 'N/A'}"
+        )
+        print(
+            f"  Team Championship: {'✅ Updated' if season_result['team_updated'] else '❌ Skipped'}"
+        )
+        print(f"  Qualifying Players: {season_result['qualifying_players_count']}")
+        print(f"  Players Updated: {season_result['players_updated_count']}")
+        print(f"  Players Skipped: {season_result['players_skipped_count']}")
+
+    results["summary"]["total_seasons"] = len(results["seasons_processed"])
+    results["summary"]["total_teams_updated"] = total_teams_updated
+    results["summary"]["total_players_updated"] = total_players_updated
+    results["summary"]["total_players_processed"] = total_players_processed
+
+    print("\n" + "=" * 80)
+    print(f"Total Seasons Processed: {results['summary']['total_seasons']}")
+    print(f"Total Teams Updated: {results['summary']['total_teams_updated']}")
+    print(f"Total Players Updated: {results['summary']['total_players_updated']}")
+    print(f"Total Errors: {len(results['summary']['errors'])}")
+    print("=" * 80)
+
+    return results
+
+
 async def runrun():
     service_container = CommonServiceContainer()
     service_container.container_config.from_dict({"config_path": "./configs/.env"})
@@ -679,6 +976,7 @@ async def runrun():
     #     webclient_service,
     # )
     # await create_news(config_service, db_service)
+    await update_championship(service_container, repository_container)
     # await update_match(service_container, repository_container, webclient_service)
 
 

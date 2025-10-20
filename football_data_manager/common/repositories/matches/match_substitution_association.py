@@ -53,7 +53,7 @@ class MatchSubstitutionAssociation(Base):
         "MatchEntity",
         backref=backref(
             name=SUBSTITUTION_COLLECTION_NAME,
-            lazy="noload",
+            lazy="select",
             cascade="all, delete-orphan",
             order_by="MatchSubstitutionAssociation.clock",
         ),

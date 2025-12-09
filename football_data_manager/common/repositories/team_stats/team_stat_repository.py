@@ -96,14 +96,17 @@ class TeamStatRepository(PulseliveRepository[TeamStatEntity]):
                     raise RuntimeError(
                         f"Match {match.id} already fixing but nested fix is called."
                     )
-                matches = [
+                matches_data = [
                     (m.match_id, m.kickoff_time) for m in team_stat.match_associations
                 ]
-                matches.append((match.id, kickoff_time))
-                matches.sort(key=lambda m: m[1])
+                matches_data.append((match.id, kickoff_time))
+                matches_data.sort(key=lambda m: m[1])
                 team_stat.reset_statistics()
-                for m, k in matches:
-                    await self.append_fixtures(team_stat, k, m, is_appending=True)
+                for match_id, kickoff in matches_data:
+                    # Retrieve the actual MatchEntity using match_id
+                    match_entity = await self.__match_repository.read_by_id(match_id)
+                    if match_entity:
+                        await self.append_fixtures(team_stat, kickoff, match_entity, is_appending=True)
 
         team_stat.match_associations.append(
             TeamStatMatchAssociation(

@@ -120,6 +120,9 @@ class PulseliveNewTeamStatsPuller:
                     season=season,
                     team=team,
                 )
+            else:
+                # Load existing associations to enable duplicate checking
+                team_stat = await self.__team_stat_repository.load_items(team_stat)
 
             # Get FULLTIME matches for this team and season
             fixtures = await self.__fixture_repository.read_by_team_on_season(

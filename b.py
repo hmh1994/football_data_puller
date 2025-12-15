@@ -2,8 +2,16 @@ from asyncio import run
 from datetime import timedelta
 from typing import Dict
 
+from football_data_manager.common.enums.analytics_key_enum import AnalyticsKeyEnum
 from football_data_manager.common.enums.period_enum import PeriodEnum
+from football_data_manager.common.enums.source_enum import SourceEnum
 from football_data_manager.common.repositories import Base
+from football_data_manager.common.repositories.analytics.analytics_entity import (
+    AnalyticsEntity,
+)
+from football_data_manager.common.repositories.analytics.analytics_repository import (
+    AnalyticsRepository,
+)
 from football_data_manager.common.repositories.competitions.competition_entity import (
     CompetitionEntity,
 )
@@ -178,9 +186,7 @@ async def create_match(
     matches = []
     match_stats = []
     for season in seasons:
-        if (
-            season.year_start < 2024 or season.year_start >= 2025
-        ):  # TODO: Remove Filtering
+        if season.year_start < 2024:  # TODO: Remove Filtering
             continue
         for matchweek in range(1, 40):
             f = await fixture_puller.pull_fixtures(competition, season, matchweek)
@@ -643,6 +649,245 @@ async def create_news(config_service: ConfigService, db_service: DbService):
     await puller_service.pull_news()
 
 
+async def upsert_analytics(
+    repository_container: CommonRepositoryContainer,
+    db_service: DbService,
+) -> list[AnalyticsEntity]:
+    """
+    Calculate and upsert analytics for all seasons with matches.
+
+    Iterates through seasons from oldest to newest, calculates analytics
+    metrics based on AnalyticsKeyEnum keys, and upserts them to the analytics table.
+    Skips seasons without collected matches. Calculates delta as percentage change
+    from the previous season's value.
+
+    :param repository_container: Repository container for database operations
+    :param db_service: Database service for analytics repository
+    :returns: List of upserted analytics entities
+    """
+    print("=" * 80)
+    print("Analytics Upsert Process")
+    print("=" * 80)
+
+    # Initialize repositories
+    competition_repository = repository_container.competition_repository()
+    season_repository = repository_container.season_repository()
+    fixture_repository = repository_container.fixture_repository()
+    match_repository = repository_container.match_repository()
+    match_stat_repository = repository_container.match_stat_repository()
+    analytics_repository = AnalyticsRepository(db_service)
+
+    # Get competition and seasons
+    competition = await competition_repository.read_by_pulselive_id(8)
+    if not competition:
+        print("Error: Competition not found")
+        return []
+
+    seasons = await season_repository.read_by_competition(competition)
+    if not seasons:
+        print("Error: No seasons found")
+        return []
+
+    # Sort from oldest to newest
+    seasons.sort(key=lambda s: s.year_start)
+
+    all_upserted_analytics = []
+    # Store previous season values for delta calculation
+    previous_values: Dict[AnalyticsKeyEnum, float] = {}
+
+    for season in seasons:
+        print(f"\nProcessing season {season.year_start}...")
+
+        # Get fixtures for the season first
+        fixtures = await fixture_repository.read_by_season(season)
+        if not fixtures:
+            print(f"  Skipping: No fixtures found for season {season.year_start}")
+            continue
+
+        # Get matches and match_stats from fixtures
+        completed_matches = []
+        match_stats = []
+
+        for fixture in fixtures:
+            match = await match_repository.read_by_fixture(fixture)
+            if match and match.period == PeriodEnum.FULLTIME:
+                completed_matches.append(match)
+                stats = await match_stat_repository.read_by_match(match)
+                if stats:
+                    match_stats.extend(stats)
+
+        match_count = len(completed_matches)
+
+        if match_count == 0:
+            print(f"  Skipping: No completed matches for season {season.year_start}")
+            continue
+
+        print(f"  Found {match_count} completed matches from {len(fixtures)} fixtures")
+        print(f"  Found {len(match_stats)} match stats")
+
+        # Calculate analytics values
+        # TOTAL_GOALS: Sum of all goals
+        total_goals = sum(
+            m.home_team_score + m.away_team_score for m in completed_matches
+        )
+
+        # PER_MATCH_GOALS: Average goals per match
+        per_match_goals = total_goals / match_count if match_count > 0 else 0
+
+        # PER_MATCH_PASS_ACCURACY: Average pass accuracy
+        total_pass_accuracy = 0
+        pass_accuracy_count = 0
+        for stat in match_stats:
+            if stat.passes_total > 0:
+                accuracy = (stat.passes_accurate / stat.passes_total) * 100
+                total_pass_accuracy += accuracy
+                pass_accuracy_count += 1
+        per_match_pass_accuracy = (
+            total_pass_accuracy / pass_accuracy_count if pass_accuracy_count > 0 else 0
+        )
+
+        # PER_MATCH_XG: Average expected goals per match
+        total_xg = sum(
+            stat.expected_goals for stat in match_stats
+        )  # 이거 왜 2025/26 다 0이냐
+        per_match_xg = total_xg / match_count if match_count > 0 else 0
+
+        # PER_MATCH_SUBSTITUTIONS: Average substitutions per match
+        total_substitutions = 0
+        for match in completed_matches:
+            loaded_match = await match_repository.load_items(match)
+            total_substitutions += len(loaded_match.substitution_associations)
+        per_match_substitutions = (
+            total_substitutions / match_count if match_count > 0 else 0
+        )
+
+        # PER_MATCH_YELLOW_CARDS: Average yellow cards per match
+        total_yellow_cards = sum(stat.discipline_yellow_cards for stat in match_stats)
+        per_match_yellow_cards = (
+            total_yellow_cards / match_count if match_count > 0 else 0
+        )
+
+        # TOTAL_RED_CARDS: Sum of all red cards
+        total_red_cards = sum(stat.discipline_red_cards for stat in match_stats)
+
+        # Store current values for next iteration
+        current_values: Dict[AnalyticsKeyEnum, float] = {
+            AnalyticsKeyEnum.PER_MATCH_GOALS: per_match_goals,
+            AnalyticsKeyEnum.PER_MATCH_PASS_ACCURACY: per_match_pass_accuracy,
+            AnalyticsKeyEnum.PER_MATCH_SUBSTITUTIONS: per_match_substitutions,
+            AnalyticsKeyEnum.PER_MATCH_XG: per_match_xg,
+            AnalyticsKeyEnum.PER_MATCH_YELLOW_CARDS: per_match_yellow_cards,
+            AnalyticsKeyEnum.TOTAL_GOALS: float(total_goals),
+            AnalyticsKeyEnum.TOTAL_RED_CARDS: float(total_red_cards),
+        }
+
+        # Create and upsert analytics entities
+        # Format: (key, title_en, title_kr, value, description_en, description_kr)
+        analytics_data = [
+            (
+                AnalyticsKeyEnum.PER_MATCH_GOALS,
+                "Goals Per Match",
+                "경기당 골",
+                per_match_goals,
+                "Average goals per match",
+                "경기당 평균 골 수",
+            ),
+            (
+                AnalyticsKeyEnum.PER_MATCH_PASS_ACCURACY,
+                "Pass Accuracy",
+                "패스 정확도",
+                per_match_pass_accuracy,
+                "Average pass accuracy percentage",
+                "평균 패스 정확도 (%)",
+            ),
+            (
+                AnalyticsKeyEnum.PER_MATCH_SUBSTITUTIONS,
+                "Substitutions Per Match",
+                "경기당 교체",
+                per_match_substitutions,
+                "Average substitutions per match",
+                "경기당 평균 교체 수",
+            ),
+            (
+                AnalyticsKeyEnum.PER_MATCH_XG,
+                "xG Per Match",
+                "경기당 기대득점",
+                per_match_xg,
+                "Average expected goals per match",
+                "경기당 평균 기대득점(xG)",
+            ),
+            (
+                AnalyticsKeyEnum.PER_MATCH_YELLOW_CARDS,
+                "Yellow Cards Per Match",
+                "경기당 옐로카드",
+                per_match_yellow_cards,
+                "Average yellow cards per match",
+                "경기당 평균 옐로카드 수",
+            ),
+            (
+                AnalyticsKeyEnum.TOTAL_GOALS,
+                "Total Goals",
+                "총 득점",
+                total_goals,
+                "Total goals scored in the season",
+                "시즌 총 득점 수",
+            ),
+            (
+                AnalyticsKeyEnum.TOTAL_RED_CARDS,
+                "Total Red Cards",
+                "총 레드카드",
+                total_red_cards,
+                "Total red cards in the season",
+                "시즌 총 레드카드 수",
+            ),
+        ]
+
+        for (
+            key,
+            title_en,
+            title_kr,
+            value,
+            description_en,
+            description_kr,
+        ) in analytics_data:
+            # Calculate delta as percentage change from previous season
+            delta = None
+            if key in previous_values and previous_values[key] != 0:
+                delta = (
+                    (float(value) - previous_values[key]) / previous_values[key]
+                ) * 100
+
+            analytics_entity = AnalyticsEntity(
+                key=key,
+                title_en=title_en,
+                title_kr=title_kr,
+                value=float(value),
+                season=season,
+                source=SourceEnum.PULSELIVE,
+                source_id=f"{season.source_id}_{key.value}",
+                delta=delta,
+                description_en=description_en,
+                description_kr=description_kr,
+            )
+            result = await analytics_repository.upsert(analytics_entity)
+            all_upserted_analytics.append(result)
+            delta_str = f" (Δ {delta:+.2f}%)" if delta is not None else ""
+            print(f"    ✅ {key.value}: {value:.2f}{delta_str}")
+
+        # Update previous values for next season
+        previous_values = current_values.copy()
+
+        print(
+            f"  Upserted {len(analytics_data)} analytics for season {season.year_start}"
+        )
+
+    print(f"\n{'=' * 80}")
+    print(f"Total upserted: {len(all_upserted_analytics)} analytics entities")
+    print("=" * 80)
+
+    return all_upserted_analytics
+
+
 async def update_championship(
     service_container: CommonServiceContainer,
     repository_container: CommonRepositoryContainer,
@@ -939,6 +1184,119 @@ async def update_championship(
     return results
 
 
+async def reset_team_stats(
+    repository_container: CommonRepositoryContainer,
+    webclient: PulseliveNewWebclient,
+) -> list[TeamStatEntity]:
+    """
+    Reset and recalculate all team statistics for each season.
+
+    Iterates through seasons from oldest to newest, resets all team_stat values
+    using reset_statistics(), then calls pull_team_stats to refresh data from API
+    and recreate team_stat_match_associations.
+
+    :param repository_container: Repository container for database operations
+    :param webclient: PulseLive webclient for API calls
+    :returns: List of updated team stat entities
+    """
+    print("=" * 80)
+    print("Team Stats Reset Process")
+    print("=" * 80)
+
+    # Initialize repositories
+    competition_repository = repository_container.competition_repository()
+    season_repository = repository_container.season_repository()
+    team_repository = repository_container.team_repository()
+    team_stat_repository = repository_container.team_stat_repository()
+    ground_repository = repository_container.ground_repository()
+
+    # Initialize puller
+    team_stat_puller = PulseliveNewTeamStatsPuller(repository_container, webclient)
+
+    # Get competition
+    competition = await competition_repository.read_by_pulselive_id(8)
+    if not competition:
+        print("Error: Competition not found")
+        return []
+
+    # Get seasons sorted from oldest to newest
+    seasons = await season_repository.read_by_competition(competition)
+    if not seasons:
+        print("Error: No seasons found")
+        return []
+
+    seasons.sort(key=lambda s: s.year_start)
+
+    all_updated_team_stats = []
+
+    for season in seasons:
+        print(f"\nProcessing season {season.year_start}...")
+
+        # Read existing team_stats for season
+        team_stats = await team_stat_repository.read_by_season(season)
+        if not team_stats:
+            print(f"  No team stats found for season {season.year_start}")
+            continue
+
+        print(f"  Found {len(team_stats)} team stats")
+
+        # Get teams from API for this season
+        teams_response = await webclient.get_v1_teams(
+            competition_id=competition.source_id, season_id=season.season_source_id
+        )
+
+        season_team_stats = []
+
+        for team_stat in team_stats:
+            try:
+                # Get team entity
+                team = await team_repository.read_by_id(team_stat.team_id)
+                if not team:
+                    print(f"  Warning: Team not found for team_stat {team_stat.id}")
+                    continue
+
+                # Find ground from API response
+                ground = None
+                for team_data in teams_response.data:
+                    if str(team_data.id) == team.source_id:
+                        ground = await ground_repository.read_by_name_en(
+                            team_data.stadium.name
+                        )
+                        break
+
+                # Pull fresh data using pull_team_stats with force_reset
+                updated_team_stat = await team_stat_puller.pull_team_stats(
+                    team, competition, season, ground, force_reset=True
+                )
+
+                if updated_team_stat:
+                    season_team_stats.append(updated_team_stat)
+                    print(f"    ✅ Reset and updated: {team.name_en}")
+
+            except Exception as e:
+                print(f"    ❌ Error processing team_stat {team_stat.id}: {e}")
+                continue
+
+        # Update positions for all team stats in this season
+        if season_team_stats:
+            for team_stat in season_team_stats:
+                team_stat = await team_stat_repository.update_position(
+                    team_stat, season_team_stats
+                )
+                await team_stat_repository.update(team_stat)
+                all_updated_team_stats.append(team_stat)
+
+        print(
+            f"  Updated {len(season_team_stats)} team stats for season {season.year_start}"
+        )
+
+    print(f"\n{'=' * 80}")
+    print(f"Total updated: {len(all_updated_team_stats)} team stat entities")
+    print("=" * 80)
+
+    return all_updated_team_stats
+
+
 async def runrun():
     service_container = CommonServiceContainer()
     service_container.container_config.from_dict({"config_path": "./configs/.env"})
@@ -959,7 +1317,7 @@ async def runrun():
     # )
     # await create_players(service_container, repository_container, webclient_service)
     # await create_player_stats(repository_container, webclient_service)
-    await create_team_stats(repository_container, webclient_service)
+    # await create_team_stats(repository_container, webclient_service)
     # await create_match(
     #     service_container,
     #     repository_container,
@@ -976,8 +1334,10 @@ async def runrun():
     #     webclient_service,
     # )
     # await create_news(config_service, db_service)
-    await update_championship(service_container, repository_container)
+    # await update_championship(service_container, repository_container)
     # await update_match(service_container, repository_container, webclient_service)
+    await upsert_analytics(repository_container, db_service)
+    # await reset_team_stats(repository_container, webclient_service)
 
 
 run(runrun())

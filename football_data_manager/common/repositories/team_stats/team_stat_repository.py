@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from football_data_manager.common.enums.period_enum import PeriodEnum
 from football_data_manager.common.repositories.matches.match_entity import (
     MatchEntity,
@@ -54,6 +56,29 @@ class TeamStatRepository(PulseliveRepository[TeamStatEntity]):
             ],
         )
 
+    @PulseliveRepository.with_db_session
+    async def clear_match_associations(
+        self,
+        session: AsyncSession,
+        team_stat: TeamStatEntity,
+    ) -> None:
+        """
+        Clear all match associations for a team stat entity from the database.
+
+        Deletes all TeamStatMatchAssociation records associated with the given
+        team stat entity. This is used for force reset operations to ensure
+        clean rebuild of statistics.
+
+        :param session: Database session (injected by decorator)
+        :param team_stat: The team stat entity to clear associations for
+        """
+        from sqlalchemy import delete
+
+        stmt = delete(TeamStatMatchAssociation).where(
+            TeamStatMatchAssociation.team_stat_id == team_stat.id
+        )
+        await session.execute(stmt)
+
     async def read_by_season(self, season: SeasonEntity) -> list[TeamStatEntity]:
         """
         Read team statistics for a specific season.
@@ -84,9 +109,14 @@ class TeamStatRepository(PulseliveRepository[TeamStatEntity]):
         if match.period != PeriodEnum.FULLTIME:
             return team_stat
 
-        team_stat = await self.load_items(team_stat)
+        # Only load items if not already loaded (check if match_associations is accessible)
+        # Avoid reloading which would discard in-memory changes
+        if not hasattr(team_stat, '_associations_loaded') or not team_stat._associations_loaded:
+            team_stat = await self.load_items(team_stat)
+            team_stat._associations_loaded = True
+
         if team_stat.match_associations:
-            # Load existing associations for duplicate checking
+            # Check for duplicate
             if any(match.id == m.match_id for m in team_stat.match_associations):
                 return team_stat
 
@@ -102,11 +132,14 @@ class TeamStatRepository(PulseliveRepository[TeamStatEntity]):
                 matches_data.append((match.id, kickoff_time))
                 matches_data.sort(key=lambda m: m[1])
                 team_stat.reset_statistics()
+                team_stat._associations_loaded = True  # Keep flag after reset
                 for match_id, kickoff in matches_data:
-                    # Retrieve the actual MatchEntity using match_id
                     match_entity = await self.__match_repository.read_by_id(match_id)
                     if match_entity:
-                        await self.append_fixtures(team_stat, kickoff, match_entity, is_appending=True)
+                        team_stat = await self.append_fixtures(
+                            team_stat, kickoff, match_entity, is_appending=True
+                        )
+                return team_stat  # Return after rebuilding to avoid double-append
 
         team_stat.match_associations.append(
             TeamStatMatchAssociation(

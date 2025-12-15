@@ -1,3 +1,4 @@
+ANALYTICS_TABLE_NAME = "analytics"
 AWARDS_TABLE_NAME = "awards"
 COMPETITIONS_TABLE_NAME = "competitions"
 FIXTURES_TABLE_NAME = "fixtures"

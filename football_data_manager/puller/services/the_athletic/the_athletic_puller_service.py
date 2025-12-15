@@ -98,7 +98,9 @@ class TheAthleticPullerService:
         if article is None:
             return None
         if article.articleBody is None:
-            print(f"Skipping news (no articleBody): [{content.consumable_id}] {article.headline}")
+            print(
+                f"Skipping news (no articleBody): [{content.consumable_id}] {article.headline}\n{content.permalink}"
+            )
             return None
         print(f"News entity pulled: [{content.consumable_id}] {article.headline}")
         translate_response = await self.__translate_article(article)
@@ -146,21 +148,38 @@ class TheAthleticPullerService:
                 return None
             body = await resp.text()
             soup = BeautifulSoup(body, "html.parser")
-            script = soup.find("script", type="application/ld+json")
-            if not script:
+
+            # Get article_body from __NEXT_DATA__ script
+            next_data_script = soup.find("script", id="__NEXT_DATA__")
+            article_body: str | None = None
+            if next_data_script and next_data_script.string:
+                next_data = loads(next_data_script.string.strip())
+                article_body = (
+                    next_data.get("props", {})
+                    .get("pageProps", {})
+                    .get("article", {})
+                    .get("article_body")
+                )
+
+            # Get other fields from ld+json script
+            ld_json_script = soup.find("script", type="application/ld+json")
+            if not ld_json_script:
                 return None
-            return TheAthleticArticleResponse.model_validate(
-                loads(script.string.strip())
+            response = TheAthleticArticleResponse.model_validate(
+                loads(ld_json_script.string.strip())
             )
+            response.articleBody = article_body
+            return response
 
     async def __translate_article(
         self,
         article: TheAthleticArticleResponse,
     ) -> NewsTranslateResponse | None:
+        article_body = article.articleBody[:45000] if article.articleBody else None
         body = {
             "authors": [a.name for a in article.author],
             "title": article.headline,
-            "article": article.articleBody,
+            "article": article_body,
         }
         try_count = 0
         while try_count < 5:

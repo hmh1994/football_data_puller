@@ -89,6 +89,7 @@ class PulseliveNewTeamStatsPuller:
         competition: CompetitionEntity,
         season: SeasonEntity,
         ground: GroundEntity | None,
+        force_reset: bool = False,
     ) -> TeamStatEntity | None:
         """
         Pull team statistics for a specific team, competition and season.
@@ -101,6 +102,7 @@ class PulseliveNewTeamStatsPuller:
         :param competition: Competition entity
         :param season: Season entity
         :param ground: Ground entity of the team on season, or None if not found
+        :param force_reset: If True, reset all statistics and rebuild from scratch
         :returns: Updated team stat entity, or None if API call fails or team stat not found
         :raises ValueError: If season doesn't belong to competition
         """
@@ -120,9 +122,18 @@ class PulseliveNewTeamStatsPuller:
                     season=season,
                     team=team,
                 )
+                # New entity, mark associations as loaded (empty list)
+                team_stat._associations_loaded = True
             else:
                 # Load existing associations to enable duplicate checking
                 team_stat = await self.__team_stat_repository.load_items(team_stat)
+                team_stat._associations_loaded = True
+                
+                # Force reset if requested - clear associations and statistics
+                if force_reset:
+                    # Delete existing associations from database first
+                    await self.__team_stat_repository.clear_match_associations(team_stat)
+                    team_stat.reset_statistics()
 
             # Get FULLTIME matches for this team and season
             fixtures = await self.__fixture_repository.read_by_team_on_season(
@@ -130,9 +141,10 @@ class PulseliveNewTeamStatsPuller:
             )
             fixtures.sort(key=lambda f: f.kickoff_time)
 
-            # Update team statistics with API data
+            # Update team statistics with match data
+            # IMPORTANT: _update_match_stat returns updated team_stat, must reassign
             for fixture in fixtures:
-                await self._update_match_stat(team_stat, fixture)
+                team_stat = await self._update_match_stat(team_stat, fixture)
 
             # Get team statistics from v2 API
             team_stats_response = await self.__webclient.get_v2_team_stats(
@@ -158,7 +170,8 @@ class PulseliveNewTeamStatsPuller:
         if match is None or match.period != PeriodEnum.FULLTIME:
             return team_stat
 
-        await self.__team_stat_repository.append_fixtures(
+        # IMPORTANT: append_fixtures returns updated team_stat, must use it
+        team_stat = await self.__team_stat_repository.append_fixtures(
             team_stat, fixture.kickoff_time, match
         )
 

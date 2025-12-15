@@ -32,13 +32,14 @@ class AbstractWebClientService(metaclass=ABCMeta):
         path: URL,
         query: dict[str, Any] | None = None,
         headers: dict[str, Any] | None = None,
-    ) -> dict:
+    ) -> dict | None:
         """
         Sends a GET request to the API.
+
         :param path: Sub-path of the API.
         :param query: Query parameters.
         :param headers: Headers.
-        :return: Response from the API.
+        :returns: Response from the API, or None if response body is empty.
         """
         response = await self.__client.get(
             url=self.base_url.join(path),
@@ -48,6 +49,8 @@ class AbstractWebClientService(metaclass=ABCMeta):
         )
         print("GET request to:", response.url)
         response.raise_for_status()
+        if not response.text:
+            return None
         return response.json()
 
     async def post(

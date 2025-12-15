@@ -141,6 +141,7 @@ class TeamStatEntity(PulseliveEntity):
     overall_stat_discipline_red_cards = Column(Integer, nullable=True)  # totalRedCards
     overall_stat_discipline_red_cards_direct = Column(Integer, nullable=True)  # straightRedCards
     overall_stat_discipline_yellow_cards = Column(Integer, nullable=True)  # yellowCards
+    momentum = Column(Double, nullable=True)  # Team Momentum Index: 100 * tanh(β * (0.6*z(ΔPPM) + 0.4*z(ΔxG)))
     # fmt: on
     season_id = Column(
         String,
@@ -276,6 +277,9 @@ class TeamStatEntity(PulseliveEntity):
         self.overall_stat_discipline_red_cards = 0
         self.overall_stat_discipline_red_cards_direct = 0
         self.overall_stat_discipline_yellow_cards = 0
+
+        # Reset momentum
+        self.momentum = None
 
     def update_match_result(
         self,

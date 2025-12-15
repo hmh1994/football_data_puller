@@ -1,3 +1,4 @@
+import math
 from asyncio import run
 from datetime import timedelta
 from typing import Dict
@@ -1184,6 +1185,137 @@ async def update_championship(
     return results
 
 
+async def update_momentum(
+    repository_container: CommonRepositoryContainer,
+    team_stats: list[TeamStatEntity],
+    window_size: int = 5,
+    beta: float = 0.5,
+) -> list[TeamStatEntity]:
+    """
+    Calculate and update momentum index for all team stats in a season.
+
+    Implements the Team Momentum Index formula:
+    - ΔPPM = PPM(recent N matches) - PPM(season average)
+    - ΔxG = average xG difference over N matches
+    - Momentum = 100 * tanh(β * (0.6 * z(ΔPPM) + 0.4 * z(ΔxG)))
+
+    :param repository_container: Repository container for database operations
+    :param team_stats: List of team stat entities for a single season
+    :param window_size: N - number of recent matches to consider (default: 5)
+    :param beta: Scaling factor for momentum calculation (default: 0.5)
+    :returns: List of updated team stat entities with momentum values
+    """
+    if not team_stats:
+        return []
+
+    match_stat_repository = repository_container.match_stat_repository()
+    match_repository = repository_container.match_repository()
+
+    # Step 1: Calculate raw momentum values for each team
+    ppm_deltas: list[float | None] = []
+    xg_deltas: list[float | None] = []
+
+    for team_stat in team_stats:
+        # Calculate season PPM
+        if team_stat.overall_matches == 0:
+            ppm_deltas.append(None)
+            xg_deltas.append(None)
+            continue
+
+        ppm_season = team_stat.overall_points / team_stat.overall_matches
+
+        # Calculate recent matches PPM from cumulative points
+        cumulative = team_stat.overall_cumulative_points
+        total_matches = len(cumulative)
+
+        if total_matches == 0:
+            # No matches at all
+            ppm_deltas.append(None)
+            xg_deltas.append(None)
+            continue
+
+        # Use effective window size (min of requested window and available matches)
+        effective_window = min(window_size, total_matches)
+
+        # PPM(N) = (C[M] - C[M-N]) / N
+        # When M == effective_window, C[M-N] = C[0] = 0
+        if total_matches > effective_window:
+            points_recent = cumulative[-1] - cumulative[-(effective_window + 1)]
+        else:
+            # All matches are within the window
+            points_recent = cumulative[-1]
+
+        ppm_recent = points_recent / effective_window
+        delta_ppm = ppm_recent - ppm_season
+        ppm_deltas.append(delta_ppm)
+
+        # Get recent matches for xG calculation (use effective window)
+        match_associations = sorted(
+            team_stat.match_associations, key=lambda x: x.kickoff_time
+        )
+        recent_associations = match_associations[-effective_window:]
+
+        xg_diffs = []
+        for assoc in recent_associations:
+            match = await match_repository.read_by_id(assoc.match_id)
+            if not match:
+                continue
+
+            match_stats = await match_stat_repository.read_by_match(match)
+            if len(match_stats) != 2:
+                continue
+
+            # Find team's xG and opponent's xG
+            team_xg = None
+            opponent_xg = None
+            for stat in match_stats:
+                if stat.team_id == team_stat.team_id:
+                    team_xg = stat.expected_goals
+                else:
+                    opponent_xg = stat.expected_goals
+
+            if team_xg is not None and opponent_xg is not None:
+                xg_diffs.append(team_xg - opponent_xg)
+
+        if xg_diffs:
+            delta_xg = sum(xg_diffs) / len(xg_diffs)
+            xg_deltas.append(delta_xg)
+        else:
+            xg_deltas.append(None)
+
+    # Step 2: Calculate z-scores for teams with valid values
+    valid_ppm = [v for v in ppm_deltas if v is not None]
+    valid_xg = [v for v in xg_deltas if v is not None]
+
+    # Calculate mean and std for z-score normalization
+    def calculate_z_scores(
+        values: list[float | None], valid_values: list[float]
+    ) -> list[float | None]:
+        if len(valid_values) < 2:
+            return [None] * len(values)
+
+        mean = sum(valid_values) / len(valid_values)
+        variance = sum((v - mean) ** 2 for v in valid_values) / len(valid_values)
+        std = math.sqrt(variance) if variance > 0 else 1.0
+
+        return [(v - mean) / std if v is not None else None for v in values]
+
+    z_ppm = calculate_z_scores(ppm_deltas, valid_ppm)
+    z_xg = calculate_z_scores(xg_deltas, valid_xg)
+
+    # Step 3: Calculate final momentum and update entities
+    for i, team_stat in enumerate(team_stats):
+        if z_ppm[i] is not None and z_xg[i] is not None:
+            # Momentum = 100 * tanh(β * (0.6 * z(ΔPPM) + 0.4 * z(ΔxG)))
+            combined_z = 0.6 * z_ppm[i] + 0.4 * z_xg[i]
+            team_stat.momentum = 100 * math.tanh(beta * combined_z)
+        else:
+            # Not enough data for momentum calculation (z-score requires at least 2 teams)
+            team_stat.momentum = None
+
+    return team_stats
+
+
 async def reset_team_stats(
     repository_container: CommonRepositoryContainer,
     webclient: PulseliveNewWebclient,
@@ -1283,8 +1415,23 @@ async def reset_team_stats(
                 team_stat = await team_stat_repository.update_position(
                     team_stat, season_team_stats
                 )
+
+            # Update momentum for all teams in this season
+            print(f"  Calculating momentum for {len(season_team_stats)} teams...")
+            season_team_stats = await update_momentum(
+                repository_container, season_team_stats
+            )
+
+            # Save all team stats to database
+            for team_stat in season_team_stats:
                 await team_stat_repository.update(team_stat)
                 all_updated_team_stats.append(team_stat)
+
+            # Print momentum summary
+            teams_with_momentum = sum(
+                1 for ts in season_team_stats if ts.momentum is not None
+            )
+            print(f"  Momentum calculated for {teams_with_momentum} teams")
 
         print(
             f"  Updated {len(season_team_stats)} team stats for season {season.year_start}"
@@ -1336,8 +1483,8 @@ async def runrun():
     # await create_news(config_service, db_service)
     # await update_championship(service_container, repository_container)
     # await update_match(service_container, repository_container, webclient_service)
-    await upsert_analytics(repository_container, db_service)
-    # await reset_team_stats(repository_container, webclient_service)
+    # await upsert_analytics(repository_container, db_service)
+    await reset_team_stats(repository_container, webclient_service)
 
 
 run(runrun())

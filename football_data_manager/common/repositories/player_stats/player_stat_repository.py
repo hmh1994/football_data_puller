@@ -66,6 +66,30 @@ class PlayerStatRepository(PulseliveRepository[PlayerStatEntity]):
         result = await session.execute(stmt)
         return result.scalars().first()
 
+    @PulseliveRepository.with_db_session
+    async def read_by_player_season_id(
+        self,
+        session: AsyncSession,
+        player_id: str,
+        season_id: str,
+    ) -> PlayerStatEntity | None:
+        """
+        Get player stat entity for specific player ID and season ID.
+
+        Looks up player statistics for a given player in a specific season using IDs.
+
+        :param session: Database session
+        :param player_id: Player entity ID
+        :param season_id: Season entity ID
+        :returns: Player stat entity or None if not found
+        """
+        stmt = select(PlayerStatEntity).where(
+            PlayerStatEntity.player_id == player_id,
+            PlayerStatEntity.season_id == season_id,
+        )
+        result = await session.execute(stmt)
+        return result.scalars().first()
+
     async def append_award_association(
         self, player_stat: PlayerStatEntity, award: AwardEntity, date: datetime
     ) -> PlayerStatEntity:
@@ -233,6 +257,7 @@ class PlayerStatRepository(PulseliveRepository[PlayerStatEntity]):
             existing_stat.shooting_shots_on_target = (
                 player_stat_entity.shooting_shots_on_target
             )
+            existing_stat.minutes_played = player_stat_entity.minutes_played
 
             return await self.update(existing_stat)
         else:

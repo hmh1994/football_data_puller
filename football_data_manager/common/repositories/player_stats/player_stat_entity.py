@@ -105,6 +105,7 @@ class PlayerStatEntity(PulseliveEntity):
     shooting_penalties_taken = Column(Integer, nullable=True)  # penaltiesTaken
     shooting_shots = Column(Integer, nullable=True)  # totalShots + blockedShots
     shooting_shots_on_target = Column(Integer, nullable=True)  # shotsOnTargetIncGoals
+    minutes_played = Column(Integer, nullable=True)  # Total minutes played in season
     team_id = Column(
         String,
         ForeignKey(TeamEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
@@ -165,6 +166,7 @@ class PlayerStatEntity(PulseliveEntity):
         shooting_penalties_taken: int | None = None,
         shooting_shots: int | None = None,
         shooting_shots_on_target: int | None = None,
+        minutes_played: int | None = None,
     ):
         """
         Initialize a new player stat entity.
@@ -220,6 +222,7 @@ class PlayerStatEntity(PulseliveEntity):
         :param shooting_penalties_taken: Number of penalties taken
         :param shooting_shots: Total number of shots
         :param shooting_shots_on_target: Shots on target including goals
+        :param minutes_played: Total minutes played in season
         """
         super().__init__(source_id=self.get_source_id(season, player))
         self.number = number
@@ -276,6 +279,7 @@ class PlayerStatEntity(PulseliveEntity):
         self.shooting_penalties_taken = shooting_penalties_taken
         self.shooting_shots = shooting_shots
         self.shooting_shots_on_target = shooting_shots_on_target
+        self.minutes_played = minutes_played
 
     @staticmethod
     def get_source_id(season: SeasonEntity, player: PlayerEntity) -> str:

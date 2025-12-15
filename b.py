@@ -1316,6 +1316,176 @@ async def update_momentum(
     return team_stats
 
 
+async def update_player_stats(
+    repository_container: CommonRepositoryContainer,
+) -> list[PlayerStatEntity]:
+    """
+    Calculate and update minutes_played for all player stats in each season.
+
+    Calculates total playing time for each player based on:
+    - Starting lineup: match.clock (full match) or substitution.clock (if subbed out)
+    - Substituted in: match.clock - substitution.clock
+
+    :param repository_container: Repository container for database operations
+    :returns: List of updated player stat entities
+    """
+    print("=" * 80)
+    print("Player Stats Update Process (Minutes Played)")
+    print("=" * 80)
+
+    # Initialize repositories
+    competition_repository = repository_container.competition_repository()
+    season_repository = repository_container.season_repository()
+    fixture_repository = repository_container.fixture_repository()
+    match_repository = repository_container.match_repository()
+    player_stat_repository = repository_container.player_stat_repository()
+
+    # Get competition
+    competition = await competition_repository.read_by_pulselive_id(8)
+    if not competition:
+        print("Error: Competition not found")
+        return []
+
+    # Get seasons sorted from oldest to newest
+    seasons = await season_repository.read_by_competition(competition)
+    if not seasons:
+        print("Error: No seasons found")
+        return []
+
+    seasons.sort(key=lambda s: s.year_start)
+
+    all_updated_player_stats = []
+
+    for season in seasons:
+        print(f"\nProcessing season {season.year_start}...")
+
+        # Step 1: Get all completed matches for the season
+        fixtures = await fixture_repository.read_by_season(season)
+        if not fixtures:
+            print(f"  No fixtures found for season {season.year_start}")
+            continue
+
+        completed_matches = []
+        for fixture in fixtures:
+            match = await match_repository.read_by_fixture(fixture)
+            if match and match.period == PeriodEnum.FULLTIME:
+                loaded_match = await match_repository.load_items(match)
+                completed_matches.append(loaded_match)
+
+        if not completed_matches:
+            print(f"  No completed matches found for season {season.year_start}")
+            continue
+
+        print(f"  Found {len(completed_matches)} completed matches")
+
+        # Step 2: Calculate minutes played for each player
+        player_minutes: dict[str, int] = {}  # player_id -> total minutes
+
+        for match in completed_matches:
+            match_duration = match.clock or 90  # Default to 90 if clock is None
+
+            # Build substitution lookup: player_id -> substitution clock
+            # For players subbed OUT
+            subbed_out_at: dict[str, int] = {}
+            # For players subbed IN
+            subbed_in_at: dict[str, int] = {}
+
+            for sub in match.substitution_associations:
+                subbed_out_at[sub.out_player_id] = sub.clock
+                subbed_in_at[sub.in_player_id] = sub.clock
+
+            # Calculate minutes for starting lineup players
+            for lineup in match.lineup_associations:
+                player_id = lineup.player_id
+
+                if player_id in subbed_out_at:
+                    # Player was substituted out
+                    minutes = subbed_out_at[player_id]
+                else:
+                    # Player played full match
+                    minutes = match_duration
+
+                player_minutes[player_id] = player_minutes.get(player_id, 0) + minutes
+
+            # Calculate minutes for substituted-in players
+            for player_id, sub_clock in subbed_in_at.items():
+                minutes = match_duration - sub_clock
+                player_minutes[player_id] = player_minutes.get(player_id, 0) + minutes
+
+        print(f"  Calculated minutes for {len(player_minutes)} players")
+
+        # Step 3: Update player_stats with minutes_played
+        updated_count = 0
+        for player_id, total_minutes in player_minutes.items():
+            # Find player_stat for this player and season
+            player_stat = await player_stat_repository.read_by_player_season_id(
+                player_id=player_id, season_id=season.id
+            )
+
+            if player_stat:
+                player_stat.minutes_played = total_minutes
+                await player_stat_repository.update(player_stat)
+                all_updated_player_stats.append(player_stat)
+                updated_count += 1
+
+        print(f"  Updated {updated_count} player stats for season {season.year_start}")
+
+    print(f"\n{'=' * 80}")
+    print(f"Total updated: {len(all_updated_player_stats)} player stat entities")
+    print("=" * 80)
+
+    return all_updated_player_stats
+
+    """
+
+⏺ 구현을 완료했습니다. 아래는 각 단계별 설명입니다.
+
+  ---
+  update_player_stats 함수 - 단계별 설명
+
+  Step 1: 시즌별 완료된 경기 조회
+
+  fixtures = await fixture_repository.read_by_season(season)
+  completed_matches = [match for match if match.period == PeriodEnum.FULLTIME]
+  - 해당 시즌의 모든 fixture 조회
+  - FULLTIME 상태인 경기만 필터링
+  - 각 경기의 lineup_associations, substitution_associations 로드
+
+  Step 2: 선수별 출전 시간 계산
+
+  player_minutes: dict[str, int] = {}  # player_id -> 총 출전 시간
+
+  선발 출전 선수:
+  | 상황        | 계산                                 |
+  |-------------|--------------------------------------|
+  | 풀타임 출전 | match.clock (전체 경기 시간)         |
+  | 교체 아웃   | substitution.clock (교체된 시점까지) |
+
+  교체 투입 선수:
+  | 상황    | 계산                             |
+  |---------|----------------------------------|
+  | 교체 인 | match.clock - substitution.clock |
+
+  Step 3: PlayerStat 업데이트
+
+  player_stat = await player_stat_repository.read_by_player_season_id(player_id, season_id)
+  player_stat.minutes_played = total_minutes
+  await player_stat_repository.update(player_stat)
+  - 해당 시즌의 player_stat 조회
+  - minutes_played 필드에 총 출전 시간 저장
+  - DB 업데이트
+
+  ---
+  수정된 파일 요약
+
+  | 파일                      | 변경 내용                                                                          |
+  |---------------------------|------------------------------------------------------------------------------------|
+  | player_stat_entity.py     | minutes_played = Column(Integer, nullable=True) 필드 추가                          |
+  | player_stat_repository.py | read_by_player_season_id() 메서드 추가, upsert_player_stat()에 minutes_played 포함 |
+  | b.py                      | update_player_stats() 함수 추가                                                    |
+    """
+
+
 async def reset_team_stats(
     repository_container: CommonRepositoryContainer,
     webclient: PulseliveNewWebclient,
@@ -1484,7 +1654,7 @@ async def runrun():
     # await update_championship(service_container, repository_container)
     # await update_match(service_container, repository_container, webclient_service)
     # await upsert_analytics(repository_container, db_service)
-    await reset_team_stats(repository_container, webclient_service)
+    # await reset_team_stats(repository_container, webclient_service)
 
 
 run(runrun())

@@ -72,26 +72,33 @@ class PlayerStatEntity(PulseliveEntity):
     goalkeeping_penalty_goals_conceded = Column(Integer, nullable=True)  # penaltyGoalsConceded
     goalkeeping_penalty_saved = Column(Integer, nullable=True)  # penaltiesFaced − penaltyGoalsConceded
     goalkeeping_saves = Column(Integer, nullable=True)  # savesMade
+    minutes_played = Column(Integer, nullable=True)  # Total minutes played in season
     number = Column(Integer, nullable=False)
-    passing_long_balls_accurate = Column(Integer, nullable=True)  # successfulLongPasses
-    passing_long_balls_total = Column(Integer, nullable=True)  # successfulLongPasses + unsuccessfulLongPasses
     passing_assists = Column(Integer, nullable=True)  # goalAssists
     passing_chances_created = Column(Integer, nullable=True)  # goalAssists + keyPassesAttemptAssists
-    passing_expected_assists = Column(Double, nullable=True)  # expectedAssists
-    passing_passes_successful = Column(Integer, nullable=True)  # successfulShortPasses + successfulLongPasses
-    passing_passes_total = Column(Integer, nullable=True)  # totalPasses
     passing_crosses_successful = Column(Integer, nullable=True)  # successfulCrossesAndCorners
     passing_crosses_total = Column(Integer, nullable=True)  # successfulCrossesAndCorners + unsuccessfulCrossesAndCorners
+    passing_expected_assists = Column(Double, nullable=True)  # expectedAssists
+    passing_long_balls_accurate = Column(Integer, nullable=True)  # successfulLongPasses
+    passing_long_balls_total = Column(Integer, nullable=True)  # successfulLongPasses + unsuccessfulLongPasses
+    passing_passes_successful = Column(Integer, nullable=True)  # successfulShortPasses + successfulLongPasses
+    passing_passes_total = Column(Integer, nullable=True)  # totalPasses
     player_id = Column(
         String,
         ForeignKey(PlayerEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
         nullable=False,
     )
-    possession_dribble_total = Column(Integer, nullable=True)  # successfulDribbles + unsuccessfulDribbles
     possession_dribble_successful = Column(Integer, nullable=True)  # successfulDribbles
+    possession_dribble_total = Column(Integer, nullable=True)  # successfulDribbles + unsuccessfulDribbles
     possession_fouls_won = Column(Integer, nullable=True)  # totalFoulsWon
     possession_touches = Column(Integer, nullable=True)  # touches
     possession_touches_in_opposition_box = Column(Integer, nullable=True)  # totalTouchesInOppositionBox
+    score_defending = Column(Double, nullable=False, default=0.0)
+    score_discipline = Column(Double, nullable=False, default=0.0)
+    score_dribbling = Column(Double, nullable=False, default=0.0)
+    score_overall = Column(Double, nullable=False, default=0.0)
+    score_passing = Column(Double, nullable=False, default=0.0)
+    score_shooting = Column(Double, nullable=False, default=0.0)
     season_id = Column(
         String,
         ForeignKey(SeasonEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
@@ -105,7 +112,6 @@ class PlayerStatEntity(PulseliveEntity):
     shooting_penalties_taken = Column(Integer, nullable=True)  # penaltiesTaken
     shooting_shots = Column(Integer, nullable=True)  # totalShots + blockedShots
     shooting_shots_on_target = Column(Integer, nullable=True)  # shotsOnTargetIncGoals
-    minutes_played = Column(Integer, nullable=True)  # Total minutes played in season
     team_id = Column(
         String,
         ForeignKey(TeamEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
@@ -144,20 +150,27 @@ class PlayerStatEntity(PulseliveEntity):
         goalkeeping_penalty_goals_conceded: int | None = None,
         goalkeeping_penalty_saved: int | None = None,
         goalkeeping_saves: int | None = None,
-        passing_long_balls_accurate: int | None = None,
-        passing_long_balls_total: int | None = None,
+        minutes_played: int | None = None,
         passing_assists: int | None = None,
         passing_chances_created: int | None = None,
-        passing_expected_assists: float | None = None,
-        passing_passes_successful: int | None = None,
-        passing_passes_total: int | None = None,
         passing_crosses_successful: int | None = None,
         passing_crosses_total: int | None = None,
-        possession_dribble_total: int | None = None,
+        passing_expected_assists: float | None = None,
+        passing_long_balls_accurate: int | None = None,
+        passing_long_balls_total: int | None = None,
+        passing_passes_successful: int | None = None,
+        passing_passes_total: int | None = None,
         possession_dribble_successful: int | None = None,
+        possession_dribble_total: int | None = None,
         possession_fouls_won: int | None = None,
         possession_touches: int | None = None,
         possession_touches_in_opposition_box: int | None = None,
+        score_defending: float = 0.0,
+        score_discipline: float = 0.0,
+        score_dribbling: float = 0.0,
+        score_overall: float = 0.0,
+        score_passing: float = 0.0,
+        score_shooting: float = 0.0,
         shooting_expected_goals: float | None = None,
         shooting_expected_goals_non_penalty: float | None = None,
         shooting_expected_goals_on_target: float | None = None,
@@ -166,7 +179,6 @@ class PlayerStatEntity(PulseliveEntity):
         shooting_penalties_taken: int | None = None,
         shooting_shots: int | None = None,
         shooting_shots_on_target: int | None = None,
-        minutes_played: int | None = None,
     ):
         """
         Initialize a new player stat entity.
@@ -200,20 +212,27 @@ class PlayerStatEntity(PulseliveEntity):
         :param goalkeeping_penalty_goals_conceded: Penalty goals conceded
         :param goalkeeping_penalty_saved: Number of penalties saved
         :param goalkeeping_saves: Number of saves made
-        :param passing_long_balls_accurate: Number of successful long passes
-        :param passing_long_balls_total: Total long passes attempted
+        :param minutes_played: Total minutes played in season
         :param passing_assists: Number of goal assists
         :param passing_chances_created: Total chances created
-        :param passing_expected_assists: Expected assists value
-        :param passing_passes_successful: Number of successful passes
-        :param passing_passes_total: Total number of passes attempted
         :param passing_crosses_successful: Successful crosses and corners
         :param passing_crosses_total: Total crosses and corners attempted
-        :param possession_dribble_total: Total dribbles attempted
+        :param passing_expected_assists: Expected assists value
+        :param passing_long_balls_accurate: Number of successful long passes
+        :param passing_long_balls_total: Total long passes attempted
+        :param passing_passes_successful: Number of successful passes
+        :param passing_passes_total: Total number of passes attempted
         :param possession_dribble_successful: Number of successful dribbles
+        :param possession_dribble_total: Total dribbles attempted
         :param possession_fouls_won: Total fouls won
         :param possession_touches: Total number of touches
         :param possession_touches_in_opposition_box: Touches in opposition box
+        :param score_defending: Defending performance score
+        :param score_discipline: Discipline performance score
+        :param score_dribbling: Dribbling performance score
+        :param score_overall: Overall performance score
+        :param score_passing: Passing performance score
+        :param score_shooting: Shooting performance score
         :param shooting_expected_goals: Expected goals value
         :param shooting_expected_goals_non_penalty: Expected goals excluding penalties
         :param shooting_expected_goals_on_target: Expected goals on target
@@ -222,7 +241,6 @@ class PlayerStatEntity(PulseliveEntity):
         :param shooting_penalties_taken: Number of penalties taken
         :param shooting_shots: Total number of shots
         :param shooting_shots_on_target: Shots on target including goals
-        :param minutes_played: Total minutes played in season
         """
         super().__init__(source_id=self.get_source_id(season, player))
         self.number = number
@@ -257,20 +275,27 @@ class PlayerStatEntity(PulseliveEntity):
         self.goalkeeping_penalty_goals_conceded = goalkeeping_penalty_goals_conceded
         self.goalkeeping_penalty_saved = goalkeeping_penalty_saved
         self.goalkeeping_saves = goalkeeping_saves
-        self.passing_long_balls_accurate = passing_long_balls_accurate
-        self.passing_long_balls_total = passing_long_balls_total
+        self.minutes_played = minutes_played
         self.passing_assists = passing_assists
         self.passing_chances_created = passing_chances_created
-        self.passing_expected_assists = passing_expected_assists
-        self.passing_passes_successful = passing_passes_successful
-        self.passing_passes_total = passing_passes_total
         self.passing_crosses_successful = passing_crosses_successful
         self.passing_crosses_total = passing_crosses_total
-        self.possession_dribble_total = possession_dribble_total
+        self.passing_expected_assists = passing_expected_assists
+        self.passing_long_balls_accurate = passing_long_balls_accurate
+        self.passing_long_balls_total = passing_long_balls_total
+        self.passing_passes_successful = passing_passes_successful
+        self.passing_passes_total = passing_passes_total
         self.possession_dribble_successful = possession_dribble_successful
+        self.possession_dribble_total = possession_dribble_total
         self.possession_fouls_won = possession_fouls_won
         self.possession_touches = possession_touches
         self.possession_touches_in_opposition_box = possession_touches_in_opposition_box
+        self.score_defending = score_defending
+        self.score_discipline = score_discipline
+        self.score_dribbling = score_dribbling
+        self.score_overall = score_overall
+        self.score_passing = score_passing
+        self.score_shooting = score_shooting
         self.shooting_expected_goals = shooting_expected_goals
         self.shooting_expected_goals_non_penalty = shooting_expected_goals_non_penalty
         self.shooting_expected_goals_on_target = shooting_expected_goals_on_target
@@ -279,7 +304,6 @@ class PlayerStatEntity(PulseliveEntity):
         self.shooting_penalties_taken = shooting_penalties_taken
         self.shooting_shots = shooting_shots
         self.shooting_shots_on_target = shooting_shots_on_target
-        self.minutes_played = minutes_played
 
     @staticmethod
     def get_source_id(season: SeasonEntity, player: PlayerEntity) -> str:

@@ -1532,6 +1532,8 @@ async def reset_team_stats(
     all_updated_team_stats = []
 
     for season in seasons:
+        if season.year_start < 2024:
+            continue
         print(f"\nProcessing season {season.year_start}...")
 
         # Read existing team_stats for season
@@ -1581,8 +1583,8 @@ async def reset_team_stats(
 
         # Update positions for all team stats in this season
         if season_team_stats:
-            for team_stat in season_team_stats:
-                team_stat = await team_stat_repository.update_position(
+            for i, team_stat in enumerate(season_team_stats):
+                season_team_stats[i] = await team_stat_repository.update_position(
                     team_stat, season_team_stats
                 )
 
@@ -1605,6 +1607,81 @@ async def reset_team_stats(
 
         print(
             f"  Updated {len(season_team_stats)} team stats for season {season.year_start}"
+        )
+
+    print(f"\n{'=' * 80}")
+    print(f"Total updated: {len(all_updated_team_stats)} team stat entities")
+    print("=" * 80)
+
+    return all_updated_team_stats
+
+
+async def update_team_positions(
+    repository_container: CommonRepositoryContainer,
+) -> list[TeamStatEntity]:
+    """
+    Update position values for all team stats in each season.
+
+    Reads existing team_stats, recalculates positions using update_position,
+    and saves the updated entities to the database.
+
+    :param repository_container: Repository container for database operations
+    :returns: List of updated team stat entities
+    """
+    print("=" * 80)
+    print("Team Positions Update Process")
+    print("=" * 80)
+
+    # Initialize repositories
+    competition_repository = repository_container.competition_repository()
+    season_repository = repository_container.season_repository()
+    team_stat_repository = repository_container.team_stat_repository()
+
+    # Get competition
+    competition = await competition_repository.read_by_pulselive_id(8)
+    if not competition:
+        print("Error: Competition not found")
+        return []
+
+    # Get seasons sorted from oldest to newest
+    seasons = await season_repository.read_by_competition(competition)
+    if not seasons:
+        print("Error: No seasons found")
+        return []
+
+    seasons.sort(key=lambda s: s.year_start)
+
+    all_updated_team_stats = []
+
+    for season in seasons:
+        if season.year_start < 2024:
+            continue
+        print(f"\nProcessing season {season.year_start}...")
+
+        # Read existing team_stats for season
+        team_stats = await team_stat_repository.read_by_season(season)
+        if not team_stats:
+            print(f"  No team stats found for season {season.year_start}")
+            continue
+
+        print(f"  Found {len(team_stats)} team stats")
+
+        # Update positions for all team stats using index to preserve updates
+        for i, team_stat in enumerate(team_stats):
+            team_stats[i] = await team_stat_repository.update_position(
+                team_stat, team_stats
+            )
+            print(
+                f"    ✅ {team_stats[i].team_id}: position {team_stats[i].overall_position}"
+            )
+
+        # Save all team stats to database
+        for team_stat in team_stats:
+            await team_stat_repository.update(team_stat)
+            all_updated_team_stats.append(team_stat)
+
+        print(
+            f"  Updated {len(team_stats)} team positions for season {season.year_start}"
         )
 
     print(f"\n{'=' * 80}")
@@ -1640,11 +1717,11 @@ async def runrun():
     #     repository_container,
     #     webclient_service,
     # )
-    # await update_match(
-    #     service_container,
-    #     repository_container,
-    #     webclient_service,
-    # )
+    await update_match(
+        service_container,
+        repository_container,
+        webclient_service,
+    )
     # await create_award(
     #     service_container,
     #     repository_container,
@@ -1653,8 +1730,10 @@ async def runrun():
     # await create_news(config_service, db_service)
     # await update_championship(service_container, repository_container)
     # await update_match(service_container, repository_container, webclient_service)
-    # await upsert_analytics(repository_container, db_service)
     # await reset_team_stats(repository_container, webclient_service)
+    # await update_team_positions(repository_container)
+    # await upsert_analytics(repository_container, db_service)
+    # await update_player_stats(repository_container)
 
 
 run(runrun())

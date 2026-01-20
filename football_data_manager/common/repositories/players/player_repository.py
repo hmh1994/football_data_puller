@@ -1,3 +1,6 @@
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from football_data_manager.common.repositories.players.player_championship_association import (
     PlayerChampionshipAssociation,
 )
@@ -109,3 +112,25 @@ class PlayerRepository(PulseliveRepository[PlayerEntity]):
         :returns: The player entity if found, otherwise None
         """
         return await self._read_one_by_field(full_name=name)
+
+    @PulseliveRepository.with_db_session
+    async def read_by_ids(
+        self, session: AsyncSession, ids: list[str]
+    ) -> list[PlayerEntity]:
+        """
+        Read multiple player entities by their IDs.
+
+        Efficiently retrieves multiple players in a single database query
+        using an IN clause. Useful for batch operations like position lookup
+        for score calculations.
+
+        :param session: Database session
+        :param ids: List of player entity IDs to retrieve
+        :returns: List of player entities found (may be fewer than requested if some IDs not found)
+        """
+        if not ids:
+            return []
+
+        stmt = select(PlayerEntity).where(PlayerEntity.id.in_(ids))
+        result = await session.execute(stmt)
+        return list(result.scalars().all())

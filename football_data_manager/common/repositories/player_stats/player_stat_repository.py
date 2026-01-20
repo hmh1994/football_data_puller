@@ -90,6 +90,28 @@ class PlayerStatRepository(PulseliveRepository[PlayerStatEntity]):
         result = await session.execute(stmt)
         return result.scalars().first()
 
+    @PulseliveRepository.with_db_session
+    async def read_by_season(
+        self,
+        session: AsyncSession,
+        season: SeasonEntity,
+    ) -> list[PlayerStatEntity]:
+        """
+        Get all player stat entities for a specific season.
+
+        Retrieves all player statistics for a given season.
+        Used for calculating season-wide priors for score computation.
+
+        :param session: Database session
+        :param season: Season entity
+        :returns: List of player stat entities for the season
+        """
+        stmt = select(PlayerStatEntity).where(
+            PlayerStatEntity.season_id == season.id,
+        )
+        result = await session.execute(stmt)
+        return list(result.scalars().all())
+
     async def append_award_association(
         self, player_stat: PlayerStatEntity, award: AwardEntity, date: datetime
     ) -> PlayerStatEntity:
@@ -258,6 +280,14 @@ class PlayerStatRepository(PulseliveRepository[PlayerStatEntity]):
                 player_stat_entity.shooting_shots_on_target
             )
             existing_stat.minutes_played = player_stat_entity.minutes_played
+
+            # Score fields
+            existing_stat.score_shooting = player_stat_entity.score_shooting
+            existing_stat.score_passing = player_stat_entity.score_passing
+            existing_stat.score_defending = player_stat_entity.score_defending
+            existing_stat.score_dribbling = player_stat_entity.score_dribbling
+            existing_stat.score_discipline = player_stat_entity.score_discipline
+            existing_stat.score_overall = player_stat_entity.score_overall
 
             return await self.update(existing_stat)
         else:

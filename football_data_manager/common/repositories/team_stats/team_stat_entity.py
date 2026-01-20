@@ -278,6 +278,11 @@ class TeamStatEntity(PulseliveEntity):
         self.overall_stat_discipline_red_cards_direct = 0
         self.overall_stat_discipline_yellow_cards = 0
 
+        # Reset positions
+        self.overall_position = None
+        self.home_position = None
+        self.away_position = None
+
         # Reset momentum
         self.momentum = None
 

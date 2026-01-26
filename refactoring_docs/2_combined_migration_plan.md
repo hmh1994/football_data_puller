@@ -80,17 +80,6 @@ git checkout feature/issue-001.04
 # 1.4 git bundle 생성 (외부 백업)
 git bundle create ../football_data_manager_backup_$(date +%Y%m%d).bundle --all
 ls -lh ../football_data_manager_backup_*.bundle
-
-# 1.5 선택사항: 데이터베이스 백업
-mkdir -p backups
-pg_dump -h localhost -U your_user -d football_data -Fc > backups/pre_migration_$(date +%Y%m%d).dump
-
-# 1.6 .gitignore에 백업 디렉토리 추가 (이미 있다면 생략)
-echo "" >> .gitignore
-echo "# Backups (never commit)" >> .gitignore
-echo "backups/" >> .gitignore
-git add .gitignore
-git commit -m "chore: ignore backup files"
 ```
 
 **검증**:

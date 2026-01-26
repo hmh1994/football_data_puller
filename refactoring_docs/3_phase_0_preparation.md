@@ -12,7 +12,13 @@
 
 1. [개요](#1-개요)
 2. [Alembic 설정](#2-alembic-설정)
+   - 2.1 Alembic 설치
+   - 2.2 Alembic 초기화
+   - 2.3 alembic.ini 설정
+   - 2.4 env.py 설정 (ConfigService 연동)
 3. [검증 체크리스트](#3-검증-체크리스트)
+4. [Phase 0 완료 기준](#4-phase-0-완료-기준)
+5. [다음 단계](#5-다음-단계)
 
 ---
 
@@ -32,7 +38,7 @@ Phase 0 완료 후:
 
 ## 2. Alembic 설정
 
-### 3.1 Alembic 설치
+### 2.1 Alembic 설치
 
 ```bash
 # 필수 패키지 설치
@@ -42,7 +48,7 @@ pip install alembic
 echo "alembic>=1.13.0" >> requirements/essential.txt
 ```
 
-### 3.2 Alembic 초기화
+### 2.2 Alembic 초기화
 
 ```bash
 # Alembic 디렉토리 생성 (프로젝트 루트에서)
@@ -56,7 +62,7 @@ alembic init football_data_manager/repository/migrations
 # └── alembic.ini       # Alembic 설정 파일
 ```
 
-### 3.3 `alembic.ini` 설정
+### 2.3 `alembic.ini` 설정
 
 **파일 위치**: `football_data_manager/repository/migrations/alembic.ini`
 
@@ -110,7 +116,7 @@ format = %(levelname)-5.5s [%(name)s] %(message)s
 datefmt = %H:%M:%S
 ```
 
-### 3.4 `env.py` 설정 (Async 지원)
+### 2.4 `env.py` 설정 (Async 지원)
 
 **파일 위치**: `football_data_manager/repository/migrations/env.py`
 
@@ -207,140 +213,21 @@ else:
     run_migrations_online()
 ```
 
-### 3.5 초기 마이그레이션 생성
+**완료**: `env.py` 설정이 완료되었습니다.
 
-```bash
-# 현재 스키마 캡처 (auto-generate)
-alembic revision --autogenerate -m "Initial schema"
-
-# 생성된 파일 확인
-# football_data_manager/repository/migrations/versions/20260126_1430_abc123_initial_schema.py
-
-# 마이그레이션 파일 검토 (중요!)
-# - 모든 테이블이 포함되었는지 확인
-# - Association 테이블 (11개) 확인
-# - 인덱스 및 제약조건 확인
-```
-
-**생성된 마이그레이션 파일 예시**:
-
-```python
-"""Initial schema
-
-Revision ID: abc123
-Revises:
-Create Date: 2026-01-26 14:30:00.000000
-
-"""
-from typing import Sequence, Union
-
-from alembic import op
-import sqlalchemy as sa
-
-# revision identifiers, used by Alembic.
-revision: str = 'abc123'
-down_revision: Union[str, None] = None
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
-
-
-def upgrade() -> None:
-    # 테이블 생성 (15개 main tables)
-    op.create_table('awards',
-                    sa.Column('id', sa.String(), nullable=False),
-                    sa.Column('source', sa.Enum('PULSELIVE', 'THE_ATHLETIC', name='sourceenum'), nullable=False),
-                    sa.Column('source_id', sa.String(), nullable=False),
-                    sa.Column('created_at', sa.DateTime(), nullable=False),
-                    sa.Column('updated_at', sa.DateTime(), nullable=False),
-                    # ... 추가 컬럼
-                    sa.PrimaryKeyConstraint('id'),
-                    sa.UniqueConstraint('source_id')
-                    )
-    # ... (모든 테이블)
-
-
-def downgrade() -> None:
-    # 롤백 로직
-    op.drop_table('awards')
-    # ... (모든 테이블)
-```
-
-### 3.6 마이그레이션 검증 (Dry-run)
-
-```bash
-# SQL만 확인 (실제 적용 안 함)
-alembic upgrade head --sql
-
-# 출력 검토:
-# - CREATE TABLE 문 확인
-# - 인덱스 및 제약조건 확인
-# - 순서 확인 (FK 의존성)
-```
-
-### 3.7 마이그레이션 적용 (실제 DB)
-
-⚠️ **주의**: 프로덕션 DB에 적용하기 전에 반드시 백업!
-
-```bash
-# 개발 환경에서 먼저 테스트
-export DATABASE_URL="postgresql+asyncpg://user:pass@localhost:5432/football_dev"
-alembic upgrade head
-
-# 버전 확인
-alembic current
-
-# 출력:
-# abc123 (head)
-```
-
-### 3.8 Alembic 사용법 요약
-
-```bash
-# 새 마이그레이션 생성 (auto-detect)
-alembic revision --autogenerate -m "Add new column to players"
-
-# 수동 마이그레이션 생성
-alembic revision -m "Custom migration"
-
-# 최신 버전으로 업그레이드
-alembic upgrade head
-
-# 특정 버전으로 업그레이드
-alembic upgrade abc123
-
-# 한 단계 업그레이드
-alembic upgrade +1
-
-# 한 단계 다운그레이드 (롤백)
-alembic downgrade -1
-
-# 특정 버전으로 다운그레이드
-alembic downgrade abc123
-
-# 현재 버전 확인
-alembic current
-
-# 마이그레이션 히스토리 보기
-alembic history
-
-# SQL만 출력 (적용 안 함)
-alembic upgrade head --sql
-```
+> ℹ️ **다음 단계**: 마이그레이션 생성 및 적용은 Phase 1 이후 각 리팩토링 단계에서 수행합니다.
 
 ---
 
-## 3. 테스트 프레임워크 구축
+## 3. 검증 체크리스트
 
-### 3.1 Alembic 검증
+### 3.1 Alembic 설정 검증
 
-- [ ] `alembic.ini` 설정 완료
+- [ ] `alembic.ini` 파일 존재 및 설정 완료
 - [ ] `env.py` async 설정 완료
-- [ ] 초기 마이그레이션 생성 (`alembic revision --autogenerate`)
-- [ ] 마이그레이션 SQL 검토 (`alembic upgrade head --sql`)
-- [ ] 개발 DB에 마이그레이션 적용 (`alembic upgrade head`)
-- [ ] `alembic current` 확인 (버전 출력)
-- [ ] 모든 테이블 생성 확인 (15개 main + 11개 association)
-- [ ] 롤백 테스트 (`alembic downgrade -1` → `alembic upgrade head`)
+- [ ] `get_url()` 함수가 ConfigService에서 DB 설정 읽어오기 성공
+- [ ] `target_metadata = Base.metadata` 설정 확인
+- [ ] 모든 Entity import 확인
 
 ### 3.2 문서화
 
@@ -353,12 +240,10 @@ alembic upgrade head --sql
 
 다음 조건을 **모두** 만족해야 Phase 1로 진행 가능:
 
-1. ✅ Alembic 초기 마이그레이션 생성 및 적용 완료
-2. ✅ `alembic current` 명령으로 버전 확인 가능
+1. ✅ Alembic 설정 완료 (`alembic.ini`, `env.py`)
+2. ✅ ConfigService에서 DB 설정 읽어오기 성공
 
-**실패 시**: 위 조건 중 하나라도 실패하면 Phase 1 진행 불가.
-
-> ℹ️ **테스트**: 기존 테스트는 리팩토링 중 수정되므로 Phase 0 완료 기준에서 제외합니다.
+**다음 단계**: Phase 1부터 각 리팩토링 작업 시 필요에 따라 마이그레이션 생성 및 적용
 
 ---
 

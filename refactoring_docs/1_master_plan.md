@@ -12,7 +12,7 @@
 ### 관련 문서
 
 - **상세 현황 분석**: `current_state_analysis.md` - 현재 코드베이스의 상세 구조 (15 entities, 11 associations, 20 pullers)
-- **Phase 0 가이드**: `phase_0_preparation.md` - Alembic/pytest 설정 실행 가이드
+- **Phase 0 가이드**: `phase_0_preparation.md` - Alembic 설정 실행 가이드 (ConfigService 연동)
 - **문서 개요**: `README.md` - 문서 읽기 순서 및 FAQ
 
 ---
@@ -491,9 +491,22 @@ class JobConfig:
 
 ### 5.1 단계별 마이그레이션
 
+#### Phase 0: Preparation (2-3일)
+
+**선행 조건**: `2_combined_migration_plan.md` 실행 완료 (app.py 구현, 레거시 정리)
+
+1. Alembic 설치 및 초기화
+2. `alembic.ini` 설정
+3. `env.py` 설정 (ConfigService에서 DB 설정 읽어오기)
+4. 설정 검증
+
+**완료 기준**: Alembic이 ConfigService에서 DB 설정을 성공적으로 읽어올 수 있음
+
+> ℹ️ **마이그레이션 생성/적용은 Phase 1 이후 각 단계에서 수행**
+
 #### Phase 1: Repository 리팩토링 (1-2주)
 
-1. Alembic 설정 및 초기 마이그레이션 생성
+1. 초기 마이그레이션 생성 및 적용
 2. 새로운 디렉토리 구조 생성
 3. Entity 클래스 마이그레이션 (구조 유지)
 4. AsyncBaseRepository 구현

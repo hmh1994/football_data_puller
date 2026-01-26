@@ -588,7 +588,7 @@ echo ""
 ```
 football_data_puller/
 ├── app.py                               # ✨ 메인 엔트리 포인트 (root에 유지)
-├── CLAUDE.md                            # (현재 존재, 이후 변경 예정)
+├── CLAUDE.md                            # (현재 존재, 유지)
 ├── README.md                            # ✨ CLI usage 섹션 추가
 ├── refactoring_docs/                    # ✨ 이미 존재 (번호 매겨진 문서들)
 │   ├── 0_README.md

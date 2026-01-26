@@ -493,7 +493,7 @@ class JobConfig:
 
 #### Phase 0: Preparation (2-3일)
 
-**선행 조건**: `2_combined_migration_plan.md` 실행 완료 (app.py 구현, 레거시 정리)
+**선행 조건**: `4_combined_migration_plan.md` 실행 완료 (app.py 구현, 레거시 정리)
 
 1. Alembic 설치 및 초기화
 2. `alembic.ini` 설정

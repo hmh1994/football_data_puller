@@ -2,9 +2,9 @@
 
 **기간**: 2-3일
 **목표**: Alembic 마이그레이션 설정
-**선행 조건**: `2_combined_migration_plan.md` 실행 완료
+**선행 조건**: `4_combined_migration_plan.md` 실행 완료
 
-> ℹ️ **시작 전에**: 이 문서는 실행 가이드입니다. 전체 계획은 `master_plan.md`를 참고하세요.
+> ℹ️ **시작 전에**: 이 문서는 실행 가이드입니다. 전체 계획은 `1_master_plan.md`를 참고하세요.
 
 ---
 

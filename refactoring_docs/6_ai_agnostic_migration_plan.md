@@ -3,16 +3,16 @@
 **목적**: Claude 종속적인 의존성을 제거하고, 모든 AI 코딩 어시스턴트에서 사용 가능한 구조로 전환
 
 **날짜**: 2026-01-26  
-**상태**: ✅ 완료 (Integrated into `2_combined_migration_plan.md`)
+**상태**: ✅ 완료 (Integrated into `4_combined_migration_plan.md`)
 
 ---
 
 ## ⚠️ 이 문서는 설계 문서입니다
 
-**실행 가이드**: `2_combined_migration_plan.md`를 참고하세요.
+**실행 가이드**: `4_combined_migration_plan.md`를 참고하세요.
 
-이 문서는 AI 중립화 마이그레이션의 **WHY**와 **WHAT**을 설명합니다.  
-실제 **HOW** (실행 명령어)는 `2_combined_migration_plan.md`에 통합되었습니다.
+이 문서는 문서 구조 개선의 **WHY**와 **WHAT**을 설명합니다.  
+실제 **HOW** (실행 명령어)는 `4_combined_migration_plan.md`에 통합되었습니다.
 
 ---
 
@@ -37,10 +37,10 @@ football_data_puller/
 ├── refactoring_docs/                    # AI 중립적 문서 (이전 claudedocs/)
 │   ├── 0_README.md                      # 네비게이션 가이드
 │   ├── 1_master_plan.md                 # 전체 계획
-│   ├── 2_combined_migration_plan.md     # 실행 가이드 (Legacy + AI 중립화)
-│   ├── 3_phase_0_preparation.md         # Phase 0 가이드
-│   ├── 4_current_state_analysis.md      # 상세 분석
-│   ├── 5_calculation_formulas_reference.md  # 계산식 참조
+│   ├── 2_current_state_analysis.md      # 상세 분석
+│   ├── 3_calculation_formulas_reference.md  # 계산식 참조
+│   ├── 4_combined_migration_plan.md     # 실행 가이드 (Legacy + 문서 정리)
+│   ├── 5_phase_0_preparation.md         # Phase 0 가이드
 │   └── 6_ai_agnostic_migration_plan.md  # 이 문서 (설계)
 ├── archive/legacy_scripts/              # 레거시 백업
 │   ├── migrate_old_to_new_schema.py     # a.py (작동 불가)
@@ -111,11 +111,11 @@ football_data_puller/
 
 ### Step-by-Step 실행
 
-**문서**: `2_combined_migration_plan.md`
+**문서**: `4_combined_migration_plan.md`
 
 ```bash
 # 1. 문서 읽기
-cat refactoring_docs/2_combined_migration_plan.md
+cat refactoring_docs/4_combined_migration_plan.md
 
 # 2. Step 0: 사전 확인
 # 3. Step 1: Git 스냅샷 생성
@@ -142,7 +142,7 @@ cat refactoring_docs/2_combined_migration_plan.md
 - Legacy Script 정리 (별도 단계)
 
 **변경**:
-- **통합 실행** (`2_combined_migration_plan.md`)
+- **통합 실행** (`4_combined_migration_plan.md`)
 
 **이유**:
 1. ✅ 두 작업이 모두 "Phase 0 준비" 단계
@@ -220,14 +220,14 @@ git checkout backup/pre-migration-2026-01-26
 
 ## 참고 문서
 
-- **실행 가이드**: `2_combined_migration_plan.md` - 실제 명령어 및 단계
+- **실행 가이드**: `4_combined_migration_plan.md` - 실제 명령어 및 단계
 - **전체 계획**: `1_master_plan.md` - Phase별 상세 계획
-- **Phase 0 가이드**: `3_phase_0_preparation.md` - Alembic 설정
-- **현황 분석**: `4_current_state_analysis.md` - 상세 구조 분석
-- **계산식 참조**: `5_calculation_formulas_reference.md` - 모든 공식
+- **Phase 0 가이드**: `5_phase_0_preparation.md` - Alembic 설정
+- **현황 분석**: `2_current_state_analysis.md` - 상세 구조 분석
+- **계산식 참조**: `3_calculation_formulas_reference.md` - 모든 공식
 
 ---
 
 **Last Updated**: 2026-01-26  
 **Status**: ✅ Completed and Integrated  
-**Execution Guide**: See `2_combined_migration_plan.md`
+**Execution Guide**: See `4_combined_migration_plan.md`

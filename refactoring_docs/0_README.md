@@ -33,62 +33,7 @@
 
 ---
 
-### 2. **`2_combined_migration_plan.md`** (Phase 0 전 실행 가이드, 15분 + 2-3시간 실행)
-
-**목적**: Legacy Script 정리 + app.py 통합 CLI 구현
-
-**내용**:
-
-- **Step 0-4**: 복사-붙여넣기 가능한 실행 명령어
-- **Step 2.3**: app.py 통합 CLI 구현 (핵심)
-  - argparse 기반 CLI 구조
-  - health, run, pull-data 명령어
-  - Phase 2-4에서 구현할 TODO 포함
-- Legacy scripts 아카이브 (`a.py`, `b.py`, `c.py` → `archive/legacy_scripts/`)
-- Git 스냅샷 및 백업 전략
-- 검증 체크포인트 포함
-
-**언제 읽나요**:
-
-- **Phase 0 시작 전 반드시 실행** (준비 작업)
-- Root 디렉토리 정리 필요 시
-- app.py CLI 구조 확인 필요 시
-
-**⚠️ 중요**:
-
-- Phase 0 (Alembic, pytest) 전에 먼저 실행
-- **app.py 구현이 포함되어 실행 가능한 상태로 준비**
-- 모든 백업 및 Git 스냅샷 포함
-- 실행 완료 후 Phase 0 진행
-
----
-
-### 3. **`3_phase_0_preparation.md`** (Phase 0 실행 가이드, 10분 + 1주 실행)
-
-**목적**: Phase 0 준비 단계 실행 가이드
-
-**내용**:
-
-- Alembic 설정 (step-by-step)
-- pytest 테스트 프레임워크 구축
-- 데이터베이스 백업/복원 스크립트
-- 검증 체크리스트
-- 트러블슈팅 가이드
-
-**언제 읽나요**:
-
-- Phase 0 시작 시 (리팩토링 전 준비)
-- Alembic 또는 pytest 설정 시 참고
-
-**특징**:
-
-- 복사-붙여넣기 가능한 코드
-- 실행 가능한 bash 명령어
-- 단계별 검증 방법
-
----
-
-### 4. **`4_current_state_analysis.md`** (참고 자료, 선택, 30분)
+### 2. **`2_current_state_analysis.md`** (참고 자료, 선택, 30분)
 
 **목적**: 현재 코드베이스의 상세 구조 분석
 
@@ -115,7 +60,7 @@
 
 ---
 
-### 5. **`5_calculation_formulas_reference.md`** (핵심 참고 자료, 보관용)
+### 3. **`3_calculation_formulas_reference.md`** (핵심 참고 자료, 보관용)
 
 **목적**: 모든 점수 및 계산식 완전 문서화
 
@@ -152,35 +97,87 @@
 
 ---
 
-### 6. **`6_ai_agnostic_migration_plan.md`** (설계 문서, 선택, 15분)
+### 4. **`4_combined_migration_plan.md`** (Phase 0 전 실행 가이드, 15분 + 2-3시간 실행)
 
-**목적**: AI 중립화 마이그레이션의 상세 설계 및 전략 문서
+**목적**: Legacy Script 정리 + app.py 통합 CLI 구현
 
 **내용**:
 
-- Claude 종속성 분석
-- Phase 1-5: 각 단계별 상세 계획
-- 파일별 변경 내용 (CLAUDE.md → AI_GUIDELINES.md 등)
-- 디렉토리 재구성 전략
-- Multi-tool 지원 가이드라인
-- 롤백 및 복구 전략
+- **Step 0-4**: 복사-붙여넣기 가능한 실행 명령어
+- **Step 2.3**: app.py 통합 CLI 구현 (핵심)
+  - argparse 기반 CLI 구조
+  - health, run, pull-data 명령어
+  - Phase 2-4에서 구현할 TODO 포함
+- Legacy scripts 아카이브 (`a.py`, `b.py`, `c.py` → `archive/legacy_scripts/`)
+- Git 스냅샷 및 백업 전략
+- 검증 체크포인트 포함
+
+**언제 읽나요**:
+
+- **Phase 0 시작 전 반드시 실행** (준비 작업)
+- Root 디렉토리 정리 필요 시
+- app.py CLI 구조 확인 필요 시
+
+**⚠️ 중요**:
+
+- Phase 0 (Alembic, pytest) 전에 먼저 실행
+- **app.py 구현이 포함되어 실행 가능한 상태로 준비**
+- 모든 백업 및 Git 스냅샷 포함
+- 실행 완료 후 Phase 0 진행
+
+---
+
+### 5. **`5_phase_0_preparation.md`** (Phase 0 실행 가이드, 10분 + 2-3일 실행)
+
+**목적**: Phase 0 준비 단계 실행 가이드 (Alembic 설정 전용)
+
+**내용**:
+
+- Alembic 설정 (step-by-step)
+- alembic.ini 구성
+- env.py에서 ConfigService 통합
+- 검증 체크리스트
+- 트러블슈팅 가이드
+
+**언제 읽나요**:
+
+- Phase 0 시작 시 (리팩토링 전 준비)
+- Alembic 설정 시 참고
+
+**특징**:
+
+- 복사-붙여넣기 가능한 코드
+- 실행 가능한 bash 명령어
+- 단계별 검증 방법
+
+**⚠️ 중요**:
+
+- Phase 0는 **Alembic 설정만** 포함 (마이그레이션 생성/실행 제외)
+- 마이그레이션 생성은 Phase 1+에서 필요 시 수행
+- 데이터베이스 백업은 이 프로젝트에서 필요 없음
+
+---
+
+### 6. **`6_ai_agnostic_migration_plan.md`** (완료된 참고 문서, 선택, 15분)
+
+**목적**: 문서 구조 개선의 설계 결정 기록 (이미 완료됨)
+
+**내용**:
+
+- `claudedocs/` → `refactoring_docs/` 이동 완료
+- 파일 번호 체계 (0-6) 완료
+- AI 중립적 문서 작성 가이드라인
+- 설계 의도 및 결정 사항
 
 **언제 읽나요**:
 
 - **설계 의도 이해** 필요 시
-- `combined_migration_plan.md` 실행 중 의사결정 필요 시
-- AI 도구 중립화 전략 참고 필요 시
+- 왜 이런 문서 구조로 정리되었는지 궁금할 때
 
-**특징**:
+**⚠️ 상태**:
 
-- WHY와 WHAT에 초점
-- 전략적 결정 사항 문서화
-- Alternative 옵션 제시
-
-**관계**:
-
-- **설계**: `6_ai_agnostic_migration_plan.md`
-- **실행**: `2_combined_migration_plan.md`
+- ✅ **이미 완료됨** (2026-01-26)
+- 실행할 것 없음 (참고용)
 
 ---
 
@@ -190,12 +187,12 @@
 
 ```bash
 # 통합 마이그레이션 계획 실행 (2-3시간)
-cat refactoring_docs/2_combined_migration_plan.md
+cat refactoring_docs/4_combined_migration_plan.md
 
 # Step 0: 백업 생성
 git tag -a pre-migration/combined-2026-01-26 -m "Snapshot before migration"
 
-# Step 1-9: 단계별 실행 (문서 참조)
+# Step 1-4: 단계별 실행 (문서 참조)
 # ...
 
 # 완료 후 Phase 0 시작
@@ -229,7 +226,7 @@ cat refactoring_docs/1_master_plan.md
 
 ```bash
 # Phase 0 가이드 읽기 (10분)
-cat refactoring_docs/3_phase_0_preparation.md
+cat refactoring_docs/5_phase_0_preparation.md
 
 # Alembic 설정 시작
 alembic init football_data_manager/repository/migrations
@@ -237,15 +234,16 @@ alembic init football_data_manager/repository/migrations
 
 **Phase 0 완료 기준**:
 
-- [ ] Alembic 초기 마이그레이션 생성
-- [ ] pytest 모든 테스트 통과
-- [ ] 데이터베이스 백업 스크립트 동작 확인
+- [ ] Alembic 설치 완료
+- [ ] alembic.ini 설정 완료
+- [ ] env.py에서 ConfigService 통합 완료
+- [ ] Alembic이 DB 설정을 읽을 수 있는지 검증 완료
 
 ### Step 3: (필요 시) 상세 구조 참고
 
 ```bash
 # 현재 구조 상세 분석 보기
-cat refactoring_docs/4_current_state_analysis.md
+cat refactoring_docs/2_current_state_analysis.md
 ```
 
 ---
@@ -301,20 +299,20 @@ cat refactoring_docs/4_current_state_analysis.md
 ### 처음 시작하는 경우
 
 1. `1_master_plan.md` (필수, 20분) - 전체 계획 파악
-2. **`2_combined_migration_plan.md` (필수, 15분 + 2-3시간) - Phase 0 전 준비 작업**
-3. `3_phase_0_preparation.md` (필수, 10분 + 1주) - Phase 0 시작
-4. `4_current_state_analysis.md` (선택, 30분) - 상세 구조 파악
-5. `5_calculation_formulas_reference.md` (필수 참고) - 모든 계산식 보존
+2. `2_current_state_analysis.md` (선택, 30분) - 현재 구조 파악
+3. `3_calculation_formulas_reference.md` (필수 참고) - 모든 계산식 보존
+4. **`4_combined_migration_plan.md` (필수, 15분 + 2-3시간) - Phase 0 전 준비 작업**
+5. `5_phase_0_preparation.md` (필수, 10분 + 2-3일) - Phase 0 시작
 
 ### Phase 진행 중
 
 1. 해당 Phase 섹션 (`1_master_plan.md`)
 2. 실행 가이드 (각 Phase별 문서, Phase 0만 현재 존재)
-3. `4_current_state_analysis.md` (필요 시 참고)
+3. `2_current_state_analysis.md` (필요 시 참고)
 
 ### 새 팀원 온보딩
 
-1. `4_current_state_analysis.md` - 현재 구조 이해
+1. `2_current_state_analysis.md` - 현재 구조 이해
 2. `1_master_plan.md` - 리팩토링 계획 이해
 3. 진행 중인 Phase 문서
 
@@ -339,13 +337,17 @@ cat refactoring_docs/4_current_state_analysis.md
 
 **A**: 네, 필수입니다. Alembic과 테스트 없이 리팩토링하면 위험합니다.
 
-### Q: current_state_analysis.md는 언제 보나요?
+### Q: 2_current_state_analysis.md는 언제 보나요?
 
 **A**: 선택사항입니다. 기존 구조를 상세히 알고 싶을 때 보세요.
 
 ### Q: 각 Phase별 상세 가이드는 어디 있나요?
 
 **A**: Phase 0만 현재 작성됨. Phase 1-4는 필요 시 작성 예정.
+
+### Q: 6_ai_agnostic_migration_plan.md는 뭔가요?
+
+**A**: 이미 완료된 작업 (claudedocs → refactoring_docs 이동, 파일 번호 체계)의 설계 의도를 기록한 문서입니다. 실행할 것 없음.
 
 ### Q: Merger abstraction을 왜 제거했나요?
 

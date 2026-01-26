@@ -338,7 +338,7 @@ cat > archive/legacy_scripts/README.md << 'EOF'
 
 - Puller 로직 → `app.py pull-data {entity}` 명령으로 통합
 - Cron 스케줄링 → `app.py run` 명령으로 통합
-- 참조: `refactoring_docs/5_calculation_formulas_reference.md` (Section 2, 3)
+- 참조: `refactoring_docs/3_calculation_formulas_reference.md` (Section 2, 3)
 
 ### `backfill_player_stat_scores.py`
 
@@ -350,7 +350,7 @@ cat > archive/legacy_scripts/README.md << 'EOF'
 
 - 로직이 analytics 계산에 통합될 예정
 - 필요시 `app.py pull-data player` 실행 시 자동 계산
-- 참조: `refactoring_docs/5_calculation_formulas_reference.md` (Section 1)
+- 참조: `refactoring_docs/3_calculation_formulas_reference.md` (Section 1)
 
 ---
 
@@ -425,12 +425,12 @@ cat > docs/refactor/legacy_map.md << 'EOF'
 2. **Entity별 데이터 Pulling** (`b.py`에서):
     - 명령어: `python app.py pull-data {entity}`
     - 기능: 특정 entity에 대한 Puller + Merger 실행
-    - 문서: `refactoring_docs/5_calculation_formulas_reference.md` (Section 2, 3)
+    - 문서: `refactoring_docs/3_calculation_formulas_reference.md` (Section 2, 3)
     - 원본: `archive/legacy_scripts/ops_pulselive_and_analytics.py`
 
 3. **Player Stat Scores** (`c.py`에서):
     - 통합 방식: Player analytics 계산 시 자동 실행
-    - 문서: `refactoring_docs/5_calculation_formulas_reference.md` (Section 1)
+    - 문서: `refactoring_docs/3_calculation_formulas_reference.md` (Section 1)
     - 원본: `archive/legacy_scripts/backfill_player_stat_scores.py`
 
 ## 롤백 방법
@@ -572,7 +572,7 @@ echo "  - 전체 백업: ../football_data_manager_backup_$(date +%Y%m%d).bundle"
 echo "  - 스냅샷 태그: pre-migration/legacy-scripts-2026-01-26"
 echo "  - 안전 브랜치: backup/pre-migration-2026-01-26"
 echo ""
-echo "다음 단계 (refactoring_docs/3_phase_0_preparation.md 참조):"
+echo "다음 단계 (refactoring_docs/5_phase_0_preparation.md 참조):"
 echo "  1. requirements/essential.txt에 alembic>=1.13.0 추가"
 echo "  2. requirements/test.txt에 pytest-cov, pytest-mock 추가"
 echo "  3. pyproject.toml에 pytest 설정 업데이트"
@@ -593,10 +593,10 @@ football_data_puller/
 ├── refactoring_docs/                    # ✨ 이미 존재 (번호 매겨진 문서들)
 │   ├── 0_README.md
 │   ├── 1_master_plan.md
-│   ├── 2_combined_migration_plan.md     # 이 파일
-│   ├── 3_phase_0_preparation.md
-│   ├── 4_current_state_analysis.md
-│   ├── 5_calculation_formulas_reference.md
+│   ├── 2_current_state_analysis.md
+│   ├── 3_calculation_formulas_reference.md
+│   ├── 4_combined_migration_plan.md     # 이 파일
+│   ├── 5_phase_0_preparation.md
 │   └── 6_ai_agnostic_migration_plan.md
 ├── docs/
 │   └── refactor/

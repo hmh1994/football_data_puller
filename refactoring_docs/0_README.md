@@ -35,13 +35,16 @@
 
 ### 2. **`2_combined_migration_plan.md`** (Phase 0 전 실행 가이드, 15분 + 2-3시간 실행)
 
-**목적**: Legacy Script 정리 + AI 중립화 마이그레이션 통합 실행 계획
+**목적**: Legacy Script 정리 + app.py 통합 CLI 구현
 
 **내용**:
 
-- **Step 0-9**: 복사-붙여넣기 가능한 실행 명령어
-- Legacy scripts 백업 및 재구성 (`a.py`, `b.py`, `c.py`, `app.py` → `scripts/`)
-- AI 도구 중립화 (`CLAUDE.md` → `AI_GUIDELINES.md`, `claudedocs/` → `docs/ai_analysis/`)
+- **Step 0-4**: 복사-붙여넣기 가능한 실행 명령어
+- **Step 2.3**: app.py 통합 CLI 구현 (핵심)
+  - argparse 기반 CLI 구조
+  - health, run, pull-data 명령어
+  - Phase 2-4에서 구현할 TODO 포함
+- Legacy scripts 아카이브 (`a.py`, `b.py`, `c.py` → `archive/legacy_scripts/`)
 - Git 스냅샷 및 백업 전략
 - 검증 체크포인트 포함
 
@@ -49,11 +52,12 @@
 
 - **Phase 0 시작 전 반드시 실행** (준비 작업)
 - Root 디렉토리 정리 필요 시
-- AI 도구 중립적 프로젝트 구조로 전환 필요 시
+- app.py CLI 구조 확인 필요 시
 
 **⚠️ 중요**:
 
 - Phase 0 (Alembic, pytest) 전에 먼저 실행
+- **app.py 구현이 포함되어 실행 가능한 상태로 준비**
 - 모든 백업 및 Git 스냅샷 포함
 - 실행 완료 후 Phase 0 진행
 
@@ -199,9 +203,9 @@ git tag -a pre-migration/combined-2026-01-26 -m "Snapshot before migration"
 
 **완료 기준**:
 
-- [ ] Legacy scripts → `scripts/` 이동 완료
-- [ ] `claudedocs/` → `docs/ai_analysis/` 이동 완료
-- [ ] Root 디렉토리 정리 완료
+- [ ] **app.py 통합 CLI 구현 완료** (Step 2.3)
+- [ ] Legacy scripts → `archive/legacy_scripts/` 이동 완료
+- [ ] Root 디렉토리 정리 완료 (a.py, b.py, c.py 제거)
 - [ ] Git 스냅샷 생성 완료
 
 ---

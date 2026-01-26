@@ -133,51 +133,48 @@ cat > scripts/README.md << 'EOF'
 
 **목적**: 모든 운영 작업을 위한 단일 진입점
 
-### 사용 가능한 명령어
+### 명령어
 
-#### 1. Health Check
+#### 1. `run` - Master Process 시작
+```bash
+python scripts/app.py run
+```
+Cron 스케줄러가 실행되는 master process 시작
+- 정기적인 데이터 pulling 스케줄 관리
+- 백그라운드에서 지속 실행
 
+#### 2. `pull-data` - 특정 Entity 데이터 Pulling
+```bash
+python scripts/app.py pull-data {entity-name}
+```
+특정 entity에 대한 데이터 pulling 및 merge 실행
+
+**사용 예시**:
+```bash
+python scripts/app.py pull-data competition
+python scripts/app.py pull-data season
+python scripts/app.py pull-data team
+python scripts/app.py pull-data player
+python scripts/app.py pull-data match
+```
+
+**동작**:
+- 지정된 entity에 대한 Puller 실행
+- Merger를 통한 데이터 병합
+- Analytics 계산 (해당되는 경우)
+
+#### 3. `health` - 시스템 상태 확인
 ```bash
 python scripts/app.py health
 ```
-
-헬스 체크 및 시스템 상태 확인
-
-#### 2. Data Pulling & Analytics
-
-```bash
-python scripts/app.py pull-data
-```
-
-데이터 pulling 오케스트레이션 및 analytics 계산:
-
-- Competition, Season, Team, Player, Match 데이터 pulling
-- Analytics 계산 (골, 패스 정확도, xG, 카드)
-- **Team Momentum Index** 계산 (ΔPPM + ΔxG z-score)
-- Championship 우승자 식별
-- Award pulling
-
-**의존성**: PulseLive API, The Athletic API
-
-#### 3. Player Stat Scores Backfill
-
-```bash
-python scripts/app.py backfill-scores
-```
-
-Bayesian shrinkage를 사용한 선수 성능 점수 계산:
-
-- 6가지 점수 계산: shooting, passing, defending, dribbling, discipline, overall
-- Bayesian prior 계산
-- 포지션별 가중치 overall 점수
-
-**참조**: `refactoring_docs/5_calculation_formulas_reference.md`
+빌드 상태 점검 및 헬스 체크
+- 데이터베이스 연결 확인
+- 필수 의존성 확인
+- 시스템 상태 리포트
 
 ---
 
-## 향후 구현 예정
-
-Phase 0 이후 다음 기능들이 추가될 예정:
+## 향후 구현 예정 (Phase 0 이후)
 
 - `python scripts/app.py migrate` - 데이터베이스 마이그레이션
 - `python scripts/app.py backup` - 데이터베이스 백업
@@ -219,25 +216,23 @@ cat > archive/legacy_scripts/README.md << 'EOF'
 - 히스토리 참조 목적으로만 보존
 
 ### `ops_pulselive_and_analytics.py`
-
-**원래 위치**: `b.py` (root)
-**이동 날짜**: 2026-01-26
-**목적**: 데이터 pulling 오케스트레이션 및 analytics 계산
+**원래 위치**: `b.py` (root)  
+**이동 날짜**: 2026-01-26  
+**목적**: 데이터 pulling 오케스트레이션 및 analytics 계산  
 
 **상태**: 📦 아카이브됨
-
-- 로직이 `scripts/app.py pull-data` 명령으로 통합됨
+- Puller 로직 → `scripts/app.py pull-data {entity}` 명령으로 통합
+- Cron 스케줄링 → `scripts/app.py run` 명령으로 통합
 - 참조: `refactoring_docs/5_calculation_formulas_reference.md` (Section 2, 3)
 
 ### `backfill_player_stat_scores.py`
-
-**원래 위치**: `c.py` (root)
-**이동 날짜**: 2026-01-26
-**목적**: 선수 성능 점수 계산
+**원래 위치**: `c.py` (root)  
+**이동 날짜**: 2026-01-26  
+**목적**: 선수 성능 점수 계산  
 
 **상태**: 📦 아카이브됨
-
-- 로직이 `scripts/app.py backfill-scores` 명령으로 통합됨
+- 로직이 analytics 계산에 통합될 예정
+- 필요시 `scripts/app.py pull-data player` 실행 시 자동 계산
 - 참조: `refactoring_docs/5_calculation_formulas_reference.md` (Section 1)
 
 ---
@@ -269,21 +264,29 @@ cat > docs/refactor/legacy_map.md << 'EOF'
 
 ## 파일 재배치
 
-| 이전 경로    | 새 경로                                                    | 통합 위치                    | 상태       |
-|----------|---------------------------------------------------------|--------------------------|----------|
-| `app.py` | `scripts/app.py`                                        | `app.py` (기본)            | ✅ 활성     |
-| `b.py`   | `archive/legacy_scripts/ops_pulselive_and_analytics.py` | `app.py pull-data`       | 📦 통합됨   |
-| `c.py`   | `archive/legacy_scripts/backfill_player_stat_scores.py` | `app.py backfill-scores` | 📦 통합됨   |
-| `a.py`   | `archive/legacy_scripts/migrate_old_to_new_schema.py`   | (없음)                     | ⚠️ 작동 불가 |
+| 이전 경로 | 새 경로 | 통합 위치 | 상태 |
+|----------|---------|---------|------|
+| `app.py` | `scripts/app.py` | `app.py` (기본) | ✅ 활성 |
+| `b.py` | `archive/legacy_scripts/ops_pulselive_and_analytics.py` | `app.py run` / `app.py pull-data {entity}` | 📦 통합됨 |
+| `c.py` | `archive/legacy_scripts/backfill_player_stat_scores.py` | (자동 계산) | 📦 통합됨 |
+| `a.py` | `archive/legacy_scripts/migrate_old_to_new_schema.py` | (없음) | ⚠️ 작동 불가 |
 
 ## CLI 명령어 매핑
 
-| 기존 실행 방법                  | 새 실행 방법                                 | 기능                      |
-|---------------------------|-----------------------------------------|-------------------------|
-| `python app.py health`    | `python scripts/app.py health`          | 헬스 체크                   |
-| `python b.py` (runrun 함수) | `python scripts/app.py pull-data`       | 데이터 pulling & analytics |
-| `python c.py`             | `python scripts/app.py backfill-scores` | 선수 점수 계산                |
-| `python a.py`             | (사용 불가)                                 | 구 스키마 마이그레이션            |
+| 기존 실행 방법 | 새 실행 방법 | 기능 |
+|------------|-----------|------|
+| `python app.py health` | `python scripts/app.py health` | 빌드 상태 & 헬스 체크 |
+| `python b.py` (백그라운드 실행) | `python scripts/app.py run` | Master process (cron 스케줄러) |
+| `python b.py` (개별 entity) | `python scripts/app.py pull-data {entity}` | 특정 entity 데이터 pulling |
+| `python c.py` | (자동 실행) | Player analytics 계산 시 자동 포함 |
+| `python a.py` | (사용 불가) | 구 스키마 마이그레이션 |
+
+**Entity 예시**:
+- `python scripts/app.py pull-data competition`
+- `python scripts/app.py pull-data season`
+- `python scripts/app.py pull-data team`
+- `python scripts/app.py pull-data player`
+- `python scripts/app.py pull-data match`
 
 ## 디렉토리 구분
 
@@ -300,20 +303,21 @@ cat > docs/refactor/legacy_map.md << 'EOF'
 
 모든 비즈니스 로직이 `scripts/app.py`로 통합되었습니다:
 
-1. **Team Momentum 공식** (`b.py`에서):
-    - 명령어: `python scripts/app.py pull-data`
-    - 문서: `refactoring_docs/5_calculation_formulas_reference.md` (Section 2)
-    - 원본: `archive/legacy_scripts/ops_pulselive_and_analytics.py`
+1. **Cron 스케줄링** (`b.py`에서):
+   - 명령어: `python scripts/app.py run`
+   - 기능: Master process 시작, 정기적 데이터 pulling 스케줄 관리
+   - 원본: `archive/legacy_scripts/ops_pulselive_and_analytics.py`
 
-2. **Player Stat Scores** (`c.py`에서):
-    - 명령어: `python scripts/app.py backfill-scores`
-    - 문서: `refactoring_docs/5_calculation_formulas_reference.md` (Section 1)
-    - 원본: `archive/legacy_scripts/backfill_player_stat_scores.py`
+2. **Entity별 데이터 Pulling** (`b.py`에서):
+   - 명령어: `python scripts/app.py pull-data {entity}`
+   - 기능: 특정 entity에 대한 Puller + Merger 실행
+   - 문서: `refactoring_docs/5_calculation_formulas_reference.md` (Section 2, 3)
+   - 원본: `archive/legacy_scripts/ops_pulselive_and_analytics.py`
 
-3. **Analytics 계산** (`b.py`에서):
-    - 명령어: `python scripts/app.py pull-data` (포함됨)
-    - 문서: `refactoring_docs/5_calculation_formulas_reference.md` (Section 3)
-    - 원본: `archive/legacy_scripts/ops_pulselive_and_analytics.py`
+3. **Player Stat Scores** (`c.py`에서):
+   - 통합 방식: Player analytics 계산 시 자동 실행
+   - 문서: `refactoring_docs/5_calculation_formulas_reference.md` (Section 1)
+   - 원본: `archive/legacy_scripts/backfill_player_stat_scores.py`
 
 ## 롤백 방법
 
@@ -434,9 +438,16 @@ echo "  - 개별 스크립트는 archive/legacy_scripts/에 보존"
 echo "  - 모든 코드가 Git 히스토리에 보존됨"
 echo ""
 echo "통합된 CLI 명령어:"
-echo "  - python scripts/app.py health           # 헬스 체크"
-echo "  - python scripts/app.py pull-data        # 데이터 pulling & analytics"
-echo "  - python scripts/app.py backfill-scores  # 선수 점수 계산"
+echo "  - python scripts/app.py health                    # 빌드 상태 & 헬스 체크"
+echo "  - python scripts/app.py run                       # Master process (cron 스케줄러)"
+echo "  - python scripts/app.py pull-data {entity-name}   # 특정 entity 데이터 pulling"
+echo ""
+echo "Entity 예시:"
+echo "  - python scripts/app.py pull-data competition"
+echo "  - python scripts/app.py pull-data season"
+echo "  - python scripts/app.py pull-data team"
+echo "  - python scripts/app.py pull-data player"
+echo "  - python scripts/app.py pull-data match"
 echo ""
 echo "백업 정보:"
 echo "  - 전체 백업: ../football_data_manager_backup_$(date +%Y%m%d).bundle"
@@ -490,13 +501,12 @@ External:
 ```
 
 **주요 변경사항:**
-
 - Root에서 a.py, b.py, c.py, app.py 제거
 - 모든 스크립트를 `scripts/app.py`로 통합
 - 명령어 기반 실행 구조로 변경:
-    - `app.py health` - 헬스 체크
-    - `app.py pull-data` - 데이터 pulling & analytics
-    - `app.py backfill-scores` - 선수 점수 계산
+  - `app.py health` - 빌드 상태 & 헬스 체크
+  - `app.py run` - Master process (cron 스케줄러)
+  - `app.py pull-data {entity}` - 특정 entity 데이터 pulling
 - 개별 스크립트는 archive/legacy_scripts/에 보존
 
 ---

@@ -112,7 +112,7 @@ mkdir -p archive/legacy_scripts
 
 # 2.2 활성 스크립트를 하나의 CLI로 통합
 # app.py를 기본으로 사용하여 통합 CLI 생성
-git mv app.py scripts/cli.py
+git mv app.py scripts/app.py
 
 # 2.3 레거시 스크립트를 아카이브로 이동
 git mv a.py archive/legacy_scripts/migrate_old_to_new_schema.py
@@ -121,29 +121,36 @@ git mv c.py archive/legacy_scripts/backfill_player_stat_scores.py
 
 # 2.4 scripts README 생성
 cat > scripts/README.md << 'EOF'
+```
+
 # Scripts 디렉토리
 
 **목적**: 통합 CLI를 통한 모든 운영 작업 수행
 
 ---
 
-## `cli.py` - 통합 CLI
+## `app.py` - 통합 CLI
 
 **목적**: 모든 운영 작업을 위한 단일 진입점
 
 ### 사용 가능한 명령어
 
 #### 1. Health Check
+
 ```bash
-python scripts/cli.py health
+python scripts/app.py health
 ```
+
 헬스 체크 및 시스템 상태 확인
 
 #### 2. Data Pulling & Analytics
+
 ```bash
-python scripts/cli.py pull-data
+python scripts/app.py pull-data
 ```
+
 데이터 pulling 오케스트레이션 및 analytics 계산:
+
 - Competition, Season, Team, Player, Match 데이터 pulling
 - Analytics 계산 (골, 패스 정확도, xG, 카드)
 - **Team Momentum Index** 계산 (ΔPPM + ΔxG z-score)
@@ -153,10 +160,13 @@ python scripts/cli.py pull-data
 **의존성**: PulseLive API, The Athletic API
 
 #### 3. Player Stat Scores Backfill
+
 ```bash
-python scripts/cli.py backfill-scores
+python scripts/app.py backfill-scores
 ```
+
 Bayesian shrinkage를 사용한 선수 성능 점수 계산:
+
 - 6가지 점수 계산: shooting, passing, defending, dribbling, discipline, overall
 - Bayesian prior 계산
 - 포지션별 가중치 overall 점수
@@ -168,22 +178,25 @@ Bayesian shrinkage를 사용한 선수 성능 점수 계산:
 ## 향후 구현 예정
 
 Phase 0 이후 다음 기능들이 추가될 예정:
-- `python scripts/cli.py migrate` - 데이터베이스 마이그레이션
-- `python scripts/cli.py backup` - 데이터베이스 백업
-- `python scripts/cli.py restore` - 데이터베이스 복원
+
+- `python scripts/app.py migrate` - 데이터베이스 마이그레이션
+- `python scripts/app.py backup` - 데이터베이스 백업
+- `python scripts/app.py restore` - 데이터베이스 복원
 
 ---
 
 ## 아카이브된 스크립트
 
 오래된 개별 스크립트들은 `archive/legacy_scripts/`로 이동되었습니다.
-로직은 `cli.py`로 통합되었습니다.
+로직은 `app.py`로 통합되었습니다.
 
 **참조**: `archive/legacy_scripts/README.md`
 EOF
 
 # 2.5 archive README 생성
+
 cat > archive/legacy_scripts/README.md << 'EOF'
+
 # Legacy Scripts Archive
 
 **경고**: 이 디렉토리의 스크립트는 개별 실행이 불가능합니다.
@@ -192,33 +205,39 @@ cat > archive/legacy_scripts/README.md << 'EOF'
 
 ## 마이그레이션 내역
 
-모든 스크립트의 로직이 `scripts/cli.py`로 통합되었습니다.
+모든 스크립트의 로직이 `scripts/app.py`로 통합되었습니다.
 
 ### `migrate_old_to_new_schema.py`
-**원래 위치**: `a.py` (root)  
-**이동 날짜**: 2026-01-26  
-**목적**: 구 repository 스키마에서 신 스키마로 데이터 마이그레이션  
+
+**원래 위치**: `a.py` (root)
+**이동 날짜**: 2026-01-26
+**목적**: 구 repository 스키마에서 신 스키마로 데이터 마이그레이션
 
 **상태**: ⚠️ 작동 불가
+
 - `old_repositories` import가 더 이상 존재하지 않음
 - 히스토리 참조 목적으로만 보존
 
 ### `ops_pulselive_and_analytics.py`
-**원래 위치**: `b.py` (root)  
-**이동 날짜**: 2026-01-26  
-**목적**: 데이터 pulling 오케스트레이션 및 analytics 계산  
+
+**원래 위치**: `b.py` (root)
+**이동 날짜**: 2026-01-26
+**목적**: 데이터 pulling 오케스트레이션 및 analytics 계산
 
 **상태**: 📦 아카이브됨
-- 로직이 `scripts/cli.py pull-data` 명령으로 통합됨
+
+- 로직이 `scripts/app.py pull-data` 명령으로 통합됨
 - 참조: `refactoring_docs/5_calculation_formulas_reference.md` (Section 2, 3)
 
 ### `backfill_player_stat_scores.py`
-**원래 위치**: `c.py` (root)  
-**이동 날짜**: 2026-01-26  
-**목적**: 선수 성능 점수 계산  
+
+**원래 위치**: `c.py` (root)
+**이동 날짜**: 2026-01-26
+**목적**: 선수 성능 점수 계산
 
 **상태**: 📦 아카이브됨
-- 로직이 `scripts/cli.py backfill-scores` 명령으로 통합됨
+
+- 로직이 `scripts/app.py backfill-scores` 명령으로 통합됨
 - 참조: `refactoring_docs/5_calculation_formulas_reference.md` (Section 1)
 
 ---
@@ -231,15 +250,18 @@ git show pre-migration/legacy-scripts-2026-01-26:a.py
 git show pre-migration/legacy-scripts-2026-01-26:b.py
 git show pre-migration/legacy-scripts-2026-01-26:c.py
 ```
+
 EOF
 
 # 2.6 legacy map 생성
+
 mkdir -p docs/refactor
 cat > docs/refactor/legacy_map.md << 'EOF'
+
 # Legacy Map: 마이그레이션 전 → 마이그레이션 후
 
-**날짜**: 2026-01-26  
-**스냅샷**: `pre-migration/legacy-scripts-2026-01-26` 태그  
+**날짜**: 2026-01-26
+**스냅샷**: `pre-migration/legacy-scripts-2026-01-26` 태그
 
 ## 스크립트 통합 전략
 
@@ -247,49 +269,51 @@ cat > docs/refactor/legacy_map.md << 'EOF'
 
 ## 파일 재배치
 
-| 이전 경로 | 새 경로 | 통합 위치 | 상태 |
-|----------|---------|---------|------|
-| `app.py` | `scripts/cli.py` | `cli.py` (기본) | ✅ 활성 |
-| `b.py` | `archive/legacy_scripts/ops_pulselive_and_analytics.py` | `cli.py pull-data` | 📦 통합됨 |
-| `c.py` | `archive/legacy_scripts/backfill_player_stat_scores.py` | `cli.py backfill-scores` | 📦 통합됨 |
-| `a.py` | `archive/legacy_scripts/migrate_old_to_new_schema.py` | (없음) | ⚠️ 작동 불가 |
+| 이전 경로    | 새 경로                                                    | 통합 위치                    | 상태       |
+|----------|---------------------------------------------------------|--------------------------|----------|
+| `app.py` | `scripts/app.py`                                        | `app.py` (기본)            | ✅ 활성     |
+| `b.py`   | `archive/legacy_scripts/ops_pulselive_and_analytics.py` | `app.py pull-data`       | 📦 통합됨   |
+| `c.py`   | `archive/legacy_scripts/backfill_player_stat_scores.py` | `app.py backfill-scores` | 📦 통합됨   |
+| `a.py`   | `archive/legacy_scripts/migrate_old_to_new_schema.py`   | (없음)                     | ⚠️ 작동 불가 |
 
 ## CLI 명령어 매핑
 
-| 기존 실행 방법 | 새 실행 방법 | 기능 |
-|------------|-----------|------|
-| `python app.py health` | `python scripts/cli.py health` | 헬스 체크 |
-| `python b.py` (runrun 함수) | `python scripts/cli.py pull-data` | 데이터 pulling & analytics |
-| `python c.py` | `python scripts/cli.py backfill-scores` | 선수 점수 계산 |
-| `python a.py` | (사용 불가) | 구 스키마 마이그레이션 |
+| 기존 실행 방법                  | 새 실행 방법                                 | 기능                      |
+|---------------------------|-----------------------------------------|-------------------------|
+| `python app.py health`    | `python scripts/app.py health`          | 헬스 체크                   |
+| `python b.py` (runrun 함수) | `python scripts/app.py pull-data`       | 데이터 pulling & analytics |
+| `python c.py`             | `python scripts/app.py backfill-scores` | 선수 점수 계산                |
+| `python a.py`             | (사용 불가)                                 | 구 스키마 마이그레이션            |
 
 ## 디렉토리 구분
 
 ### `scripts/` - 운영 코드 (활성)
-- `cli.py`: 모든 기능을 명령어로 제공하는 통합 CLI
+
+- `app.py`: 모든 기능을 명령어로 제공하는 통합 CLI
 
 ### `archive/legacy_scripts/` - 백업 및 히스토리
+
 - 개별 스크립트 원본 보존 (실행 불가)
-- 로직은 `cli.py`로 통합됨
+- 로직은 `app.py`로 통합됨
 
 ## 보존된 구현
 
-모든 비즈니스 로직이 `scripts/cli.py`로 통합되었습니다:
+모든 비즈니스 로직이 `scripts/app.py`로 통합되었습니다:
 
 1. **Team Momentum 공식** (`b.py`에서):
-   - 명령어: `python scripts/cli.py pull-data`
-   - 문서: `refactoring_docs/5_calculation_formulas_reference.md` (Section 2)
-   - 원본: `archive/legacy_scripts/ops_pulselive_and_analytics.py`
+    - 명령어: `python scripts/app.py pull-data`
+    - 문서: `refactoring_docs/5_calculation_formulas_reference.md` (Section 2)
+    - 원본: `archive/legacy_scripts/ops_pulselive_and_analytics.py`
 
 2. **Player Stat Scores** (`c.py`에서):
-   - 명령어: `python scripts/cli.py backfill-scores`
-   - 문서: `refactoring_docs/5_calculation_formulas_reference.md` (Section 1)
-   - 원본: `archive/legacy_scripts/backfill_player_stat_scores.py`
+    - 명령어: `python scripts/app.py backfill-scores`
+    - 문서: `refactoring_docs/5_calculation_formulas_reference.md` (Section 1)
+    - 원본: `archive/legacy_scripts/backfill_player_stat_scores.py`
 
 3. **Analytics 계산** (`b.py`에서):
-   - 명령어: `python scripts/cli.py pull-data` (포함됨)
-   - 문서: `refactoring_docs/5_calculation_formulas_reference.md` (Section 3)
-   - 원본: `archive/legacy_scripts/ops_pulselive_and_analytics.py`
+    - 명령어: `python scripts/app.py pull-data` (포함됨)
+    - 문서: `refactoring_docs/5_calculation_formulas_reference.md` (Section 3)
+    - 원본: `archive/legacy_scripts/ops_pulselive_and_analytics.py`
 
 ## 롤백 방법
 
@@ -303,42 +327,47 @@ git show pre-migration/legacy-scripts-2026-01-26:c.py > c.py
 
 ## 향후 리팩토링 (Phase 0 이후)
 
-- `cli.py` 로직 추출 → 도메인 모듈로 이동
+- `app.py` 로직 추출 → 도메인 모듈로 이동
 - CLI는 얇은 래퍼로만 유지
 - `archive/legacy_scripts/` 내용 검토 후 필요시 완전 제거
-EOF
+  EOF
 
 git add scripts/ archive/legacy_scripts/ docs/refactor/
 git commit -m "refactor: consolidate root scripts into unified CLI
 
 Script consolidation:
-- app.py → scripts/cli.py (base)
-- b.py logic → scripts/cli.py pull-data command
-- c.py logic → scripts/cli.py backfill-scores command
+
+- app.py → scripts/app.py (base)
+- b.py logic → scripts/app.py pull-data command
+- c.py logic → scripts/app.py backfill-scores command
 
 Legacy code archived:
+
 - a.py → archive/legacy_scripts/migrate_old_to_new_schema.py (non-functional)
 - b.py → archive/legacy_scripts/ops_pulselive_and_analytics.py (logic moved)
 - c.py → archive/legacy_scripts/backfill_player_stat_scores.py (logic moved)
 
 Added documentation:
+
 - scripts/README.md (unified CLI usage)
 - archive/legacy_scripts/README.md (archive explanation)
 - docs/refactor/legacy_map.md (migration tracking)
 
 Benefits:
+
 - Single entry point for all operations
 - Command-based execution model
 - Clean root directory for Phase 0
 
 Tag: pre-migration/legacy-scripts-2026-01-26"
+
 ```
 
 **검증**:
 ```bash
 # 활성 스크립트 확인
 ls -la scripts/
-# 출력: cli.py, README.md
+# 출력: app.py, README.md
 
 # 아카이브 확인
 ls -la archive/legacy_scripts/
@@ -348,7 +377,7 @@ ls -la archive/legacy_scripts/
 ls *.py  # setup.py만 있어야 함 (있다면)
 
 # 통합 CLI 테스트
-python scripts/cli.py health  # "I'm healthy!" 출력되어야 함
+python scripts/app.py health  # "I'm healthy!" 출력되어야 함
 ```
 
 ---
@@ -376,7 +405,7 @@ pytest -v
 
 # 3.5 통합 CLI 테스트
 echo "=== 통합 CLI 테스트 ==="
-python scripts/cli.py health
+python scripts/app.py health
 
 # 3.6 git 상태 확인
 echo "=== Git status ==="
@@ -400,14 +429,14 @@ echo "✅ Legacy Script 통합 완료! Phase 0 준비 완료."
 echo ""
 echo "요약:"
 echo "  - Root 디렉토리 정리 완료"
-echo "  - 모든 스크립트를 scripts/cli.py로 통합"
+echo "  - 모든 스크립트를 scripts/app.py로 통합"
 echo "  - 개별 스크립트는 archive/legacy_scripts/에 보존"
 echo "  - 모든 코드가 Git 히스토리에 보존됨"
 echo ""
 echo "통합된 CLI 명령어:"
-echo "  - python scripts/cli.py health           # 헬스 체크"
-echo "  - python scripts/cli.py pull-data        # 데이터 pulling & analytics"
-echo "  - python scripts/cli.py backfill-scores  # 선수 점수 계산"
+echo "  - python scripts/app.py health           # 헬스 체크"
+echo "  - python scripts/app.py pull-data        # 데이터 pulling & analytics"
+echo "  - python scripts/app.py backfill-scores  # 선수 점수 계산"
 echo ""
 echo "백업 정보:"
 echo "  - 전체 백업: ../football_data_manager_backup_$(date +%Y%m%d).bundle"
@@ -432,7 +461,7 @@ football_data_puller/
 ├── CLAUDE.md                            # (현재 존재, 이후 변경 예정)
 ├── scripts/                             # ✨ 새로 생성 (통합 CLI)
 │   ├── README.md
-│   └── cli.py                           # app.py 기반 통합 CLI
+│   └── app.py                           # app.py 기반 통합 CLI
 ├── refactoring_docs/                    # ✨ 이미 존재 (번호 매겨진 문서들)
 │   ├── 0_README.md
 │   ├── 1_master_plan.md
@@ -448,8 +477,8 @@ football_data_puller/
 │   └── legacy_scripts/                  # ✨ 새로 생성
 │       ├── README.md
 │       ├── migrate_old_to_new_schema.py # a.py → 작동 불가
-│       ├── ops_pulselive_and_analytics.py # b.py → cli.py로 통합됨
-│       └── backfill_player_stat_scores.py # c.py → cli.py로 통합됨
+│       ├── ops_pulselive_and_analytics.py # b.py → app.py로 통합됨
+│       └── backfill_player_stat_scores.py # c.py → app.py로 통합됨
 ├── backups/                             # ✨ 새로 생성 (gitignored)
 │   └── pre_migration_20260126.dump
 ├── football_data_manager/               # (기존 코드베이스)
@@ -461,12 +490,13 @@ External:
 ```
 
 **주요 변경사항:**
+
 - Root에서 a.py, b.py, c.py, app.py 제거
-- 모든 스크립트를 `scripts/cli.py`로 통합
+- 모든 스크립트를 `scripts/app.py`로 통합
 - 명령어 기반 실행 구조로 변경:
-  - `cli.py health` - 헬스 체크
-  - `cli.py pull-data` - 데이터 pulling & analytics
-  - `cli.py backfill-scores` - 선수 점수 계산
+    - `app.py health` - 헬스 체크
+    - `app.py pull-data` - 데이터 pulling & analytics
+    - `app.py backfill-scores` - 선수 점수 계산
 - 개별 스크립트는 archive/legacy_scripts/에 보존
 
 ---
@@ -522,7 +552,7 @@ pytest -vv
 
 ```bash
 # 권한 수정
-chmod +x scripts/cli.py
+chmod +x scripts/app.py
 ```
 
 ### 이슈: 문서 참조 깨짐
@@ -538,12 +568,12 @@ git commit -m "fix: update broken documentation links"
 ## 성공 기준
 
 - [ ] 모든 테스트 통과 (`pytest -v`)
-- [ ] 통합 CLI 실행 가능 (`python scripts/cli.py health`)
+- [ ] 통합 CLI 실행 가능 (`python scripts/app.py health`)
 - [ ] Git 히스토리 깨끗 (`git log --oneline -5`)
 - [ ] 스냅샷 태그 존재 (`git tag -l "pre-migration/*"`)
 - [ ] Bundle 백업 존재 (`ls -lh ../football_data_manager_backup_*.bundle`)
 - [ ] Root 디렉토리 깨끗 (`setup.py` 외 `.py` 파일 없음)
-- [ ] **`scripts/cli.py`만 존재** (개별 스크립트 없음)
+- [ ] **`scripts/app.py`만 존재** (개별 스크립트 없음)
 - [ ] **`archive/legacy_scripts/`에 a.py, b.py, c.py 백업 존재**
 - [ ] **`scripts/README.md`에 CLI 명령어 문서화됨**
 - [ ] **`docs/refactor/legacy_map.md`에 마이그레이션 추적 문서 존재**

@@ -11,12 +11,9 @@
 ## 목차
 
 1. [개요](#1-개요)
-2. [데이터베이스 백업 전략](#2-데이터베이스-백업-전략)
-3. [Alembic 설정](#3-alembic-설정)
-4. [테스트 프레임워크 구축](#4-테스트-프레임워크-구축)
-5. [검증 체크리스트](#5-검증-체크리스트)
-
-> ⚠️ **중요**: 반드시 백업부터 수행하세요. 스키마 변경 전 데이터 보호가 최우선입니다.
+2. [Alembic 설정](#2-alembic-설정)
+3. [테스트 프레임워크 구축](#3-테스트-프레임워크-구축)
+4. [검증 체크리스트](#4-검증-체크리스트)
 
 ---
 
@@ -26,188 +23,15 @@ Phase 0는 본격적인 리팩토링 전에 필수 인프라를 구축하는 단
 
 - ❌ 스키마 변경 시 롤백 불가
 - ❌ 테스트 없이 변경 시 버그 발생 위험 높음
-- ❌ 데이터 손실 가능성
 
 Phase 0 완료 후:
 
 - ✅ 안전한 스키마 마이그레이션 (Alembic)
 - ✅ 자동화된 테스트 (pytest)
-- ✅ 데이터 백업 및 복원 전략
 
 ---
 
-## 2. 데이터베이스 백업 전략
-
-> ⚠️ **최우선 작업**: 리팩토링 전 데이터 손실 방지를 위해 백업부터 수행합니다.
-
-### 2.1 백업 스크립트 작성
-
-**파일 위치**: `scripts/backup_database.sh`
-
-```bash
-#!/bin/bash
-set -e
-
-# 설정
-DB_HOST="${DB_HOST:-localhost}"
-DB_PORT="${DB_PORT:-5432}"
-DB_NAME="${DB_NAME:-football_data}"
-DB_USER="${DB_USER:-postgres}"
-BACKUP_DIR="${BACKUP_DIR:-./backups}"
-TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-BACKUP_FILE="${BACKUP_DIR}/football_${TIMESTAMP}.sql"
-
-# 디렉토리 생성
-mkdir -p "$BACKUP_DIR"
-
-echo "Starting backup of $DB_NAME..."
-echo "Backup file: $BACKUP_FILE"
-
-# pg_dump 실행
-PGPASSWORD="$DB_PASSWORD" pg_dump \
-    -h "$DB_HOST" \
-    -p "$DB_PORT" \
-    -U "$DB_USER" \
-    -F c \
-    -b \
-    -v \
-    -f "$BACKUP_FILE" \
-    "$DB_NAME"
-
-# 압축
-gzip "$BACKUP_FILE"
-
-echo "Backup completed: ${BACKUP_FILE}.gz"
-echo "Size: $(du -h ${BACKUP_FILE}.gz | cut -f1)"
-
-# 7일 이상 된 백업 삭제
-find "$BACKUP_DIR" -name "football_*.sql.gz" -mtime +7 -delete
-echo "Old backups cleaned up (>7 days)"
-```
-
-**실행 권한 부여**:
-```bash
-chmod +x scripts/backup_database.sh
-```
-
-### 2.2 복원 스크립트 작성
-
-**파일 위치**: `scripts/restore_database.sh`
-
-```bash
-#!/bin/bash
-set -e
-
-if [ -z "$1" ]; then
-    echo "Usage: $0 <backup_file.sql.gz>"
-    echo "Available backups:"
-    ls -lh backups/*.sql.gz
-    exit 1
-fi
-
-BACKUP_FILE="$1"
-DB_HOST="${DB_HOST:-localhost}"
-DB_PORT="${DB_PORT:-5432}"
-DB_NAME="${DB_NAME:-football_data}"
-DB_USER="${DB_USER:-postgres}"
-
-if [ ! -f "$BACKUP_FILE" ]; then
-    echo "Error: Backup file not found: $BACKUP_FILE"
-    exit 1
-fi
-
-echo "⚠️  WARNING: This will DROP and recreate the database!"
-echo "Database: $DB_NAME"
-echo "Backup file: $BACKUP_FILE"
-read -p "Are you sure? (yes/no): " confirm
-
-if [ "$confirm" != "yes" ]; then
-    echo "Restore cancelled."
-    exit 0
-fi
-
-# 압축 해제
-echo "Decompressing backup..."
-gunzip -k "$BACKUP_FILE"
-DECOMPRESSED_FILE="${BACKUP_FILE%.gz}"
-
-# 데이터베이스 재생성
-echo "Dropping and recreating database..."
-PGPASSWORD="$DB_PASSWORD" psql \
-    -h "$DB_HOST" \
-    -p "$DB_PORT" \
-    -U "$DB_USER" \
-    -c "DROP DATABASE IF EXISTS $DB_NAME;"
-
-PGPASSWORD="$DB_PASSWORD" psql \
-    -h "$DB_HOST" \
-    -p "$DB_PORT" \
-    -U "$DB_USER" \
-    -c "CREATE DATABASE $DB_NAME;"
-
-# 복원
-echo "Restoring from backup..."
-PGPASSWORD="$DB_PASSWORD" pg_restore \
-    -h "$DB_HOST" \
-    -p "$DB_PORT" \
-    -U "$DB_USER" \
-    -d "$DB_NAME" \
-    -v \
-    "$DECOMPRESSED_FILE"
-
-# 압축 해제된 파일 삭제
-rm "$DECOMPRESSED_FILE"
-
-echo "Restore completed successfully!"
-```
-
-**실행 권한 부여**:
-```bash
-chmod +x scripts/restore_database.sh
-```
-
-### 2.3 초기 백업 생성 (필수)
-
-⚠️ **Phase 0 시작 전 반드시 실행**:
-
-```bash
-# 1. backups 디렉토리가 .gitignore에 있는지 확인
-echo "backups/" >> .gitignore
-
-# 2. 백업 생성
-./scripts/backup_database.sh
-
-# 3. 백업 파일 확인
-ls -lh backups/
-# 예: football_20260126_143000.sql.gz (200MB)
-```
-
-### 2.4 백업 검증
-
-```bash
-# 테스트 DB에서 복원 테스트
-export DB_NAME=football_test
-./scripts/restore_database.sh backups/football_20260126_143000.sql.gz
-
-# 데이터 확인
-psql -U postgres -d football_test -c "SELECT COUNT(*) FROM players;"
-```
-
-### 2.5 자동 백업 (Cron) - 선택사항
-
-**Cron 설정 추가**:
-
-```bash
-# crontab 편집
-crontab -e
-
-# 매일 새벽 2시 백업
-0 2 * * * cd /path/to/football_data_puller && ./scripts/backup_database.sh >> /var/log/football_backup.log 2>&1
-```
-
----
-
-## 3. Alembic 설정
+## 2. Alembic 설정
 
 ### 3.1 Alembic 설치
 
@@ -506,7 +330,7 @@ alembic upgrade head --sql
 
 ---
 
-## 4. 테스트 프레임워크 구축
+## 3. 테스트 프레임워크 구축
 
 ### 4.1 pytest 설치
 
@@ -766,27 +590,9 @@ async def test_alembic_current_schema(db_engine):
 
 ---
 
-crontab -e
+## 4. 검증 체크리스트
 
-# 매일 새벽 2시 백업
-0 2 * * * cd /path/to/football_data_puller && ./scripts/backup_database.sh >> /var/log/football_backup.log 2>&1
-```
-
----
-
-## 5. 검증 체크리스트
-
-### 5.1 백업 검증 (최우선)
-
-- [ ] `scripts/backup_database.sh` 작성
-- [ ] `scripts/restore_database.sh` 작성
-- [ ] **초기 백업 생성 완료** (`./scripts/backup_database.sh`)
-- [ ] 백업 파일 생성 확인 (`backups/*.sql.gz`)
-- [ ] 복원 테스트 (테스트 DB에서)
-- [ ] 복원 후 데이터 확인 (쿼리 실행)
-- [ ] Cron 설정 (선택사항)
-
-### 5.2 Alembic 검증
+### 4.1 Alembic 검증
 
 - [ ] `alembic.ini` 설정 완료
 - [ ] `env.py` async 설정 완료
@@ -797,7 +603,7 @@ crontab -e
 - [ ] 모든 테이블 생성 확인 (15개 main + 11개 association)
 - [ ] 롤백 테스트 (`alembic downgrade -1` → `alembic upgrade head`)
 
-### 5.3 테스트 프레임워크 검증
+### 4.2 테스트 프레임워크 검증
 
 - [ ] pytest 설치 확인 (`pytest --version`)
 - [ ] `pyproject.toml` 설정 추가
@@ -817,7 +623,7 @@ crontab -e
 
 ---
 
-## 6. Phase 0 완료 기준
+## 5. Phase 0 완료 기준
 
 다음 조건을 **모두** 만족해야 Phase 1로 진행 가능:
 
@@ -825,14 +631,12 @@ crontab -e
 2. ✅ `alembic current` 명령으로 버전 확인 가능
 3. ✅ 모든 기존 테스트 통과 (`pytest`)
 4. ✅ 커버리지 80% 이상 달성
-5. ✅ 데이터베이스 백업 스크립트 동작 확인
-6. ✅ 백업에서 복원 성공 확인
 
 **실패 시**: 위 조건 중 하나라도 실패하면 Phase 1 진행 불가.
 
 ---
 
-## 7. 다음 단계
+## 6. 다음 단계
 
 Phase 0 완료 후:
 

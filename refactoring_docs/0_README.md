@@ -2,11 +2,19 @@
 
 이 디렉토리는 Football Data Puller 프로젝트의 리팩토링 계획 및 실행 문서를 담고 있습니다.
 
+**📖 읽기 순서**: 파일명 앞의 번호 순서대로 읽으세요 (0 → 1 → 2 → 3 → ...)
+
 ---
 
-## 📚 문서 목록
+## 📚 문서 목록 (읽기 순서)
 
-### 1. **`master_plan.md`** (필수 읽기)
+### 0. **`0_README.md`** (이 문서)
+
+**목적**: 문서 네비게이션 및 읽기 가이드
+
+---
+
+### 1. **`1_master_plan.md`** (필수 읽기, 20분)
 
 **목적**: 전체 리팩토링 계획 및 아키텍처 설계
 
@@ -25,7 +33,33 @@
 
 ---
 
-### 2. **`phase_0_preparation.md`** (실행 가이드)
+### 2. **`2_combined_migration_plan.md`** (Phase 0 전 실행 가이드, 15분 + 2-3시간 실행)
+
+**목적**: Legacy Script 정리 + AI 중립화 마이그레이션 통합 실행 계획
+
+**내용**:
+
+- **Step 0-9**: 복사-붙여넣기 가능한 실행 명령어
+- Legacy scripts 백업 및 재구성 (`a.py`, `b.py`, `c.py`, `app.py` → `scripts/`)
+- AI 도구 중립화 (`CLAUDE.md` → `AI_GUIDELINES.md`, `claudedocs/` → `docs/ai_analysis/`)
+- Git 스냅샷 및 백업 전략
+- 검증 체크포인트 포함
+
+**언제 읽나요**:
+
+- **Phase 0 시작 전 반드시 실행** (준비 작업)
+- Root 디렉토리 정리 필요 시
+- AI 도구 중립적 프로젝트 구조로 전환 필요 시
+
+**⚠️ 중요**:
+
+- Phase 0 (Alembic, pytest) 전에 먼저 실행
+- 모든 백업 및 Git 스냅샷 포함
+- 실행 완료 후 Phase 0 진행
+
+---
+
+### 3. **`3_phase_0_preparation.md`** (Phase 0 실행 가이드, 10분 + 1주 실행)
 
 **목적**: Phase 0 준비 단계 실행 가이드
 
@@ -50,7 +84,7 @@
 
 ---
 
-### 3. **`current_state_analysis.md`** (참고 자료)
+### 4. **`4_current_state_analysis.md`** (참고 자료, 선택, 30분)
 
 **목적**: 현재 코드베이스의 상세 구조 분석
 
@@ -77,7 +111,7 @@
 
 ---
 
-### 4. **`calculation_formulas_reference.md`** (핵심 참고 자료)
+### 5. **`5_calculation_formulas_reference.md`** (핵심 참고 자료, 보관용)
 
 **목적**: 모든 점수 및 계산식 완전 문서화
 
@@ -114,39 +148,7 @@
 
 ---
 
-### 5. **`combined_migration_plan.md`** (Phase 0 전 실행 가이드)
-
-**목적**: Legacy Script 정리 + AI 중립화 마이그레이션 통합 실행 계획
-
-**내용**:
-
-- **Step 0-9**: 복사-붙여넣기 가능한 실행 명령어
-- Legacy scripts 백업 및 재구성 (`a.py`, `b.py`, `c.py`, `app.py` → `scripts/`)
-- AI 도구 중립화 (`CLAUDE.md` → `AI_GUIDELINES.md`, `claudedocs/` → `docs/ai_analysis/`)
-- Git 스냅샷 및 백업 전략
-- 검증 체크포인트 포함
-
-**언제 읽나요**:
-
-- **Phase 0 시작 전 반드시 실행** (준비 작업)
-- Root 디렉토리 정리 필요 시
-- AI 도구 중립적 프로젝트 구조로 전환 필요 시
-
-**특징**:
-
-- 예상 시간: 2-3시간
-- 단계별 검증 포함
-- 롤백 절차 문서화
-
-**⚠️ 중요**:
-
-- Phase 0 (Alembic, pytest) 전에 먼저 실행
-- 모든 백업 및 Git 스냅샷 포함
-- 실행 완료 후 Phase 0 진행
-
----
-
-### 6. **`ai_agnostic_migration_plan.md`** (설계 문서)
+### 6. **`6_ai_agnostic_migration_plan.md`** (설계 문서, 선택, 15분)
 
 **목적**: AI 중립화 마이그레이션의 상세 설계 및 전략 문서
 
@@ -173,8 +175,8 @@
 
 **관계**:
 
-- **설계**: `ai_agnostic_migration_plan.md`
-- **실행**: `combined_migration_plan.md`
+- **설계**: `6_ai_agnostic_migration_plan.md`
+- **실행**: `2_combined_migration_plan.md`
 
 ---
 
@@ -184,7 +186,7 @@
 
 ```bash
 # 통합 마이그레이션 계획 실행 (2-3시간)
-cat claudedocs/refactoring/combined_migration_plan.md
+cat refactoring_docs/2_combined_migration_plan.md
 
 # Step 0: 백업 생성
 git tag -a pre-migration/combined-2026-01-26 -m "Snapshot before migration"
@@ -210,7 +212,7 @@ git tag -a pre-migration/combined-2026-01-26 -m "Snapshot before migration"
 
 ```bash
 # Master Plan 읽기 (20분)
-cat claudedocs/refactoring/master_plan.md
+cat refactoring_docs/1_master_plan.md
 ```
 
 **핵심 확인사항**:
@@ -223,7 +225,7 @@ cat claudedocs/refactoring/master_plan.md
 
 ```bash
 # Phase 0 가이드 읽기 (10분)
-cat claudedocs/refactoring/phase_0_preparation.md
+cat refactoring_docs/3_phase_0_preparation.md
 
 # Alembic 설정 시작
 alembic init football_data_manager/repository/migrations
@@ -239,7 +241,7 @@ alembic init football_data_manager/repository/migrations
 
 ```bash
 # 현재 구조 상세 분석 보기
-cat claudedocs/refactoring/current_state_analysis.md
+cat refactoring_docs/4_current_state_analysis.md
 ```
 
 ---
@@ -294,22 +296,22 @@ cat claudedocs/refactoring/current_state_analysis.md
 
 ### 처음 시작하는 경우
 
-1. `master_plan.md` (필수) - 전체 계획 파악
-2. **`combined_migration_plan.md` (필수) - Phase 0 전 준비 작업**
-3. `phase_0_preparation.md` (필수) - Phase 0 시작
-4. `current_state_analysis.md` (선택) - 상세 구조 파악
-5. `calculation_formulas_reference.md` (필수 참고) - 모든 계산식 보존
+1. `1_master_plan.md` (필수, 20분) - 전체 계획 파악
+2. **`2_combined_migration_plan.md` (필수, 15분 + 2-3시간) - Phase 0 전 준비 작업**
+3. `3_phase_0_preparation.md` (필수, 10분 + 1주) - Phase 0 시작
+4. `4_current_state_analysis.md` (선택, 30분) - 상세 구조 파악
+5. `5_calculation_formulas_reference.md` (필수 참고) - 모든 계산식 보존
 
 ### Phase 진행 중
 
-1. 해당 Phase 섹션 (`master_plan.md`)
+1. 해당 Phase 섹션 (`1_master_plan.md`)
 2. 실행 가이드 (각 Phase별 문서, Phase 0만 현재 존재)
-3. `current_state_analysis.md` (필요 시 참고)
+3. `4_current_state_analysis.md` (필요 시 참고)
 
 ### 새 팀원 온보딩
 
-1. `current_state_analysis.md` - 현재 구조 이해
-2. `master_plan.md` - 리팩토링 계획 이해
+1. `4_current_state_analysis.md` - 현재 구조 이해
+2. `1_master_plan.md` - 리팩토링 계획 이해
 3. 진행 중인 Phase 문서
 
 ---
@@ -327,7 +329,7 @@ cat claudedocs/refactoring/current_state_analysis.md
 
 ### Q: 문서가 너무 많은데 어디서 시작하나요?
 
-**A**: `master_plan.md`만 읽으세요. 나머지는 필요할 때 참고하세요.
+**A**: 파일명 번호 순서대로 읽으세요. `1_master_plan.md`부터 시작하면 됩니다.
 
 ### Q: Phase 0는 꼭 해야 하나요?
 
@@ -359,7 +361,7 @@ cat claudedocs/refactoring/current_state_analysis.md
 - `README.md`: 업데이트 (새 문서 설명 추가, 중복 제거)
 - `master_plan_feedback.md`: 삭제 (내용 반영 완료)
 - `score_calculation_reference.md`: 삭제 (calculation_formulas_reference.md로 통합)
-- `docs/refactor/`: 삭제 (claudedocs/refactoring/으로 통합)
+- `docs/refactor/`: 삭제 (refactoring_docs/으로 통합)
 
 ---
 

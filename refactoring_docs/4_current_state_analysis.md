@@ -132,23 +132,52 @@ BaseEntity (abstract)
 
 ### 2.2 Complete Entity List
 
-| # | Entity | Table | Source | Key Fields | Associations |
-|---|--------|-------|--------|-----------|--------------|
-| 1 | AwardEntity | awards | Pulselive | type, name_en, name_kr, desc_en, desc_kr | player_stats, staffs |
-| 2 | CompetitionEntity | competitions | Pulselive | abbr, name_en, name_kr | seasons |
-| 3 | FixtureEntity | fixtures | Pulselive | kickoff_time, team_home_id, team_away_id, season_id, ground_id | - |
-| 4 | GroundEntity | grounds | Pulselive | name_en, name_kr, city, capacity | fixtures |
-| 5 | MatchEntity | matches | Pulselive | score_home, score_away, attendance, officials | 5 associations |
-| 6 | MatchStatEntity | match_stats | Pulselive | 40+ performance metrics per team | - |
-| 7 | NewsEntity | news | Variable | title_en, title_kr, content_en, content_kr, type | teams |
-| 8 | OfficialEntity | officials | Pulselive | display_name_en, display_name_kr, birth_country | matches |
-| 9 | PlayerEntity | players | Pulselive | position, nationality, birth_info, height, weight | championships |
-| 10 | PlayerStatEntity | player_stats | Pulselive | 50+ metrics per season | awards |
-| 11 | SeasonEntity | seasons | Pulselive | competition_id, season_source_id, date_start, date_end | - |
-| 12 | StaffEntity | staffs | Pulselive | display_name_en, display_name_kr, birth_country, role | awards |
-| 13 | TeamEntity | teams | Pulselive | abbr, name_en, name_kr, logo_url | championships |
-| 14 | TeamStatEntity | team_stats | Pulselive | position, played, won, drawn, lost, points, home/away splits | matches |
-| 15 | AnalyticsEntity | analytics | Variable | season_id, key, value | - |
+| # | Entity | Table | Source | Key Fields | Associations | Updated By |
+|---|--------|-------|--------|-----------|--------------|------------|
+| 1 | AwardEntity | awards | Pulselive | type, name_en, name_kr, desc_en, desc_kr | player_stats, staffs | AwardPuller |
+| 2 | CompetitionEntity | competitions | Pulselive | abbr, name_en, name_kr | seasons | CompetitionPuller |
+| 3 | FixtureEntity | fixtures | Pulselive | kickoff_time, team_home_id, team_away_id, season_id, ground_id | - | FixturePuller |
+| 4 | GroundEntity | grounds | Pulselive | name_en, name_kr, city, capacity | fixtures | TeamPuller |
+| 5 | MatchEntity | matches | Pulselive | score_home, score_away, attendance, officials | 5 associations | MatchPuller |
+| 6 | MatchStatEntity | match_stats | Pulselive | 40+ performance metrics per team | - | MatchStatPuller |
+| 7 | NewsEntity | news | Variable | title_en, title_kr, content_en, content_kr, type | teams | TheAthletic |
+| 8 | OfficialEntity | officials | Pulselive | display_name_en, display_name_kr, birth_country | matches | MatchPuller |
+| 9 | PlayerEntity | players | Pulselive | position, nationality, birth_info, height, weight | championships | PlayerPuller, MatchPuller |
+| 10 | PlayerStatEntity | player_stats | Pulselive | 50+ metrics per season, 6 score fields | awards | PlayerStatsPuller, AwardPuller |
+| 11 | SeasonEntity | seasons | Pulselive | competition_id, season_source_id, date_start, date_end | - | SeasonPuller |
+| 12 | StaffEntity | staffs | Pulselive | display_name_en, display_name_kr, birth_country, role | awards | MatchPuller, AwardPuller |
+| 13 | TeamEntity | teams | Pulselive | abbr, name_en, name_kr, logo_url | championships | TeamPuller |
+| 14 | TeamStatEntity | team_stats | Pulselive | position, played, won, drawn, lost, points, home/away splits | matches | TeamStatsPuller |
+| 15 | AnalyticsEntity | analytics | Variable | season_id, key, value | - | b.py script |
+
+#### 2.2.1 Entity Field Update Details
+
+**Entities with Conditional Updates**:
+
+| Entity | Field | Update Condition | Puller | Notes |
+|--------|-------|------------------|--------|-------|
+| TeamEntity | `icon_url` | Empty only | TeamPuller | Validates URL before update |
+| PlayerEntity | `photo_url` | Empty only | PlayerPuller | Validates URL before update |
+| MatchEntity | All mutable fields | Not FULLTIME | MatchPuller | Updates until match ends |
+| PlayerStatEntity | All stat fields | Always (upsert) | PlayerStatsPuller | Composite key: season+player |
+| TeamStatEntity | All stat fields | Always (upsert) | TeamStatsPuller | Composite key: season+team |
+
+**Entities with Multiple Pullers**:
+
+| Entity | Primary Puller | Secondary Puller | Secondary Purpose |
+|--------|---------------|------------------|-------------------|
+| PlayerEntity | PlayerPuller | MatchPuller | Create missing players found in match data |
+| StaffEntity | MatchPuller | AwardPuller | Create award-winning managers |
+| PlayerStatEntity | PlayerStatsPuller | AwardPuller | Append award associations |
+
+**Entities Created Once (No Updates)**:
+- CompetitionEntity (immutable reference data)
+- SeasonEntity (immutable reference data)
+- FixtureEntity (match schedule, set once)
+- GroundEntity (stadium info, rarely changes)
+- OfficialEntity (referee info, static)
+- MatchStatEntity (match statistics, final)
+- AwardEntity (award definitions, static)
 
 ### 2.3 Association Tables (Many-to-Many)
 
@@ -316,18 +345,18 @@ Puller Services (3 Sources)
 
 **Location**: `puller/services/pulselive_new/services/`
 
-| Puller | Entity Target | Response Models |
-|--------|---------------|-----------------|
-| pulselive_new_award_puller.py | AwardEntity | Award responses (v1) |
-| pulselive_new_competition_puller.py | CompetitionEntity | Competition responses |
-| pulselive_new_fixture_puller.py | FixtureEntity | Fixture responses (v1) |
-| pulselive_new_match_puller.py | MatchEntity | Match responses (v1/v3) |
-| pulselive_new_match_stat_puller.py | MatchStatEntity | Match stat responses (v1) |
-| pulselive_new_player_puller.py | PlayerEntity | Player responses (v2) |
-| pulselive_new_player_stats_puller.py | PlayerStatEntity | Player stat responses (v2) |
-| pulselive_new_season_puller.py | SeasonEntity | Season responses |
-| pulselive_new_team_puller.py | TeamEntity | Team responses (v1) |
-| pulselive_new_team_stats_puller.py | TeamStatEntity | Team stat responses (v2) |
+| Puller | Entity Target | Repositories Used | Operation Type |
+|--------|---------------|-------------------|----------------|
+| pulselive_new_competition_puller.py | CompetitionEntity | CompetitionRepository | Create |
+| pulselive_new_season_puller.py | SeasonEntity | SeasonRepository, CompetitionRepository (read) | Create |
+| pulselive_new_team_puller.py | TeamEntity, GroundEntity | TeamRepository, GroundRepository | Create, Update |
+| pulselive_new_player_puller.py | PlayerEntity | PlayerRepository | Create, Update |
+| pulselive_new_fixture_puller.py | FixtureEntity | FixtureRepository, TeamRepository, GroundRepository | Create |
+| pulselive_new_match_puller.py | MatchEntity | MatchRepository, OfficialRepository, PlayerRepository, StaffRepository | Create, Update |
+| pulselive_new_match_stat_puller.py | MatchStatEntity | MatchStatRepository, TeamRepository | Create |
+| pulselive_new_player_stats_puller.py | PlayerStatEntity | PlayerStatRepository, TeamRepository | Upsert |
+| pulselive_new_team_stats_puller.py | TeamStatEntity | TeamStatRepository, FixtureRepository, MatchRepository, GroundRepository | Create, Update |
+| pulselive_new_award_puller.py | AwardEntity | AwardRepository, PlayerRepository, PlayerStatRepository, StaffRepository | Create, Update |
 
 **Components**:
 - `pulselive_new_webclient.py` - HTTP client for v1/v2/v3 API endpoints
@@ -349,6 +378,47 @@ class PulseliveNewPlayerPuller:
         players = await self.__process_players(squad_response.players)
         # 3. Create/update in database
         return players
+```
+
+#### 4.3.1 Field Update Mapping (Detailed)
+
+**Key Operations**:
+- **Create**: Initial entity creation from API data
+- **Update**: Conditional updates (e.g., empty fields only)
+- **Upsert**: Create or update based on existence
+
+**Update Patterns**:
+
+| Entity | Updated Fields | Update Condition | Puller |
+|--------|----------------|------------------|--------|
+| TeamEntity | `icon_url` | Empty only | TeamPuller |
+| PlayerEntity | `photo_url` | Empty only | PlayerPuller |
+| MatchEntity | All fields except `fixture` | Not FULLTIME status | MatchPuller |
+| PlayerStatEntity | All stat fields | Season + Player composite key | PlayerStatsPuller |
+| TeamStatEntity | All stat fields | Season + Team composite key | TeamStatsPuller |
+
+**Association Updates** (via MatchPuller):
+- `MatchLineupAssociation`: Starting 11 players
+- `MatchSubstituteAssociation`: Bench players
+- `MatchCardAssociation`: Yellow/Red cards with clock
+- `MatchGoalAssociation`: Goals with assist, penalty, own goal flags
+- `MatchSubstitutionAssociation`: In/Out players with clock
+
+**Conditional Field Updates**:
+```python
+# TeamEntity: icon_url update
+if not existing_team.icon_url:  # Only if empty
+    existing_team.icon_url = validated_icon_url
+
+# PlayerEntity: photo_url update  
+if not existing_player.photo_url:  # Only if empty
+    existing_player.photo_url = validated_photo_url
+
+# MatchEntity: full update
+if match.period != PeriodEnum.FULLTIME:  # Not finished
+    match.home_team_score = new_score_home
+    match.attendance = new_attendance
+    # ... update all mutable fields
 ```
 
 ### 4.4 The Athletic (2 Services)

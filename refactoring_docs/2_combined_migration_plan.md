@@ -105,21 +105,26 @@ ls -lh ../football_data_manager_backup_*.bundle  # 파일 존재 확인
 
 ```bash
 # 2.1 디렉토리 생성
-mkdir -p scripts/legacy
+mkdir -p scripts
 mkdir -p docs/refactor
 mkdir -p archive/claude_desktop
+mkdir -p archive/legacy_scripts
 
-# 2.2 활성 스크립트 이동
+# 2.2 활성 스크립트 이동 (현재 사용 중)
 git mv app.py scripts/app_cli.py
 git mv b.py scripts/ops_pulselive_and_analytics.py
 git mv c.py scripts/backfill_player_stat_scores.py
 
-# 2.3 오래된 스크립트를 legacy로 이동
-git mv a.py scripts/legacy/migrate_old_to_new_schema.py
+# 2.3 낡은 스크립트를 아카이브로 완전 분리
+git mv a.py archive/legacy_scripts/migrate_old_to_new_schema.py
 
 # 2.4 scripts README 생성
 cat > scripts/README.md << 'EOF'
 # Scripts 디렉토리
+
+**목적**: 현재 사용 중인 운영 스크립트 (활성 코드만)
+
+---
 
 ## 활성 스크립트
 
@@ -152,15 +157,40 @@ cat > scripts/README.md << 'EOF'
 **상태**: ✅ 활성  
 **참조**: `docs/ai_analysis/refactoring/calculation_formulas_reference.md`  
 
-## Legacy Scripts
+---
 
-### `legacy/migrate_old_to_new_schema.py`
-**목적**: 구 repository 스키마에서 신 스키마로 데이터 마이그레이션  
-**상태**: ⚠️ 오래됨 (`old_repositories` import가 더 이상 존재하지 않음)  
-**사용법**: 히스토리 참조용만  
+## 아카이브된 스크립트
+
+오래되고 더 이상 사용하지 않는 스크립트는 `archive/legacy_scripts/`로 이동되었습니다.
+
+**참조**: `archive/legacy_scripts/README.md`
 EOF
 
-# 2.5 legacy map 생성
+# 2.5 archive README 생성
+cat > archive/legacy_scripts/README.md << 'EOF'
+# Legacy Scripts Archive
+
+**경고**: 이 디렉토리의 스크립트는 더 이상 작동하지 않습니다.
+
+---
+
+## `migrate_old_to_new_schema.py`
+
+**원래 위치**: `a.py` (root)  
+**이동 날짜**: 2026-01-26  
+**목적**: 구 repository 스키마에서 신 스키마로 데이터 마이그레이션  
+
+**상태**: ⚠️ 작동 불가
+- `old_repositories` import가 더 이상 존재하지 않음
+- 히스토리 참조 목적으로만 보존
+
+**Git 히스토리로 복원**:
+```bash
+git show pre-migration/combined-2026-01-26:a.py
+```
+EOF
+
+# 2.6 legacy map 생성
 cat > docs/refactor/legacy_map.md << 'EOF'
 # Legacy Map: 마이그레이션 전 → 마이그레이션 후
 
@@ -171,7 +201,7 @@ cat > docs/refactor/legacy_map.md << 'EOF'
 
 | 이전 경로 | 새 경로 | 이유 | 상태 |
 |----------|---------|------|--------|
-| `a.py` | `scripts/legacy/migrate_old_to_new_schema.py` | 일회성 마이그레이션, `old_repositories` import 깨짐 | 오래됨 |
+| `a.py` | `archive/legacy_scripts/migrate_old_to_new_schema.py` | 일회성 마이그레이션, `old_repositories` import 깨짐 | 아카이브됨 (작동 불가) |
 | `b.py` | `scripts/ops_pulselive_and_analytics.py` | 활성 오케스트레이션 스크립트 | 활성 |
 | `c.py` | `scripts/backfill_player_stat_scores.py` | 활성 점수 계산 알고리즘 | 활성 |
 | `app.py` | `scripts/app_cli.py` | CLI 엔트리 포인트 | 활성 |
@@ -179,6 +209,16 @@ cat > docs/refactor/legacy_map.md << 'EOF'
 | `claudedocs/` | `docs/ai_analysis/` | 도구 중립적 이름 | 활성 |
 | `claudescripts/` | `scripts/generated/` | 도구 중립적 이름 | 활성 |
 | `.claude/` | `archive/claude_desktop/` | Claude Desktop 전용 설정 | 아카이브됨 |
+
+## 디렉토리 구분
+
+### `scripts/` - 운영 코드 (활성)
+현재 사용 중이거나 앞으로 사용할 스크립트만 포함
+
+### `archive/` - 백업 및 히스토리
+- `archive/legacy_scripts/` - 작동하지 않는 낡은 스크립트
+- `archive/claude_desktop/` - 도구별 설정 파일
+- 미래 구현에 영향 없음
 
 ## 보존된 구현
 
@@ -216,28 +256,39 @@ git show pre-migration/combined-2026-01-26:c.py > c.py
 - `scripts/legacy/` 완전히 폐기
 EOF
 
-git add scripts/ docs/refactor/
-git commit -m "refactor: reorganize root scripts into scripts/ directory
+git add scripts/ archive/legacy_scripts/ docs/refactor/
+git commit -m "refactor: reorganize root scripts and archive legacy code
 
-Moved scripts:
+Active scripts moved to scripts/:
 - app.py → scripts/app_cli.py
 - b.py → scripts/ops_pulselive_and_analytics.py
 - c.py → scripts/backfill_player_stat_scores.py
-- a.py → scripts/legacy/migrate_old_to_new_schema.py (stale)
+
+Legacy code archived:
+- a.py → archive/legacy_scripts/migrate_old_to_new_schema.py (stale, non-functional)
 
 Added documentation:
-- scripts/README.md (usage guide)
+- scripts/README.md (active scripts only)
+- archive/legacy_scripts/README.md (archive explanation)
 - docs/refactor/legacy_map.md (migration tracking)
 
-Reason: Clean root directory for Phase 0 preparation
+Reason: 
+- Clean root directory for Phase 0 preparation
+- Separate active code from archived backups
+- Prevent legacy code from affecting future implementation
+
 Tag: pre-migration/combined-2026-01-26"
 ```
 
 **검증**:
 ```bash
-# 스크립트 이동 확인
+# 활성 스크립트 이동 확인
 ls -la scripts/
-ls -la scripts/legacy/
+# 출력: app_cli.py, ops_pulselive_and_analytics.py, backfill_player_stat_scores.py, README.md
+
+# 아카이브 확인
+ls -la archive/legacy_scripts/
+# 출력: migrate_old_to_new_schema.py, README.md
 
 # root가 깨끗한지 확인
 ls *.py  # setup.py만 있어야 함 (있다면)
@@ -619,13 +670,11 @@ echo ""
 football_data_puller/
 ├── AI_GUIDELINES.md                     # ✨ CLAUDE.md에서 이름 변경
 ├── .aiignore                            # ✨ 새로 생성
-├── scripts/                             # ✨ 새로 생성
+├── scripts/                             # ✨ 새로 생성 (활성 코드만)
 │   ├── README.md
 │   ├── app_cli.py                       # app.py에서 이동
 │   ├── ops_pulselive_and_analytics.py   # b.py에서 이동
 │   ├── backfill_player_stat_scores.py   # c.py에서 이동
-│   ├── legacy/
-│   │   └── migrate_old_to_new_schema.py # a.py에서 이동
 │   └── generated/                       # ✨ claudescripts/에서 이름 변경
 │       └── README.md
 ├── docs/
@@ -641,10 +690,13 @@ football_data_puller/
 │   └── refactor/
 │       ├── legacy_map.md                # ✨ 새로 생성
 │       └── ai_agnostic_migration_plan.md
-├── archive/
-│   └── claude_desktop/                  # ✨ .claude/에서 이동
-│       ├── settings.local.json
-│       └── update_championship.md
+├── archive/                             # ✨ 새로 생성 (백업 전용)
+│   ├── claude_desktop/                  # .claude/에서 이동
+│   │   ├── settings.local.json
+│   │   └── update_championship.md
+│   └── legacy_scripts/                  # ✨ 새로 생성
+│       ├── README.md
+│       └── migrate_old_to_new_schema.py # a.py에서 이동 (작동 불가)
 ├── backups/                             # ✨ 새로 생성 (gitignored)
 │   └── pre_migration_20260126.dump
 └── ...
@@ -734,6 +786,8 @@ git commit -m "fix: update broken documentation links"
 - [ ] Root 디렉토리 깨끗 (`setup.py` 외 `.py` 파일 없음)
 - [ ] AI_GUIDELINES.md 존재 및 포괄적
 - [ ] `.aiignore`가 민감한 파일 제외
+- [ ] **`scripts/`에 활성 코드만 존재** (legacy 없음)
+- [ ] **`archive/`에 백업만 존재** (미래 구현과 분리됨)
 
 ---
 

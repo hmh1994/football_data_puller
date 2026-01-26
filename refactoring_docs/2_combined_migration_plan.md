@@ -107,90 +107,56 @@ ls -lh ../football_data_manager_backup_*.bundle  # 파일 존재 확인
 
 ```bash
 # 2.1 디렉토리 생성
-mkdir -p scripts
 mkdir -p archive/legacy_scripts
 
-# 2.2 활성 스크립트를 하나의 CLI로 통합
-# app.py를 기본으로 사용하여 통합 CLI 생성
-git mv app.py scripts/app.py
-
-# 2.3 레거시 스크립트를 아카이브로 이동
+# 2.2 레거시 스크립트를 아카이브로 이동
+# app.py는 root에 그대로 유지 (메인 엔트리 포인트)
 git mv a.py archive/legacy_scripts/migrate_old_to_new_schema.py
 git mv b.py archive/legacy_scripts/ops_pulselive_and_analytics.py
 git mv c.py archive/legacy_scripts/backfill_player_stat_scores.py
 
-# 2.4 scripts README 생성
-cat > scripts/README.md << 'EOF'
-```
+# 2.3 프로젝트 README 업데이트
+cat >> README.md << 'EOF'
 
-# Scripts 디렉토리
+## Usage
 
-**목적**: 통합 CLI를 통한 모든 운영 작업 수행
+### CLI Commands
 
----
+`app.py` serves as the main entry point for all operations:
 
-## `app.py` - 통합 CLI
-
-**목적**: 모든 운영 작업을 위한 단일 진입점
-
-### 명령어
-
-#### 1. `run` - Master Process 시작
+#### Start Master Process
 ```bash
-python scripts/app.py run
+python app.py run
 ```
-Cron 스케줄러가 실행되는 master process 시작
-- 정기적인 데이터 pulling 스케줄 관리
-- 백그라운드에서 지속 실행
+Starts the master process with cron scheduler for periodic data pulling.
 
-#### 2. `pull-data` - 특정 Entity 데이터 Pulling
+#### Pull Specific Entity Data
 ```bash
-python scripts/app.py pull-data {entity-name}
+python app.py pull-data {entity-name}
 ```
-특정 entity에 대한 데이터 pulling 및 merge 실행
+Executes Puller and Merger for specific entity.
 
-**사용 예시**:
+**Available entities:**
+- `competition` - Competition data
+- `season` - Season data
+- `team` - Team data
+- `player` - Player data
+- `match` - Match data
+
+**Example:**
 ```bash
-python scripts/app.py pull-data competition
-python scripts/app.py pull-data season
-python scripts/app.py pull-data team
-python scripts/app.py pull-data player
-python scripts/app.py pull-data match
+python app.py pull-data player
 ```
 
-**동작**:
-- 지정된 entity에 대한 Puller 실행
-- Merger를 통한 데이터 병합
-- Analytics 계산 (해당되는 경우)
-
-#### 3. `health` - 시스템 상태 확인
+#### Health Check
 ```bash
-python scripts/app.py health
+python app.py health
 ```
-빌드 상태 점검 및 헬스 체크
-- 데이터베이스 연결 확인
-- 필수 의존성 확인
-- 시스템 상태 리포트
+Checks build status and system health.
 
----
-
-## 향후 구현 예정 (Phase 0 이후)
-
-- `python scripts/app.py migrate` - 데이터베이스 마이그레이션
-- `python scripts/app.py backup` - 데이터베이스 백업
-- `python scripts/app.py restore` - 데이터베이스 복원
-
----
-
-## 아카이브된 스크립트
-
-오래된 개별 스크립트들은 `archive/legacy_scripts/`로 이동되었습니다.
-로직은 `app.py`로 통합되었습니다.
-
-**참조**: `archive/legacy_scripts/README.md`
 EOF
 
-# 2.5 archive README 생성
+# 2.4 archive README 생성
 
 cat > archive/legacy_scripts/README.md << 'EOF'
 
@@ -202,7 +168,7 @@ cat > archive/legacy_scripts/README.md << 'EOF'
 
 ## 마이그레이션 내역
 
-모든 스크립트의 로직이 `scripts/app.py`로 통합되었습니다.
+모든 스크립트의 로직이 `app.py`로 통합되었습니다.
 
 ### `migrate_old_to_new_schema.py`
 
@@ -216,23 +182,27 @@ cat > archive/legacy_scripts/README.md << 'EOF'
 - 히스토리 참조 목적으로만 보존
 
 ### `ops_pulselive_and_analytics.py`
-**원래 위치**: `b.py` (root)  
-**이동 날짜**: 2026-01-26  
-**목적**: 데이터 pulling 오케스트레이션 및 analytics 계산  
+
+**원래 위치**: `b.py` (root)
+**이동 날짜**: 2026-01-26
+**목적**: 데이터 pulling 오케스트레이션 및 analytics 계산
 
 **상태**: 📦 아카이브됨
-- Puller 로직 → `scripts/app.py pull-data {entity}` 명령으로 통합
-- Cron 스케줄링 → `scripts/app.py run` 명령으로 통합
+
+- Puller 로직 → `app.py pull-data {entity}` 명령으로 통합
+- Cron 스케줄링 → `app.py run` 명령으로 통합
 - 참조: `refactoring_docs/5_calculation_formulas_reference.md` (Section 2, 3)
 
 ### `backfill_player_stat_scores.py`
-**원래 위치**: `c.py` (root)  
-**이동 날짜**: 2026-01-26  
-**목적**: 선수 성능 점수 계산  
+
+**원래 위치**: `c.py` (root)
+**이동 날짜**: 2026-01-26
+**목적**: 선수 성능 점수 계산
 
 **상태**: 📦 아카이브됨
+
 - 로직이 analytics 계산에 통합될 예정
-- 필요시 `scripts/app.py pull-data player` 실행 시 자동 계산
+- 필요시 `app.py pull-data player` 실행 시 자동 계산
 - 참조: `refactoring_docs/5_calculation_formulas_reference.md` (Section 1)
 
 ---
@@ -246,8 +216,6 @@ git show pre-migration/legacy-scripts-2026-01-26:b.py
 git show pre-migration/legacy-scripts-2026-01-26:c.py
 ```
 
-EOF
-
 # 2.6 legacy map 생성
 
 mkdir -p docs/refactor
@@ -260,64 +228,63 @@ cat > docs/refactor/legacy_map.md << 'EOF'
 
 ## 스크립트 통합 전략
 
-모든 개별 스크립트를 하나의 CLI로 통합하여 명령어 기반 실행 구조로 변경
+`app.py`를 메인 엔트리 포인트로 유지하고, 레거시 스크립트들을 아카이브로 이동
 
 ## 파일 재배치
 
 | 이전 경로 | 새 경로 | 통합 위치 | 상태 |
 |----------|---------|---------|------|
-| `app.py` | `scripts/app.py` | `app.py` (기본) | ✅ 활성 |
+| `app.py` | `app.py` (root, 이동 없음) | 메인 엔트리 포인트 | ✅ 활성 |
 | `b.py` | `archive/legacy_scripts/ops_pulselive_and_analytics.py` | `app.py run` / `app.py pull-data {entity}` | 📦 통합됨 |
 | `c.py` | `archive/legacy_scripts/backfill_player_stat_scores.py` | (자동 계산) | 📦 통합됨 |
 | `a.py` | `archive/legacy_scripts/migrate_old_to_new_schema.py` | (없음) | ⚠️ 작동 불가 |
 
 ## CLI 명령어 매핑
 
-| 기존 실행 방법 | 새 실행 방법 | 기능 |
-|------------|-----------|------|
-| `python app.py health` | `python scripts/app.py health` | 빌드 상태 & 헬스 체크 |
-| `python b.py` (백그라운드 실행) | `python scripts/app.py run` | Master process (cron 스케줄러) |
-| `python b.py` (개별 entity) | `python scripts/app.py pull-data {entity}` | 특정 entity 데이터 pulling |
-| `python c.py` | (자동 실행) | Player analytics 계산 시 자동 포함 |
-| `python a.py` | (사용 불가) | 구 스키마 마이그레이션 |
+| 기존 실행 방법                  | 새 실행 방법                                    | 기능                          |
+|---------------------------|--------------------------------------------|-----------------------------|
+| `python app.py health`    | `python app.py health`             | 빌드 상태 & 헬스 체크               |
+| `python b.py` (백그라운드 실행)  | `python app.py run`                | Master process (cron 스케줄러)  |
+| `python b.py` (개별 entity) | `python app.py pull-data {entity}` | 특정 entity 데이터 pulling       |
+| `python c.py`             | (자동 실행)                                    | Player analytics 계산 시 자동 포함 |
+| `python a.py`             | (사용 불가)                                    | 구 스키마 마이그레이션                |
 
 **Entity 예시**:
-- `python scripts/app.py pull-data competition`
-- `python scripts/app.py pull-data season`
-- `python scripts/app.py pull-data team`
-- `python scripts/app.py pull-data player`
-- `python scripts/app.py pull-data match`
+
+- `python app.py pull-data competition`
+- `python app.py pull-data season`
+- `python app.py pull-data team`
+- `python app.py pull-data player`
+- `python app.py pull-data match`
 
 ## 디렉토리 구분
 
-### `scripts/` - 운영 코드 (활성)
-
-- `app.py`: 모든 기능을 명령어로 제공하는 통합 CLI
+### Root - 메인 엔트리 포인트
+- `app.py`: 모든 기능을 명령어로 제공하는 통합 CLI (root에 위치)
 
 ### `archive/legacy_scripts/` - 백업 및 히스토리
-
 - 개별 스크립트 원본 보존 (실행 불가)
 - 로직은 `app.py`로 통합됨
 
 ## 보존된 구현
 
-모든 비즈니스 로직이 `scripts/app.py`로 통합되었습니다:
+모든 비즈니스 로직이 `app.py`로 통합되었습니다:
 
 1. **Cron 스케줄링** (`b.py`에서):
-   - 명령어: `python scripts/app.py run`
-   - 기능: Master process 시작, 정기적 데이터 pulling 스케줄 관리
-   - 원본: `archive/legacy_scripts/ops_pulselive_and_analytics.py`
+    - 명령어: `python app.py run`
+    - 기능: Master process 시작, 정기적 데이터 pulling 스케줄 관리
+    - 원본: `archive/legacy_scripts/ops_pulselive_and_analytics.py`
 
 2. **Entity별 데이터 Pulling** (`b.py`에서):
-   - 명령어: `python scripts/app.py pull-data {entity}`
-   - 기능: 특정 entity에 대한 Puller + Merger 실행
-   - 문서: `refactoring_docs/5_calculation_formulas_reference.md` (Section 2, 3)
-   - 원본: `archive/legacy_scripts/ops_pulselive_and_analytics.py`
+    - 명령어: `python app.py pull-data {entity}`
+    - 기능: 특정 entity에 대한 Puller + Merger 실행
+    - 문서: `refactoring_docs/5_calculation_formulas_reference.md` (Section 2, 3)
+    - 원본: `archive/legacy_scripts/ops_pulselive_and_analytics.py`
 
 3. **Player Stat Scores** (`c.py`에서):
-   - 통합 방식: Player analytics 계산 시 자동 실행
-   - 문서: `refactoring_docs/5_calculation_formulas_reference.md` (Section 1)
-   - 원본: `archive/legacy_scripts/backfill_player_stat_scores.py`
+    - 통합 방식: Player analytics 계산 시 자동 실행
+    - 문서: `refactoring_docs/5_calculation_formulas_reference.md` (Section 1)
+    - 원본: `archive/legacy_scripts/backfill_player_stat_scores.py`
 
 ## 롤백 방법
 
@@ -336,32 +303,28 @@ git show pre-migration/legacy-scripts-2026-01-26:c.py > c.py
 - `archive/legacy_scripts/` 내용 검토 후 필요시 완전 제거
   EOF
 
-git add scripts/ archive/legacy_scripts/ docs/refactor/
-git commit -m "refactor: consolidate root scripts into unified CLI
+git add README.md archive/legacy_scripts/ docs/refactor/
+git commit -m "refactor: consolidate legacy scripts and keep app.py as main entry point
 
 Script consolidation:
-
-- app.py → scripts/app.py (base)
-- b.py logic → scripts/app.py pull-data command
-- c.py logic → scripts/app.py backfill-scores command
+- app.py → kept in root as main entry point
+- b.py logic → app.py run / app.py pull-data {entity} commands
+- c.py logic → integrated into analytics calculation
 
 Legacy code archived:
-
 - a.py → archive/legacy_scripts/migrate_old_to_new_schema.py (non-functional)
 - b.py → archive/legacy_scripts/ops_pulselive_and_analytics.py (logic moved)
 - c.py → archive/legacy_scripts/backfill_player_stat_scores.py (logic moved)
 
 Added documentation:
-
-- scripts/README.md (unified CLI usage)
+- README.md usage section (CLI commands)
 - archive/legacy_scripts/README.md (archive explanation)
 - docs/refactor/legacy_map.md (migration tracking)
 
 Benefits:
-
-- Single entry point for all operations
-- Command-based execution model
-- Clean root directory for Phase 0
+- app.py as obvious main entry point
+- Shorter commands: python app.py {command}
+- Clean root directory with only essential files
 
 Tag: pre-migration/legacy-scripts-2026-01-26"
 
@@ -369,9 +332,8 @@ Tag: pre-migration/legacy-scripts-2026-01-26"
 
 **검증**:
 ```bash
-# 활성 스크립트 확인
-ls -la scripts/
-# 출력: app.py, README.md
+# Root에 app.py 확인
+ls -la app.py
 
 # 아카이브 확인
 ls -la archive/legacy_scripts/
@@ -381,7 +343,7 @@ ls -la archive/legacy_scripts/
 ls *.py  # setup.py만 있어야 함 (있다면)
 
 # 통합 CLI 테스트
-python scripts/app.py health  # "I'm healthy!" 출력되어야 함
+python app.py health  # "I'm healthy!" 출력되어야 함
 ```
 
 ---
@@ -392,12 +354,11 @@ python scripts/app.py health  # "I'm healthy!" 출력되어야 함
 # 3.1 디렉토리 구조 확인
 echo "=== 디렉토리 구조 확인 ==="
 tree -L 2 -d refactoring_docs/
-tree -L 2 -d scripts/
 tree -L 1 -d archive/
 
 # 3.2 Root 디렉토리 정리 확인
 echo "=== Root 디렉토리 정리 확인 ==="
-ls *.py  # setup.py만 있어야 함 (있다면)
+ls *.py  # app.py (그리고 setup.py, 있다면) 만 있어야 함
 
 # 3.3 Python import 테스트
 echo "=== Python imports 테스트 ==="
@@ -409,7 +370,7 @@ pytest -v
 
 # 3.5 통합 CLI 테스트
 echo "=== 통합 CLI 테스트 ==="
-python scripts/app.py health
+python app.py health
 
 # 3.6 git 상태 확인
 echo "=== Git status ==="
@@ -433,21 +394,21 @@ echo "✅ Legacy Script 통합 완료! Phase 0 준비 완료."
 echo ""
 echo "요약:"
 echo "  - Root 디렉토리 정리 완료"
-echo "  - 모든 스크립트를 scripts/app.py로 통합"
+echo "  - 모든 스크립트를 app.py로 통합"
 echo "  - 개별 스크립트는 archive/legacy_scripts/에 보존"
 echo "  - 모든 코드가 Git 히스토리에 보존됨"
 echo ""
 echo "통합된 CLI 명령어:"
-echo "  - python scripts/app.py health                    # 빌드 상태 & 헬스 체크"
-echo "  - python scripts/app.py run                       # Master process (cron 스케줄러)"
-echo "  - python scripts/app.py pull-data {entity-name}   # 특정 entity 데이터 pulling"
+echo "  - python app.py health                    # 빌드 상태 & 헬스 체크"
+echo "  - python app.py run                       # Master process (cron 스케줄러)"
+echo "  - python app.py pull-data {entity-name}   # 특정 entity 데이터 pulling"
 echo ""
 echo "Entity 예시:"
-echo "  - python scripts/app.py pull-data competition"
-echo "  - python scripts/app.py pull-data season"
-echo "  - python scripts/app.py pull-data team"
-echo "  - python scripts/app.py pull-data player"
-echo "  - python scripts/app.py pull-data match"
+echo "  - python app.py pull-data competition"
+echo "  - python app.py pull-data season"
+echo "  - python app.py pull-data team"
+echo "  - python app.py pull-data player"
+echo "  - python app.py pull-data match"
 echo ""
 echo "백업 정보:"
 echo "  - 전체 백업: ../football_data_manager_backup_$(date +%Y%m%d).bundle"
@@ -469,10 +430,9 @@ echo ""
 
 ```
 football_data_puller/
+├── app.py                               # ✨ 메인 엔트리 포인트 (root에 유지)
 ├── CLAUDE.md                            # (현재 존재, 이후 변경 예정)
-├── scripts/                             # ✨ 새로 생성 (통합 CLI)
-│   ├── README.md
-│   └── app.py                           # app.py 기반 통합 CLI
+├── README.md                            # ✨ CLI usage 섹션 추가
 ├── refactoring_docs/                    # ✨ 이미 존재 (번호 매겨진 문서들)
 │   ├── 0_README.md
 │   ├── 1_master_plan.md
@@ -501,12 +461,12 @@ External:
 ```
 
 **주요 변경사항:**
-- Root에서 a.py, b.py, c.py, app.py 제거
-- 모든 스크립트를 `scripts/app.py`로 통합
+- Root에서 a.py, b.py, c.py 제거
+- app.py는 root에 유지 (메인 엔트리 포인트)
 - 명령어 기반 실행 구조로 변경:
-  - `app.py health` - 빌드 상태 & 헬스 체크
-  - `app.py run` - Master process (cron 스케줄러)
-  - `app.py pull-data {entity}` - 특정 entity 데이터 pulling
+    - `app.py health` - 빌드 상태 & 헬스 체크
+    - `app.py run` - Master process (cron 스케줄러)
+    - `app.py pull-data {entity}` - 특정 entity 데이터 pulling
 - 개별 스크립트는 archive/legacy_scripts/에 보존
 
 ---
@@ -562,7 +522,7 @@ pytest -vv
 
 ```bash
 # 권한 수정
-chmod +x scripts/app.py
+chmod +x app.py
 ```
 
 ### 이슈: 문서 참조 깨짐
@@ -578,14 +538,14 @@ git commit -m "fix: update broken documentation links"
 ## 성공 기준
 
 - [ ] 모든 테스트 통과 (`pytest -v`)
-- [ ] 통합 CLI 실행 가능 (`python scripts/app.py health`)
+- [ ] 통합 CLI 실행 가능 (`python app.py health`)
 - [ ] Git 히스토리 깨끗 (`git log --oneline -5`)
 - [ ] 스냅샷 태그 존재 (`git tag -l "pre-migration/*"`)
 - [ ] Bundle 백업 존재 (`ls -lh ../football_data_manager_backup_*.bundle`)
-- [ ] Root 디렉토리 깨끗 (`setup.py` 외 `.py` 파일 없음)
-- [ ] **`scripts/app.py`만 존재** (개별 스크립트 없음)
+- [ ] **Root에 `app.py` 존재** (메인 엔트리 포인트)
+- [ ] **Root에서 a.py, b.py, c.py 제거됨**
 - [ ] **`archive/legacy_scripts/`에 a.py, b.py, c.py 백업 존재**
-- [ ] **`scripts/README.md`에 CLI 명령어 문서화됨**
+- [ ] **`README.md`에 CLI usage 섹션 추가됨**
 - [ ] **`docs/refactor/legacy_map.md`에 마이그레이션 추적 문서 존재**
 
 ---

@@ -181,6 +181,51 @@
 
 ---
 
+### 7. **`7_phase_1_repository.md`** (Phase 1 실행 가이드 - ✅ 완료)
+
+**목적**: Repository 컴포넌트 전면 재구성 실행 가이드
+
+**내용**:
+
+- Step 1-10: 단계별 실행 가이드
+- 초기 Alembic 마이그레이션
+- 디렉토리 구조 생성 (`repository/entities/`, `repository/repositories/`)
+- SQLAlchemy 2.0 스타일 적용 (`DeclarativeBase`, `Mapped[T]`)
+- Entity 마이그레이션 (15 entities + 11 associations)
+- AsyncBaseRepository 구현
+- 개별 Repository 구현 (특수 메서드 보존)
+- SessionFactory, RepositoryContainer (DI)
+- 검증 체크리스트 및 트러블슈팅
+
+**언제 읽나요**:
+
+- Repository 구조 이해 필요 시
+
+**특징**:
+
+- 코드 예제 포함
+- 파일 매핑 테이블
+- archive 참조 경로 목록
+
+---
+
+### 8. **`8_schema_diff_analysis.md`** (Entity vs DB 스키마 차이 분석)
+
+**목적**: Phase 1 Entity 코드와 실제 DB 스키마 간 7개 차이점 분석 및 해결 방향 결정
+
+**내용**:
+
+- 7개 이슈 분석 (테이블, 컬럼, nullable, FK, unique 제약)
+- 각 이슈별 추천안 및 선택지 제시
+- 결정 후 실행 방법 안내
+
+**언제 읽나요**:
+
+- Phase 1 완료 후, Alembic 마이그레이션 적용 전
+- DB 스키마 정합성 확인 필요 시
+
+---
+
 ## 🚀 빠른 시작
 
 ### **Phase 0 전 필수 작업** (Combined Migration)
@@ -266,11 +311,15 @@ cat refactoring_docs/2_current_state_analysis.md
 - [x] Entity 비즈니스 로직 메서드 제거 (스키마 정의만 유지)
 - [x] Entity docstring 점검 및 수정
 
-### Phase 1: Repository 리팩토링 (1-2주) - **대기 중**
+### Phase 1: Repository 리팩토링 - ✅ **완료** (2026-02-02) → `7_phase_1_repository.md`
 
-- [ ] 디렉토리 구조 생성
-- [ ] Entity 마이그레이션
-- [ ] AsyncBaseRepository 구현
+- [x] 디렉토리 구조 생성 (`repository/entities/`, `repository/repositories/`)
+- [x] Entity 마이그레이션 (SQLAlchemy 2.0, `Mapped[T]`, 15 entities)
+- [x] Association 분리 (11 associations → 개별 파일)
+- [x] AsyncBaseRepository + PulseliveRepository 구현
+- [x] 개별 Repository 구현 (15 repositories, 특수 메서드 포함)
+- [x] SessionFactory + RepositoryContainer (17 providers)
+- [x] Alembic env.py 업데이트 (26 테이블 등록)
 
 ### Phase 2: Puller 리팩토링 (1-2주) - **대기 중**
 
@@ -313,11 +362,12 @@ cat refactoring_docs/2_current_state_analysis.md
 3. `3_calculation_formulas_reference.md` (필수 참고) - 모든 계산식 보존
 4. **`4_combined_migration_plan.md` (필수, 15분 + 2-3시간) - Phase 0 전 준비 작업**
 5. `5_phase_0_preparation.md` (필수, 10분 + 2-3일) - Phase 0 시작
+6. `7_phase_1_repository.md` (필수, 15분) - Phase 1 시작
 
 ### Phase 진행 중
 
 1. 해당 Phase 섹션 (`1_master_plan.md`)
-2. 실행 가이드 (각 Phase별 문서, Phase 0만 현재 존재)
+2. 실행 가이드 (각 Phase별 문서: `5_phase_0_preparation.md`, `7_phase_1_repository.md`)
 3. `2_current_state_analysis.md` (필요 시 참고)
 
 ### 새 팀원 온보딩
@@ -353,7 +403,7 @@ cat refactoring_docs/2_current_state_analysis.md
 
 ### Q: 각 Phase별 상세 가이드는 어디 있나요?
 
-**A**: Phase 0만 현재 작성됨. Phase 1-4는 필요 시 작성 예정.
+**A**: Phase 0, Phase 1 작성 완료. Phase 2-4는 필요 시 작성 예정.
 
 ### Q: 6_ai_agnostic_migration_plan.md는 뭔가요?
 
@@ -366,6 +416,11 @@ cat refactoring_docs/2_current_state_analysis.md
 ---
 
 ## 📝 문서 업데이트 이력
+
+### 2026-02-02
+
+- `7_phase_1_repository.md`: 신규 작성 (Repository 리팩토링 실행 가이드)
+- `0_README.md`: Phase 1 문서 추가, 문서 목록 업데이트
 
 ### 2026-02-01
 

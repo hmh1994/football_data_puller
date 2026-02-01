@@ -1,0 +1,223 @@
+from sqlalchemy import String, ForeignKey, Integer, ARRAY, Enum
+from sqlalchemy.orm import Mapped, mapped_column
+
+from football_data_manager.common.enums.period_enum import PeriodEnum
+from football_data_manager.repository.entities.base import PulseliveEntity
+from football_data_manager.repository.entities.fixtures import FixtureEntity
+from football_data_manager.repository.entities.officials import OfficialEntity
+from football_data_manager.repository.entities.players import PlayerEntity
+from football_data_manager.repository.entities.staffs import StaffEntity
+from football_data_manager.repository.entities.teams import TeamEntity
+
+MATCHES_TABLE_NAME = "matches"
+
+
+class MatchEntity(PulseliveEntity):
+    """
+    Entity model for football matches with comprehensive match data.
+
+    :ivar attendance: Number of spectators at the match
+    :ivar away_team_captain_id: Foreign key to the away team captain
+    :ivar away_team_formation: Away team formation as array of integers
+    :ivar away_team_half_time_score: Away team score at half-time
+    :ivar away_team_id: Foreign key to the away team
+    :ivar away_team_manager: Foreign key to the away team manager
+    :ivar away_team_score: Final score of the away team
+    :ivar clock: Total match time in minutes
+    :ivar fixture_id: Foreign key to the associated fixture
+    :ivar home_team_captain_id: Foreign key to the home team captain
+    :ivar home_team_formation: Home team formation as array of integers
+    :ivar home_team_half_time_score: Home team score at half-time
+    :ivar home_team_id: Foreign key to the home team
+    :ivar home_team_manager: Foreign key to the home team manager
+    :ivar home_team_score: Final score of the home team
+    :ivar official_main_referee_id: Foreign key to the main referee
+    :ivar official_assistant_1_referee_id: Foreign key to first assistant referee
+    :ivar official_assistant_2_referee_id: Foreign key to second assistant referee
+    :ivar official_fourth_referee_id: Foreign key to the fourth official
+    :ivar official_var_id: Foreign key to VAR official (optional)
+    :ivar official_assistant_var_id: Foreign key to assistant VAR official (optional)
+    :ivar period: Match period status
+    """
+
+    __tablename__ = MATCHES_TABLE_NAME
+
+    attendance: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    away_team_captain_id: Mapped[str | None] = mapped_column(
+        String,
+        ForeignKey(PlayerEntity.id, ondelete="SET NULL", onupdate="RESTRICT"),
+        nullable=True,
+    )
+    away_team_formation: Mapped[list[int]] = mapped_column(
+        ARRAY(Integer), nullable=False
+    )
+    away_team_half_time_score: Mapped[int | None] = mapped_column(
+        Integer, nullable=True
+    )
+    away_team_id: Mapped[str] = mapped_column(
+        String,
+        ForeignKey(TeamEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
+        nullable=False,
+    )
+    away_team_manager: Mapped[str | None] = mapped_column(
+        String,
+        ForeignKey(StaffEntity.id, ondelete="SET NULL", onupdate="RESTRICT"),
+        nullable=True,
+    )
+    away_team_score: Mapped[int] = mapped_column(Integer, nullable=False)
+    clock: Mapped[int] = mapped_column(Integer, nullable=False)
+    fixture_id: Mapped[str] = mapped_column(
+        String,
+        ForeignKey(FixtureEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
+        nullable=False,
+    )
+    home_team_captain_id: Mapped[str | None] = mapped_column(
+        String,
+        ForeignKey(PlayerEntity.id, ondelete="SET NULL", onupdate="RESTRICT"),
+        nullable=True,
+    )
+    home_team_formation: Mapped[list[int]] = mapped_column(
+        ARRAY(Integer), nullable=False
+    )
+    home_team_half_time_score: Mapped[int | None] = mapped_column(
+        Integer, nullable=True
+    )
+    home_team_id: Mapped[str] = mapped_column(
+        String,
+        ForeignKey(TeamEntity.id, ondelete="CASCADE", onupdate="RESTRICT"),
+        nullable=False,
+    )
+    home_team_manager: Mapped[str | None] = mapped_column(
+        String,
+        ForeignKey(StaffEntity.id, ondelete="SET NULL", onupdate="RESTRICT"),
+        nullable=True,
+    )
+    home_team_score: Mapped[int] = mapped_column(Integer, nullable=False)
+    official_main_referee_id: Mapped[str | None] = mapped_column(
+        String,
+        ForeignKey(OfficialEntity.id, ondelete="SET NULL", onupdate="RESTRICT"),
+        nullable=True,
+    )
+    official_assistant_1_referee_id: Mapped[str | None] = mapped_column(
+        String,
+        ForeignKey(OfficialEntity.id, ondelete="SET NULL", onupdate="RESTRICT"),
+        nullable=True,
+    )
+    official_assistant_2_referee_id: Mapped[str | None] = mapped_column(
+        String,
+        ForeignKey(OfficialEntity.id, ondelete="SET NULL", onupdate="RESTRICT"),
+        nullable=True,
+    )
+    official_fourth_referee_id: Mapped[str | None] = mapped_column(
+        String,
+        ForeignKey(OfficialEntity.id, ondelete="SET NULL", onupdate="RESTRICT"),
+        nullable=True,
+    )
+    official_var_id: Mapped[str | None] = mapped_column(
+        String,
+        ForeignKey(OfficialEntity.id, ondelete="SET NULL", onupdate="RESTRICT"),
+        nullable=True,
+    )
+    official_assistant_var_id: Mapped[str | None] = mapped_column(
+        String,
+        ForeignKey(OfficialEntity.id, ondelete="SET NULL", onupdate="RESTRICT"),
+        nullable=True,
+    )
+    period: Mapped[PeriodEnum] = mapped_column(Enum(PeriodEnum), nullable=False)
+
+    def __init__(
+        self,
+        attendance: int,
+        away_team_captain: PlayerEntity | None,
+        away_team_manager: StaffEntity | None,
+        away_team_formation: list[int],
+        away_team_score: int,
+        away_team_half_time_score: int | None,
+        clock: int | None,
+        fixture: FixtureEntity,
+        home_team_captain: PlayerEntity | None,
+        home_team_manager: StaffEntity | None,
+        home_team_formation: list[int],
+        home_team_score: int,
+        home_team_half_time_score: int | None,
+        official_main_referee: OfficialEntity | None,
+        official_assistant_1_referee: OfficialEntity | None,
+        official_assistant_2_referee: OfficialEntity | None,
+        official_fourth_referee: OfficialEntity | None,
+        official_var: OfficialEntity | None,
+        official_assistant_var: OfficialEntity | None,
+        period: PeriodEnum,
+    ):
+        """
+        Initialize a new MatchEntity instance.
+
+        :param attendance: Number of spectators at the match
+        :param away_team_captain: Away team captain player entity
+        :param away_team_manager: Away team manager staff entity
+        :param away_team_formation: Formation array for the away team
+        :param away_team_score: Final score of the away team
+        :param away_team_half_time_score: Away team score at half-time
+        :param clock: Total match time in minutes
+        :param fixture: Fixture entity this match is associated with
+        :param home_team_captain: Home team captain player entity
+        :param home_team_manager: Home team manager staff entity
+        :param home_team_formation: Formation array for the home team
+        :param home_team_score: Final score of the home team
+        :param home_team_half_time_score: Home team score at half-time
+        :param official_main_referee: Main referee
+        :param official_assistant_1_referee: First assistant referee
+        :param official_assistant_2_referee: Second assistant referee
+        :param official_fourth_referee: Fourth official
+        :param official_var: VAR official
+        :param official_assistant_var: Assistant VAR official
+        :param period: Match period status
+        """
+        super().__init__(source_id=fixture.source_id)
+        # Connect to fixture
+        self.fixture_id = fixture.id
+
+        # Basic fields
+        self.attendance = attendance
+        self.clock = clock if clock else 0
+        self.period = period
+
+        # Away team information
+        self.away_team_id = fixture.away_team_id
+        self.away_team_captain_id = away_team_captain.id if away_team_captain else None
+        self.away_team_manager = away_team_manager.id if away_team_manager else None
+        self.away_team_formation = away_team_formation
+        self.away_team_score = away_team_score if away_team_score else 0
+        self.away_team_half_time_score = away_team_half_time_score
+
+        # Home team information
+        self.home_team_id = fixture.home_team_id
+        self.home_team_captain_id = home_team_captain.id if home_team_captain else None
+        self.home_team_manager = home_team_manager.id if home_team_manager else None
+        self.home_team_formation = home_team_formation
+        self.home_team_score = home_team_score if home_team_score else 0
+        self.home_team_half_time_score = home_team_half_time_score
+
+        # Official information
+        self.official_main_referee_id = (
+            official_main_referee.id if official_main_referee else None
+        )
+        self.official_assistant_1_referee_id = (
+            official_assistant_1_referee.id if official_assistant_1_referee else None
+        )
+        self.official_assistant_2_referee_id = (
+            official_assistant_2_referee.id if official_assistant_2_referee else None
+        )
+        self.official_fourth_referee_id = (
+            official_fourth_referee.id if official_fourth_referee else None
+        )
+        self.official_var_id = official_var.id if official_var else None
+        self.official_assistant_var_id = (
+            official_assistant_var.id if official_assistant_var else None
+        )
+
+        # Associations
+        self.card_associations = []
+        self.goal_associations = []
+        self.lineup_associations = []
+        self.substitute_associations = []
+        self.substitution_associations = []

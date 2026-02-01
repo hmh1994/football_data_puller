@@ -4,7 +4,7 @@
 
 **날짜**: 2026-01-26
 **예상 소요 시간**: 45분
-**상태**: 실행 준비 완료
+**상태**: ✅ 완료 (2026-02-01)
 
 ---
 
@@ -21,10 +21,10 @@ Root 디렉토리의 레거시 스크립트들(a.py, b.py, c.py, app.py)을 정�
 
 ## 사전 요구사항
 
-- [ ] 모든 현재 변경사항 커밋 완료
-- [ ] 올바른 브랜치에서 작업 중 (`main` 또는 `feature/issue-001.04`)
-- [ ] 데이터베이스 접근 가능 (선택적 백업용)
-- [ ] 테스트 통과 (`pytest`)
+- [x] 모든 현재 변경사항 커밋 완료
+- [x] 올바른 브랜치에서 작업 중 (`feature/issue-001.04`)
+- [x] 데이터베이스 접근 가능 (선택적 백업용)
+- [x] 테스트 통과 (`pytest`) — 기존 2건 collection error (마이그레이션 무관)
 
 ---
 
@@ -366,7 +366,7 @@ git show pre-migration/legacy-scripts-2026-01-26:c.py
 # 2.6 legacy map 생성
 
 mkdir -p docs/refactor
-cat > docs/refactor/legacy_map.md << 'EOF'
+cat > refactoring_docs/legacy_map.md << 'EOF'
 
 # Legacy Map: 마이그레이션 전 → 마이그레이션 후
 
@@ -472,7 +472,7 @@ Added documentation:
 - app.py: Full CLI implementation with TODOs
 - README.md: Usage section with CLI commands
 - archive/legacy_scripts/README.md: Archive explanation
-- docs/refactor/legacy_map.md: Migration tracking
+- refactoring_docs/legacy_map.md: Migration tracking
 
 Benefits:
 - Executable app.py structure ready
@@ -597,11 +597,15 @@ football_data_puller/
 │   ├── 3_calculation_formulas_reference.md
 │   ├── 4_combined_migration_plan.md     # 이 파일
 │   ├── 5_phase_0_preparation.md
-│   └── 6_ai_agnostic_migration_plan.md
+│   ├── 6_ai_agnostic_migration_plan.md
+│   └── legacy_map.md                   # ✨ 마이그레이션 추적
 ├── docs/
-│   └── refactor/
-│       └── legacy_map.md                # ✨ 새로 생성 (마이그레이션 추적)
+│   └── CONTRIBUTION.md
 ├── archive/                             # ✨ 새로 생성 (백업 전용)
+│   ├── README.md                        # ✨ archive 설명
+│   ├── football_data_manager/           # ✨ 기존 코드베이스 전체 아카이브
+│   │   ├── common/                      # entities, repositories, services
+│   │   └── puller/                      # puller services
 │   └── legacy_scripts/                  # ✨ 새로 생성
 │       ├── README.md
 │       ├── migrate_old_to_new_schema.py # a.py → 작동 불가
@@ -609,7 +613,7 @@ football_data_puller/
 │       └── backfill_player_stat_scores.py # c.py → app.py로 통합됨
 ├── backups/                             # ✨ 새로 생성 (gitignored)
 │   └── pre_migration_20260126.dump
-├── football_data_manager/               # (기존 코드베이스)
+├── football_data_manager/               # (새 구조로 재생성 예정 - Phase 1+)
 ├── tests/                               # (기존 테스트)
 └── ...
 
@@ -618,6 +622,7 @@ External:
 ```
 
 **주요 변경사항:**
+- `football_data_manager/` → `archive/football_data_manager/` 아카이브 (새 구조로 재생성 예정)
 - Root에서 a.py, b.py, c.py 제거
 - **app.py 통합 CLI 구현 완료**:
   - argparse 기반 명령어 구조
@@ -699,18 +704,18 @@ git commit -m "fix: update broken documentation links"
 
 ## 성공 기준
 
-- [ ] 모든 테스트 통과 (`pytest -v`)
-- [ ] **app.py CLI 구현 완료** (`python app.py --help` 작동)
-- [ ] **app.py health 명령 작동** (`python app.py health` 실행)
-- [ ] **app.py pull-data 명령 구조 완성** (TODO 메시지 정상 출력)
-- [ ] Git 히스토리 깨끗 (`git log --oneline -5`)
-- [ ] 스냅샷 태그 존재 (`git tag -l "pre-migration/*"`)
-- [ ] Bundle 백업 존재 (`ls -lh ../football_data_manager_backup_*.bundle`)
-- [ ] **Root에 실행 가능한 `app.py` 존재** (chmod +x 적용)
-- [ ] **Root에서 a.py, b.py, c.py 제거됨**
-- [ ] **`archive/legacy_scripts/`에 a.py, b.py, c.py 백업 존재**
-- [ ] **`README.md`에 CLI usage 섹션 추가됨**
-- [ ] **`docs/refactor/legacy_map.md`에 마이그레이션 추적 문서 존재**
+- [x] 모든 테스트 통과 (`pytest -v`) — 기존 2건 collection error 유지 (마이그레이션 무관)
+- [x] **app.py CLI 구현 완료** (`python app.py --help` 작동)
+- [x] **app.py health 명령 작동** (`python app.py health` 실행)
+- [x] **app.py pull-data 명령 구조 완성** (TODO 메시지 정상 출력)
+- [x] Git 히스토리 깨끗 (`git log --oneline -5`)
+- [x] 스냅샷 태그 존재 (`git tag -l "pre-migration/*"`)
+- [x] Bundle 백업 존재 (`ls -lh ../football_data_manager_backup_*.bundle`)
+- [x] **Root에 실행 가능한 `app.py` 존재** (chmod +x 적용)
+- [x] **Root에서 a.py, b.py, c.py 제거됨**
+- [x] **`archive/legacy_scripts/`에 a.py, b.py, c.py 백업 존재**
+- [x] **`README.md`에 CLI usage 섹션 추가됨**
+- [x] **`refactoring_docs/legacy_map.md`에 마이그레이션 추적 문서 존재**
 
 ---
 
@@ -718,15 +723,15 @@ git commit -m "fix: update broken documentation links"
 
 | 단계                  | 예상      | 실제 | 비고 |
 |---------------------|---------|----|----|
-| Step 0: 사전 확인       | 5분      |    |    |
-| Step 1: 스냅샷         | 10분     |    |    |
-| Step 2: Scripts 재구성 | 20분     |    |    |
-| Step 3: 검증          | 10분     |    |    |
-| Step 4: Phase 0 계속  | 5분      |    |    |
-| **총계**              | **50분** |    |    |
+| Step 0: 사전 확인       | 5분      | 완료 | 기존 테스트 2건 collection error 확인 (마이그레이션 무관) |
+| Step 1: 스냅샷         | 10분     | 완료 | 태그 + bundle 생성, backup 브랜치는 생략 |
+| Step 2: Scripts 재구성 | 20분     | 완료 | git mv + app.py 재작성 + README/legacy_map 생성 |
+| Step 3: 검증          | 10분     | 완료 | 모든 CLI 명령 정상, imports OK, 테스트 동일 |
+| Step 4: Phase 0 계속  | 5분      | 완료 | 문서 업데이트 완료 |
+| **총계**              | **50분** | **완료** | **2026-02-01 실행** |
 
 ---
 
-**상태**: ✅ 실행 준비 완료
-**다음**: 단계별로 순차 실행, 각 주요 단계 후 커밋
-**완료 후**: Phase 0 진행 (Alembic, pytest, 백업 스크립트)
+**상태**: ✅ 완료 (2026-02-01)
+**다음**: Phase 0 진행 (`refactoring_docs/5_phase_0_preparation.md` 참조)
+**완료 내역**: 모든 단계 실행 완료, 검증 통과

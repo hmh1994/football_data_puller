@@ -200,10 +200,10 @@ git tag -a pre-migration/combined-2026-01-26 -m "Snapshot before migration"
 
 **완료 기준**:
 
-- [ ] **app.py 통합 CLI 구현 완료** (Step 2.3)
-- [ ] Legacy scripts → `archive/legacy_scripts/` 이동 완료
-- [ ] Root 디렉토리 정리 완료 (a.py, b.py, c.py 제거)
-- [ ] Git 스냅샷 생성 완료
+- [x] **app.py 통합 CLI 구현 완료** (Step 2.3) — 2026-02-01
+- [x] Legacy scripts → `archive/legacy_scripts/` 이동 완료 — 2026-02-01
+- [x] Root 디렉토리 정리 완료 (a.py, b.py, c.py 제거) — 2026-02-01
+- [x] Git 스냅샷 생성 완료 (`pre-migration/legacy-scripts-2026-01-26` tag) — 2026-02-01
 
 ---
 
@@ -249,6 +249,14 @@ cat refactoring_docs/2_current_state_analysis.md
 ---
 
 ## 📋 Phase 진행 상황
+
+### Pre-Phase 0: Combined Migration - ✅ **완료** (2026-02-01)
+
+- [x] app.py 통합 CLI 구현
+- [x] Legacy scripts 아카이브 (a.py, b.py, c.py → `archive/legacy_scripts/`)
+- [x] `football_data_manager/` 아카이브 (`archive/football_data_manager/`)
+- [x] Root 디렉토리 정리
+- [x] Git 스냅샷 및 bundle 백업
 
 ### Phase 0: Preparation (1주) - **진행 예정**
 
@@ -357,6 +365,11 @@ cat refactoring_docs/2_current_state_analysis.md
 
 ## 📝 문서 업데이트 이력
 
+### 2026-02-01
+
+- `4_combined_migration_plan.md`: 실행 완료 (모든 체크박스 체크, 시간 추적 기록)
+- `0_README.md`: Pre-Phase 0 완료 상태 반영, 진행 상황 업데이트
+
 ### 2026-01-26
 
 - `master_plan.md`: 모든 결정사항 확정
@@ -371,5 +384,5 @@ cat refactoring_docs/2_current_state_analysis.md
 
 ---
 
-**Last Updated**: 2026-01-26
+**Last Updated**: 2026-02-01
 **Maintained By**: @jormal

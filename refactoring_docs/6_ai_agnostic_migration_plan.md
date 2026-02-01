@@ -42,13 +42,16 @@ football_data_puller/
 │   ├── 4_combined_migration_plan.md     # 실행 가이드 (Legacy + 문서 정리)
 │   ├── 5_phase_0_preparation.md         # Phase 0 가이드
 │   └── 6_ai_agnostic_migration_plan.md  # 이 문서 (설계)
-├── archive/legacy_scripts/              # 레거시 백업
-│   ├── migrate_old_to_new_schema.py     # a.py (작동 불가)
-│   ├── ops_pulselive_and_analytics.py   # b.py (로직 → app.py)
-│   └── backfill_player_stat_scores.py   # c.py (로직 → app.py)
-├── docs/refactor/
-│   └── legacy_map.md                    # 마이그레이션 추적
-└── football_data_manager/               # 메인 코드베이스
+├── archive/                             # 아카이브 (백업 전용)
+│   ├── README.md                        # archive 설명
+│   ├── football_data_manager/           # 기존 코드베이스 전체 아카이브
+│   │   ├── common/                      # entities, repositories, services
+│   │   └── puller/                      # puller services
+│   └── legacy_scripts/                  # 레거시 스크립트 백업
+│       ├── migrate_old_to_new_schema.py # a.py (작동 불가)
+│       ├── ops_pulselive_and_analytics.py # b.py (로직 → app.py)
+│       └── backfill_player_stat_scores.py # c.py (로직 → app.py)
+└── football_data_manager/               # 새 구조로 재생성 예정 (Phase 1+)
 ```
 
 ---
@@ -73,7 +76,7 @@ football_data_puller/
 - ✅ AI 도구 중립적
 - ✅ 다른 프로젝트에서도 일반적으로 사용
 - ❌ `docs/ai_analysis/` - 너무 구체적, 중첩 깊음
-- ❌ `docs/refactor/` - 이미 `docs/refactor/legacy_map.md` 존재
+- ❌ `docs/refactor/` - 리팩토링 관련은 `refactoring_docs/`에서 통합 관리
 
 #### 2. 파일 이름 규칙
 

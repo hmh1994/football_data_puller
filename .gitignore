@@ -311,7 +311,7 @@ $RECYCLE.BIN/
 config/*
 !config/sample.env
 
-### claude
+### AI Agent
 CLAUDE.md
 .claude
 .claudedocs

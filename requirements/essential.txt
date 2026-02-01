@@ -1,4 +1,5 @@
 # Specifies the essential requirements of the project.
+alembic==1.13.0
 SQLAlchemy==2.0.36
 anthropic==0.57.1
 asyncpg==0.30.0

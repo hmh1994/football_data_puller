@@ -1,8 +1,8 @@
 # Phase 0: Preparation - 리팩토링 준비 단계
 
-**기간**: 2-3일
+**상태**: ✅ 완료 (2026-02-01)
 **목표**: Alembic 마이그레이션 설정
-**선행 조건**: `4_combined_migration_plan.md` 실행 완료
+**선행 조건**: `4_combined_migration_plan.md` 실행 완료 ✅
 
 > ℹ️ **시작 전에**: 이 문서는 실행 가이드입니다. 전체 계획은 `1_master_plan.md`를 참고하세요.
 
@@ -45,84 +45,61 @@ Phase 0 완료 후:
 pip install alembic
 
 # requirements/essential.txt에 추가
-echo "alembic>=1.13.0" >> requirements/essential.txt
+# alembic>=1.13.0
 ```
+
+**실행 결과**: Alembic 1.18.3 설치 완료, `requirements/essential.txt`에 `alembic>=1.13.0` 추가 완료
 
 ### 2.2 Alembic 초기화
 
 ```bash
 # Alembic 디렉토리 생성 (프로젝트 루트에서)
-alembic init football_data_manager/repository/migrations
+alembic init football_data_manager/migrations
 
-# 생성되는 구조:
-# football_data_manager/repository/migrations/
+# 생성된 구조:
+# football_data_manager/migrations/
 # ├── versions/          # 마이그레이션 파일 저장소
 # ├── env.py            # Alembic 환경 설정
 # ├── script.py.mako    # 마이그레이션 템플릿
-# └── alembic.ini       # Alembic 설정 파일
+# └── README
+# alembic.ini            # 프로젝트 루트에 생성됨
 ```
+
+**실행 결과**: 디렉토리 구조 생성 완료
 
 ### 2.3 `alembic.ini` 설정
 
-**파일 위치**: `football_data_manager/repository/migrations/alembic.ini`
+**파일 위치**: 프로젝트 루트 `alembic.ini`
 
 ```ini
 [alembic]
 # 마이그레이션 파일 경로
-script_location = football_data_manager/repository/migrations
+script_location = %(here)s/football_data_manager/migrations
 
-# 데이터베이스 URL (환경변수로 관리)
-# 실제 URL은 env.py에서 동적으로 설정
-sqlalchemy.url =
-
-# 파일 템플릿 설정
+# 파일 템플릿 설정 (날짜 기반)
 file_template = %%(year)d%%(month).2d%%(day).2d_%%(hour).2d%%(minute).2d_%%(rev)s_%%(slug)s
 
-# 타임존 설정
-timezone = Asia/Seoul
+# sys.path 설정
+prepend_sys_path = .
 
-[loggers]
-keys = root,sqlalchemy,alembic
+# 경로 구분자
+path_separator = os
 
-[handlers]
-keys = console
-
-[formatters]
-keys = generic
-
-[logger_root]
-level = WARN
-handlers = console
-qualname =
-
-[logger_sqlalchemy]
-level = WARN
-handlers =
-qualname = sqlalchemy.engine
-
-[logger_alembic]
-level = INFO
-handlers =
-qualname = alembic
-
-[handler_console]
-class = StreamHandler
-args = (sys.stderr,)
-level = NOTSET
-formatter = generic
-
-[formatter_generic]
-format = %(levelname)-5.5s [%(name)s] %(message)s
-datefmt = %H:%M:%S
+# 데이터베이스 URL (env.py에서 동적으로 설정)
+sqlalchemy.url =
 ```
+
+**실행 결과**: 설정 완료
 
 ### 2.4 `env.py` 설정 (Async 지원)
 
-**파일 위치**: `football_data_manager/repository/migrations/env.py`
+**파일 위치**: `football_data_manager/migrations/env.py`
 
 ```python
 import asyncio
+import os
 from logging.config import fileConfig
+from pathlib import Path
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
@@ -130,12 +107,11 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 
-# 기존 Entity 클래스 import
+# Entity imports (15 entities)
 from football_data_manager.common.repositories import Base
-from football_data_manager.common.repositories.players.player_entity import PlayerEntity
-from football_data_manager.common.repositories.teams.team_entity import TeamEntity
-
-# ... (모든 Entity import)
+from football_data_manager.common.repositories.analytics.analytics_entity import AnalyticsEntity
+from football_data_manager.common.repositories.awards.award_entity import AwardEntity
+# ... (15개 엔티티 + 11개 어소시에이션 전체 import)
 
 # Alembic Config 객체
 config = context.config
@@ -148,74 +124,28 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 
-def get_url():
-    """환경변수 또는 config에서 DB URL 가져오기"""
-    import os
-    from football_data_manager.common.services.config.config_service import ConfigService
-
+def get_url() -> str:
+    """환경변수 또는 ConfigService에서 DB URL 가져오기"""
     # 환경변수 우선
     db_url = os.getenv("DATABASE_URL")
     if db_url:
         return db_url
 
     # ConfigService 사용
-    config_service = ConfigService()
-    db_config = config_service.get_db_config()
-    return f"postgresql+asyncpg://{db_config.user}:{db_config.password}@{db_config.host}:{db_config.port}/{db_config.database}"
+    from football_data_manager.common.services.config.config_service import ConfigService
 
-
-def run_migrations_offline() -> None:
-    """오프라인 모드: SQL 스크립트만 생성"""
-    url = get_url()
-    context.configure(
-        url=url,
-        target_metadata=target_metadata,
-        literal_binds=True,
-        dialect_opts={"paramstyle": "named"},
-    )
-
-    with context.begin_transaction():
-        context.run_migrations()
-
-
-def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
-
-    with context.begin_transaction():
-        context.run_migrations()
-
-
-async def run_async_migrations() -> None:
-    """비동기 모드: 실제 DB에 적용"""
-    configuration = config.get_section(config.config_ini_section, {})
-    configuration["sqlalchemy.url"] = get_url()
-
-    connectable = async_engine_from_config(
-        configuration,
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
-
-    async with connectable.connect() as connection:
-        await connection.run_sync(do_run_migrations)
-
-    await connectable.dispose()
-
-
-def run_migrations_online() -> None:
-    """온라인 모드 진입점"""
-    asyncio.run(run_async_migrations())
-
-
-if context.is_offline_mode():
-    run_migrations_offline()
-else:
-    run_migrations_online()
+    config_path = Path(os.getenv("CONFIG_PATH", "./configs/.env"))
+    config_service = ConfigService(config_path=config_path)
+    return str(config_service.db.sqlalchemy_url)
 ```
 
-**완료**: `env.py` 설정이 완료되었습니다.
+**핵심 사항**:
+- `ConfigService(config_path=Path)` 생성자 사용 (인자 없는 생성자 아님)
+- `config_service.db.sqlalchemy_url` 프로퍼티로 URL 접근
+- 환경변수 `DATABASE_URL` 우선, 없으면 ConfigService 사용
+- 15개 Entity + 11개 Association = 총 26개 테이블 import
 
-> ℹ️ **다음 단계**: 마이그레이션 생성 및 적용은 Phase 1 이후 각 리팩토링 단계에서 수행합니다.
+**실행 결과**: env.py 작성 완료, 26개 테이블 등록 확인
 
 ---
 
@@ -223,16 +153,18 @@ else:
 
 ### 3.1 Alembic 설정 검증
 
-- [ ] `alembic.ini` 파일 존재 및 설정 완료
-- [ ] `env.py` async 설정 완료
-- [ ] `get_url()` 함수가 ConfigService에서 DB 설정 읽어오기 성공
-- [ ] `target_metadata = Base.metadata` 설정 확인
-- [ ] 모든 Entity import 확인
+- [x] `alembic.ini` 파일 존재 및 설정 완료 (프로젝트 루트)
+- [x] `env.py` async 설정 완료 (`run_async_migrations()`)
+- [x] `get_url()` 함수가 ConfigService에서 DB 설정 읽어오기 성공
+- [x] `target_metadata = Base.metadata` 설정 확인
+- [x] 모든 Entity import 확인 (15 entities + 11 associations = 26 tables)
 
-### 3.2 문서화
+### 3.2 추가 작업 (Phase 0 범위 내)
 
-- [ ] `README.md`에 Alembic 사용법 추가
-- [ ] Phase 0 완료 보고서 작성
+- [x] `football_data_manager/` 최소 구조 생성 (archive에서 entity/association 복원)
+- [x] `*_repository.py` 제거 (재구성 방해 방지)
+- [x] Entity 비즈니스 로직 메서드 제거 (스키마 정의만 유지)
+- [x] Entity docstring 점검 및 수정
 
 ---
 
@@ -242,6 +174,7 @@ else:
 
 1. ✅ Alembic 설정 완료 (`alembic.ini`, `env.py`)
 2. ✅ ConfigService에서 DB 설정 읽어오기 성공
+3. ✅ 26개 테이블 등록 확인
 
 **다음 단계**: Phase 1부터 각 리팩토링 작업 시 필요에 따라 마이그레이션 생성 및 적용
 

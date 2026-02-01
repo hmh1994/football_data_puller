@@ -229,15 +229,15 @@ cat refactoring_docs/1_master_plan.md
 cat refactoring_docs/5_phase_0_preparation.md
 
 # Alembic 설정 시작
-alembic init football_data_manager/repository/migrations
+alembic init football_data_manager/migrations
 ```
 
 **Phase 0 완료 기준**:
 
-- [ ] Alembic 설치 완료
-- [ ] alembic.ini 설정 완료
-- [ ] env.py에서 ConfigService 통합 완료
-- [ ] Alembic이 DB 설정을 읽을 수 있는지 검증 완료
+- [x] Alembic 설치 완료 (1.18.3)
+- [x] alembic.ini 설정 완료 (프로젝트 루트)
+- [x] env.py에서 ConfigService 통합 완료
+- [x] Alembic이 DB 설정을 읽을 수 있는지 검증 완료
 
 ### Step 3: (필요 시) 상세 구조 참고
 
@@ -258,11 +258,13 @@ cat refactoring_docs/2_current_state_analysis.md
 - [x] Root 디렉토리 정리
 - [x] Git 스냅샷 및 bundle 백업
 
-### Phase 0: Preparation (1주) - **진행 예정**
+### Phase 0: Preparation - ✅ **완료** (2026-02-01)
 
-- [ ] Alembic 설정
-- [ ] pytest 테스트 프레임워크
-- [ ] 데이터베이스 백업 전략
+- [x] Alembic 설정 (`alembic.ini`, `env.py`, 26개 테이블 등록)
+- [x] `football_data_manager/` 최소 구조 생성 (entity/association 복원)
+- [x] Repository 파일 제거 (재구성 방해 방지)
+- [x] Entity 비즈니스 로직 메서드 제거 (스키마 정의만 유지)
+- [x] Entity docstring 점검 및 수정
 
 ### Phase 1: Repository 리팩토링 (1-2주) - **대기 중**
 
@@ -368,7 +370,8 @@ cat refactoring_docs/2_current_state_analysis.md
 ### 2026-02-01
 
 - `4_combined_migration_plan.md`: 실행 완료 (모든 체크박스 체크, 시간 추적 기록)
-- `0_README.md`: Pre-Phase 0 완료 상태 반영, 진행 상황 업데이트
+- `5_phase_0_preparation.md`: 실행 완료 (Alembic 설정, entity 복원, 메서드 정리, 문서 업데이트)
+- `0_README.md`: Pre-Phase 0 및 Phase 0 완료 상태 반영
 
 ### 2026-01-26
 

@@ -209,7 +209,7 @@
 
 ---
 
-### 8. **`8_schema_diff_analysis.md`** (Entity vs DB 스키마 차이 분석)
+### 8. **`8_schema_diff_analysis.md`** (Entity vs DB 스키마 차이 분석 - Entity 수정 ✅ / DB 마이그레이션 ⏳)
 
 **목적**: Phase 1 Entity 코드와 실제 DB 스키마 간 7개 차이점 분석 및 해결 방향 결정
 
@@ -217,12 +217,49 @@
 
 - 7개 이슈 분석 (테이블, 컬럼, nullable, FK, unique 제약)
 - 각 이슈별 추천안 및 선택지 제시
-- 결정 후 실행 방법 안내
+- 적용 결과 및 DB 마이그레이션 실행 가이드
+
+**현재 상태**:
+
+- ✅ Issue 1: `env.py` `include_name` 필터 추가 (metadata 테이블 무시)
+- ✅ Issue 2: `teams.py` 4개 optional 컬럼 추가
+- ✅ Issue 3: `teams.py` `__init__` icon_url required로 변경
+- ✅ Issue 4: `player_stats.py` minutes_played NOT NULL + server_default 변경
+- ⏳ Issue 3, 5, 6, 7: DB 마이그레이션 적용 대기 중
 
 **언제 읽나요**:
 
 - Phase 1 완료 후, Alembic 마이그레이션 적용 전
 - DB 스키마 정합성 확인 필요 시
+
+---
+
+### 9. **`9_phase_2_puller.md`** (Phase 2 실행 가이드)
+
+**목적**: Puller 컴포넌트 전면 재구성 실행 가이드
+
+**내용**:
+
+- Step 1-11: 단계별 실행 가이드
+- 디렉토리 구조 생성 (`puller/interfaces/`, `puller/clients/`, `puller/pullers/`)
+- CamelCaseModel 마이그레이션
+- Pulselive Interface 마이그레이션 (50 → ~12 파일 통합)
+- The Athletic Interface 마이그레이션
+- HTTP Client (Pulselive) + GraphQL Client (The Athletic) 구현
+- AbstractPuller + 10 Pulselive Pullers + 1 The Athletic Puller 구현
+- PullerContainer (DI) 구현
+- 검증 체크리스트
+
+**언제 읽나요**:
+
+- Phase 2 시작 시
+- Puller 구조 이해 필요 시
+
+**특징**:
+
+- 코드 예제 포함
+- Archive 참조 경로 목록
+- Phase 3 분리 지점 명시 (Puller vs Merger 역할)
 
 ---
 
@@ -321,11 +358,20 @@ cat refactoring_docs/2_current_state_analysis.md
 - [x] SessionFactory + RepositoryContainer (17 providers)
 - [x] Alembic env.py 업데이트 (26 테이블 등록)
 
-### Phase 2: Puller 리팩토링 (1-2주) - **대기 중**
+### Schema Diff 해결 - **진행 중** → `8_schema_diff_analysis.md`
 
-- [ ] Interface 구조 생성
-- [ ] AbstractPuller 구현
-- [ ] 기존 Puller 마이그레이션
+- [x] Entity 코드 수정 (teams.py 4컬럼 추가, player_stats.py minutes_played 변경)
+- [x] Alembic 무시 설정 (metadata 테이블)
+- [ ] DB 데이터 무결성 확인 (4개 SQL 쿼리)
+- [ ] Alembic 마이그레이션 생성 및 적용 (icon_url NOT NULL, grounds unique, 2개 FK)
+
+### Phase 2: Puller 리팩토링 - **대기 중** → `9_phase_2_puller.md`
+
+- [ ] 디렉토리 구조 생성 (`puller/interfaces/`, `puller/clients/`, `puller/pullers/`)
+- [ ] CamelCaseModel + Interface 마이그레이션 (Pulselive 50 → ~12 파일 통합)
+- [ ] HTTP Client (Pulselive) + GraphQL Client (The Athletic) 구현
+- [ ] AbstractPuller + 10 Pulselive Pullers + 1 The Athletic Puller 구현
+- [ ] PullerContainer 구현
 
 ### Phase 3: Merger 구현 (1-2주) - **대기 중**
 
@@ -363,11 +409,13 @@ cat refactoring_docs/2_current_state_analysis.md
 4. **`4_combined_migration_plan.md` (필수, 15분 + 2-3시간) - Phase 0 전 준비 작업**
 5. `5_phase_0_preparation.md` (필수, 10분 + 2-3일) - Phase 0 시작
 6. `7_phase_1_repository.md` (필수, 15분) - Phase 1 시작
+7. `8_schema_diff_analysis.md` (필수, 10분) - Schema Diff 해결
+8. `9_phase_2_puller.md` (필수, 15분) - Phase 2 시작
 
 ### Phase 진행 중
 
 1. 해당 Phase 섹션 (`1_master_plan.md`)
-2. 실행 가이드 (각 Phase별 문서: `5_phase_0_preparation.md`, `7_phase_1_repository.md`)
+2. 실행 가이드 (각 Phase별 문서: `5_phase_0_preparation.md`, `7_phase_1_repository.md`, `8_schema_diff_analysis.md`, `9_phase_2_puller.md`)
 3. `2_current_state_analysis.md` (필요 시 참고)
 
 ### 새 팀원 온보딩
@@ -403,7 +451,7 @@ cat refactoring_docs/2_current_state_analysis.md
 
 ### Q: 각 Phase별 상세 가이드는 어디 있나요?
 
-**A**: Phase 0, Phase 1 작성 완료. Phase 2-4는 필요 시 작성 예정.
+**A**: Phase 0(`5`), Phase 1(`7`), Schema Diff(`8`), Phase 2(`9`) 작성 완료. Phase 3-4는 필요 시 작성 예정.
 
 ### Q: 6_ai_agnostic_migration_plan.md는 뭔가요?
 
@@ -419,8 +467,13 @@ cat refactoring_docs/2_current_state_analysis.md
 
 ### 2026-02-02
 
-- `7_phase_1_repository.md`: 신규 작성 (Repository 리팩토링 실행 가이드)
-- `0_README.md`: Phase 1 문서 추가, 문서 목록 업데이트
+- `9_phase_2_puller.md`: 신규 작성 (Puller 리팩토링 실행 가이드, Step 1-11)
+- `8_schema_diff_analysis.md`: 신규 작성 → Entity 코드 수정 완료, DB 마이그레이션 대기 중
+- `7_phase_1_repository.md`: 상태 완료 ✅ (Phase 1 전 단계 완료, Association 분리 포함)
+- `teams.py`: 4개 optional 컬럼 추가, icon_url __init__ 수정
+- `player_stats.py`: minutes_played NOT NULL + server_default="0" 변경
+- `env.py`: metadata 테이블 include_name 필터, render_as_string SSL 수정
+- `0_README.md`: Phase 1 완료 반영, Schema Diff/Phase 2 문서 추가, 진행 상황 업데이트
 
 ### 2026-02-01
 
@@ -442,5 +495,5 @@ cat refactoring_docs/2_current_state_analysis.md
 
 ---
 
-**Last Updated**: 2026-02-01
+**Last Updated**: 2026-02-02
 **Maintained By**: @jormal

@@ -263,6 +263,45 @@
 
 ---
 
+### 10. **`10_interface_restructure.md`** (Interface 구조 변경 기록)
+
+**목적**: Phase 2 Interface 파일 구조 변경 사항 기록
+
+**언제 읽나요**:
+
+- Interface 파일 구조 이해 필요 시
+
+---
+
+### 11. **`11_phase_3_merger.md`** (Phase 3 실행 가이드 - 🚧 진행 중)
+
+**목적**: Merger 컴포넌트 전면 구현 실행 가이드
+
+**내용**:
+
+- Step 1-16: 단계별 실행 가이드
+- 공통 서비스 구현 (TranslatorService, ResourceValidationClient)
+- 11개 Merger 구현 (Competition → Season → Team → Player → Fixture → Match → MatchStat → PlayerStat → TeamStat → Award → News)
+- PlayerStatScorer 구현 (6개 카테고리 점수 계산)
+- MergerContainer (DI) 구현
+- 전체 필드 매핑 테이블 (API → Entity)
+- Association 테이블 관리 가이드
+- 검증 체크리스트
+
+**언제 읽나요**:
+
+- Phase 3 시작 시
+- Merger 구조 이해 필요 시
+
+**특징**:
+
+- 모든 Merger의 API → Entity 필드 매핑 테이블 포함
+- Archive 참조 경로 목록
+- Merger별 복잡도 및 구현 순서 명시
+- 점수 계산 공식 참조 (`3_calculation_formulas_reference.md`)
+
+---
+
 ## 🚀 빠른 시작
 
 ### **Phase 0 전 필수 작업** (Combined Migration)
@@ -365,19 +404,24 @@ cat refactoring_docs/2_current_state_analysis.md
 - [ ] DB 데이터 무결성 확인 (4개 SQL 쿼리)
 - [ ] Alembic 마이그레이션 생성 및 적용 (icon_url NOT NULL, grounds unique, 2개 FK)
 
-### Phase 2: Puller 리팩토링 - **대기 중** → `9_phase_2_puller.md`
+### Phase 2: Puller 리팩토링 - ✅ **완료** (2026-02-23) → `9_phase_2_puller.md`
 
-- [ ] 디렉토리 구조 생성 (`puller/interfaces/`, `puller/clients/`, `puller/pullers/`)
-- [ ] CamelCaseModel + Interface 마이그레이션 (Pulselive 50 → ~12 파일 통합)
-- [ ] HTTP Client (Pulselive) + GraphQL Client (The Athletic) 구현
-- [ ] AbstractPuller + 10 Pulselive Pullers + 1 The Athletic Puller 구현
-- [ ] PullerContainer 구현
+- [x] 디렉토리 구조 생성 (`puller/interfaces/`, `puller/clients/`, `puller/pullers/`)
+- [x] CamelCaseModel + RawResponseModel + Interface 마이그레이션 (API 버전별 분리)
+- [x] HTTP Client (Pulselive) + GraphQL Client (The Athletic) 구현
+- [x] AbstractPuller + 10 Pulselive Pullers + 1 The Athletic Puller 구현
+- [x] PullerContainer 구현 (14 providers)
 
-### Phase 3: Merger 구현 (1-2주) - **대기 중**
+### Phase 3: Merger 구현 - 🚧 **핵심 구현 완료, 통합 테스트 제외 검증 완료** (2026-02-23) → `11_phase_3_merger.md`
 
-- [ ] Merger 구조 생성
-- [ ] 필요한 Merger 구현
-- [ ] 통합 테스트
+- [x] 디렉토리 구조 생성 (`merger/services/`, `merger/mergers/`)
+- [x] 공통 서비스 구현 (TranslatorService, ResourceValidationClient)
+- [x] 11개 Merger 구현 (Competition, Season, Team, Player, Fixture, Match, MatchStat, PlayerStat, TeamStat, Award, News)
+- [x] PlayerStatScorer 구현 (6개 카테고리 점수 계산)
+- [x] MergerContainer 구현 (17 providers)
+- [x] 단위 테스트/회귀 검증 확장 (`pytest` 30 passed)
+- [x] archive 필드 매핑 parity 검증 완료 (`tests/merger/test_phase3_archive_parity.py`)
+- [ ] 통합 테스트 (단위 테스트/pytest 검증 완료)
 
 ### Phase 4: Scheduler 구현 (1주) - **대기 중**
 
@@ -411,11 +455,12 @@ cat refactoring_docs/2_current_state_analysis.md
 6. `7_phase_1_repository.md` (필수, 15분) - Phase 1 시작
 7. `8_schema_diff_analysis.md` (필수, 10분) - Schema Diff 해결
 8. `9_phase_2_puller.md` (필수, 15분) - Phase 2 시작
+9. `11_phase_3_merger.md` (필수, 20분) - Phase 3 시작
 
 ### Phase 진행 중
 
 1. 해당 Phase 섹션 (`1_master_plan.md`)
-2. 실행 가이드 (각 Phase별 문서: `5_phase_0_preparation.md`, `7_phase_1_repository.md`, `8_schema_diff_analysis.md`, `9_phase_2_puller.md`)
+2. 실행 가이드 (각 Phase별 문서: `5_phase_0_preparation.md`, `7_phase_1_repository.md`, `8_schema_diff_analysis.md`, `9_phase_2_puller.md`, `11_phase_3_merger.md`)
 3. `2_current_state_analysis.md` (필요 시 참고)
 
 ### 새 팀원 온보딩
@@ -451,7 +496,7 @@ cat refactoring_docs/2_current_state_analysis.md
 
 ### Q: 각 Phase별 상세 가이드는 어디 있나요?
 
-**A**: Phase 0(`5`), Phase 1(`7`), Schema Diff(`8`), Phase 2(`9`) 작성 완료. Phase 3-4는 필요 시 작성 예정.
+**A**: Phase 0(`5`), Phase 1(`7`), Schema Diff(`8`), Phase 2(`9`), Phase 3(`11`) 작성 완료. Phase 4는 필요 시 작성 예정.
 
 ### Q: 6_ai_agnostic_migration_plan.md는 뭔가요?
 
@@ -464,6 +509,17 @@ cat refactoring_docs/2_current_state_analysis.md
 ---
 
 ## 📝 문서 업데이트 이력
+
+### 2026-02-23
+
+- `11_phase_3_merger.md`: 신규 작성 (Merger 구현 실행 가이드, Step 1-16, 11개 Merger + Scorer + Container)
+- `0_README.md`: Phase 2 완료 반영, Phase 3 문서 추가, 진행 상황 업데이트
+- `0_README.md`: Phase 3 핵심 구현 완료 상태 반영 (테스트/통합 검증 진행 중)
+- `11_phase_3_merger.md`: Phase 3 단위 테스트 체크리스트 대거 갱신 (서비스/머저/스코어러 검증)
+- `0_README.md`: Phase 3 검증 상태를 단위 테스트 완료 기준으로 갱신
+- `11_phase_3_merger.md`: MatchMerger/NewsMerger/품질 기준 체크리스트 추가 갱신 (통합 테스트 제외)
+- `11_phase_3_merger.md`: archive 필드 매핑 보존 체크 완료 (통합 테스트 항목만 미완료)
+- `0_README.md`: Phase 3 상태를 `pytest 30 passed` + archive parity 검증 기준으로 갱신
 
 ### 2026-02-02
 
@@ -495,5 +551,5 @@ cat refactoring_docs/2_current_state_analysis.md
 
 ---
 
-**Last Updated**: 2026-02-02
+**Last Updated**: 2026-02-23
 **Maintained By**: @jormal

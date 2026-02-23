@@ -53,9 +53,12 @@ class TheAthleticClient:
     }
     """
 
-    def __init__(self, config: ApiConfig):
+    def __init__(self, config: ApiConfig | dict):
+        parsed_config = (
+            config if isinstance(config, ApiConfig) else ApiConfig.model_validate(config)
+        )
         self._transport = AIOHTTPTransport(
-            url=config.url.unicode_string(),
+            url=parsed_config.url.unicode_string(),
             timeout=10,
         )
         self._client = Client(

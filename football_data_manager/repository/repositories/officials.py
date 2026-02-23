@@ -10,3 +10,9 @@ class OfficialRepository(PulseliveRepository[OfficialEntity]):
 
     def __init__(self, session_factory: SessionFactory):
         super().__init__(session_factory, OfficialEntity)
+
+    async def get_by_display_name_en(
+        self, display_name_en: str
+    ) -> OfficialEntity | None:
+        """Get official by English display name."""
+        return await self._get_one_by_field(display_name_en=display_name_en)

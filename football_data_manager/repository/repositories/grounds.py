@@ -10,3 +10,7 @@ class GroundRepository(PulseliveRepository[GroundEntity]):
 
     def __init__(self, session_factory: SessionFactory):
         super().__init__(session_factory, GroundEntity)
+
+    async def get_by_name_en(self, name_en: str) -> GroundEntity | None:
+        """Get ground by English name."""
+        return await self._get_one_by_field(name_en=name_en)

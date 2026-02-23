@@ -106,19 +106,19 @@ class TeamStatEntity(PulseliveEntity):
 
     def __init__(
         self,
-        ground: GroundEntity,
+        ground: GroundEntity | None,
         season: SeasonEntity,
         team: TeamEntity,
     ):
         """
         Initialize a new team stat entity.
 
-        :param ground: Home ground entity
+        :param ground: Home ground entity (optional)
         :param season: Season entity
         :param team: Team entity
         """
         super().__init__(source_id=self.get_source_id(season, team))
-        self.ground_id = ground.id
+        self.ground_id = ground.id if ground is not None else None
         self.match_associations = []
         self.season_id = season.id
         self.team_id = team.id

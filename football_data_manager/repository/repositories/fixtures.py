@@ -1,3 +1,8 @@
+from sqlalchemy import select, or_
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from football_data_manager.repository.entities.seasons import SeasonEntity
+from football_data_manager.repository.entities.teams import TeamEntity
 from football_data_manager.repository.entities.fixtures import FixtureEntity
 from football_data_manager.repository.repositories.pulselive import (
     PulseliveRepository,
@@ -10,3 +15,31 @@ class FixtureRepository(PulseliveRepository[FixtureEntity]):
 
     def __init__(self, session_factory: SessionFactory):
         super().__init__(session_factory, FixtureEntity)
+
+    async def get_by_team_on_season(
+        self,
+        season: SeasonEntity,
+        team: TeamEntity,
+        session: AsyncSession | None = None,
+    ) -> list[FixtureEntity]:
+        """Get fixtures for one team in one season ordered by kickoff."""
+
+        async def _do(s: AsyncSession) -> list[FixtureEntity]:
+            stmt = (
+                select(FixtureEntity)
+                .where(FixtureEntity.season_id == season.id)
+                .where(
+                    or_(
+                        FixtureEntity.home_team_id == team.id,
+                        FixtureEntity.away_team_id == team.id,
+                    )
+                )
+                .order_by(FixtureEntity.kickoff_time)
+            )
+            result = await s.execute(stmt)
+            return list(result.scalars().all())
+
+        if session:
+            return await _do(session)
+        async with self._session_factory.session() as s:
+            return await _do(s)

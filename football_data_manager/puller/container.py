@@ -33,7 +33,7 @@ class PullerContainer(DeclarativeContainer):
 
     the_athletic_client = Singleton(
         TheAthleticClient,
-        config=config.the_athletic,
+        config=config.the_athletic_graphql,
     )
 
     # --- Pulselive Pullers ---

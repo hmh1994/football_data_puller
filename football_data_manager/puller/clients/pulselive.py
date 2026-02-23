@@ -37,8 +37,11 @@ class PulseliveClient(AbstractWebClient):
     Provides methods for v1/v2/v3 endpoints.
     """
 
-    def __init__(self, config: ApiConfig):
-        super().__init__(base_url=config.url.unicode_string())
+    def __init__(self, config: ApiConfig | dict):
+        parsed_config = (
+            config if isinstance(config, ApiConfig) else ApiConfig.model_validate(config)
+        )
+        super().__init__(base_url=parsed_config.url.unicode_string())
 
     # --- v1 endpoints ---
 

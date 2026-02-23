@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from football_data_manager.puller.interfaces.base import RawResponseModel
 from football_data_manager.puller.interfaces.pulselive._types import (
@@ -12,40 +12,40 @@ class AwardTeamDict(TypedDict):
 
     id: str
     name: str
-    shortName: str
-    loan: int | None
+    short_name: str
+    loan: NotRequired[int]
 
 
 class AwardDatesDict(TypedDict):
     """Date info within award."""
 
     birth: str
-    joinedClub: str
+    joined_club: str
 
 
 class AwardCareerDict(TypedDict):
     """Career info within award."""
 
-    seasonsInPremierLeague: list[str]
-    firstPremierLeagueFixtureId: str
-    seasonsAtCurrentTeam: list[str]
+    seasons_in_premier_league: list[str]
+    first_premier_league_fixture_id: NotRequired[str]
+    seasons_at_current_team: list[str]
 
 
 class PlayerAwardDict(TypedDict):
     """Player award entry."""
 
     id: str
-    currentTeam: AwardTeamDict
+    current_team: AwardTeamDict
     date: str
     country: CountryDict
     name: PersonDict
     dates: AwardDatesDict
     type: str
-    shirtNum: int
+    shirt_num: int
     weight: int
-    countryOfBirth: str
+    country_of_birth: str
     position: str
-    preferredFoot: str
+    preferred_foot: str
     height: int
 
 
@@ -53,7 +53,7 @@ class ManagerAwardDict(TypedDict):
     """Manager award entry."""
 
     id: str
-    currentTeam: AwardTeamDict
+    current_team: AwardTeamDict
     date: str
     country: CountryDict
     name: PersonDict
@@ -66,5 +66,5 @@ class ManagerAwardDict(TypedDict):
 class V1AwardResponse(RawResponseModel):
     """GET v1/competitions/{comp_id}/seasons/{season_id}/awards"""
 
-    managerAwards: list[ManagerAwardDict]
-    playerAwards: list[PlayerAwardDict]
+    manager_awards: list[ManagerAwardDict]
+    player_awards: list[PlayerAwardDict]

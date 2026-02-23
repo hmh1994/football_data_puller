@@ -1,6 +1,11 @@
-from typing import Any
+import logging
+from typing import Any, TypeVar
 
 from httpx import AsyncClient, URL, Timeout
+from pydantic import BaseModel, ValidationError
+
+logger = logging.getLogger(__name__)
+TModel = TypeVar("TModel", bound=BaseModel)
 
 
 class AbstractWebClient:
@@ -50,3 +55,21 @@ class AbstractWebClient:
 
     async def close(self) -> None:
         await self._client.aclose()
+
+    def _build_url(self, path: str, params: dict[str, Any] | None = None) -> URL:
+        url = self._base_url.join(path)
+        if params:
+            url = url.copy_merge_params(params)
+        return url
+
+    @staticmethod
+    def _validate_response(
+        model: type[TModel],
+        response: Any,
+        url: URL,
+    ) -> TModel:
+        try:
+            return model.model_validate(response)
+        except ValidationError as exc:
+            logger.error("Validation error for %s", url, exc_info=exc)
+            raise

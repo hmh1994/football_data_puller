@@ -51,7 +51,7 @@ class AwardMerger:
         updated_player_stats: dict[str, PlayerStatEntity] = {}
         updated_staffs: dict[str, StaffEntity] = {}
 
-        for item in response.playerAwards:
+        for item in response.player_awards:
             award = await self._get_or_create_award(item)
             if award is None:
                 continue
@@ -73,7 +73,7 @@ class AwardMerger:
             updated = await self._player_stat_repo.update(updated)
             updated_player_stats[updated.id] = updated
 
-        for item in response.managerAwards:
+        for item in response.manager_awards:
             award = await self._get_or_create_award(item)
             if award is None:
                 continue
@@ -132,11 +132,11 @@ class AwardMerger:
         if existing is not None:
             return existing
 
-        display_name_en = item["name"]["simpleName"]
+        display_name_en = item["name"]["display"]
         created = StaffEntity(
             display_name_en=display_name_en,
             display_name_kr=await self._translator.translate_word(display_name_en),
-            full_name=item["name"]["fullName"],
+            full_name=f"{item['name']['first']} {item['name']['last']}",
             source_id=source_id,
         )
         result = await self._staff_repo.create(created)

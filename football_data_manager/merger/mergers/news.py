@@ -1,4 +1,5 @@
-from asyncio import sleep
+import asyncio
+import logging
 from datetime import UTC, datetime
 from json import JSONDecodeError, dumps, loads
 
@@ -21,9 +22,13 @@ from football_data_manager.repository.entities.teams import TeamEntity
 from football_data_manager.repository.repositories.news import NewsRepository
 from football_data_manager.repository.repositories.teams import TeamRepository
 
+logger = logging.getLogger(__name__)
+
 
 class NewsMerger:
     """Merge The Athletic feed content into news entities."""
+
+    _CONCURRENCY = 5
 
     def __init__(
         self,
@@ -35,6 +40,7 @@ class NewsMerger:
         self._news_repo = news_repo
         self._team_repo = team_repo
         self._news_puller = news_puller
+        self._semaphore = asyncio.Semaphore(self._CONCURRENCY)
 
         api_key = config_service.api_list.anthropic.key or ""
         self._anthropic_client = anthropic.AsyncAnthropic(api_key=api_key)
@@ -50,13 +56,18 @@ class NewsMerger:
         max_pages: int = 5,
     ) -> list[NewsEntity]:
         """Pull league feed pages, scrape, translate, and persist news rows."""
+        logger.info("Loading team short-name map")
         short_name_map = await self._get_team_short_name_map()
+        logger.info("Loaded %d team short-names", len(short_name_map))
 
         created_news: list[NewsEntity] = []
         seen_consumable_ids: set[str] = set()
 
         for page in range(max_pages):
-            feed = await self._news_puller.pull_league_feed(league_abbr=league_abbr, page=page)
+            logger.info("Pulling feed page %d/%d", page + 1, max_pages)
+            feed = await self._news_puller.pull_league_feed(
+                league_abbr=league_abbr, page=page
+            )
             layouts = feed.feedMulligan.get("layouts", [])
 
             page_contents = [
@@ -67,9 +78,12 @@ class NewsMerger:
             ]
 
             if not page_contents:
+                logger.info("No articles on page %d, stopping", page + 1)
                 break
 
+            # Phase 1: filter new articles (sequential DB lookups)
             should_stop = False
+            new_contents: list[dict] = []
             for content in page_contents:
                 consumable_id = str(content["consumable_id"])
                 if consumable_id in seen_consumable_ids:
@@ -81,14 +95,35 @@ class NewsMerger:
                     consumable_id,
                 )
                 if existing is not None:
+                    logger.debug(
+                        "Article %s already exists, marking stop", consumable_id
+                    )
                     should_stop = True
                     continue
 
-                news_entity = await self._merge_one_content(content, short_name_map)
-                if news_entity is not None:
-                    created_news.append(news_entity)
+                new_contents.append(content)
+
+            # Phase 2: scrape, translate, persist in parallel
+            if new_contents:
+                logger.info(
+                    "Processing %d new articles on page %d (concurrency=%d)",
+                    len(new_contents),
+                    page + 1,
+                    self._CONCURRENCY,
+                )
+                tasks = [
+                    self._merge_one_content(content, short_name_map)
+                    for content in new_contents
+                ]
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+                for result in results:
+                    if isinstance(result, Exception):
+                        logger.warning("Article processing failed: %s", result)
+                    elif result is not None:
+                        created_news.append(result)
 
             if should_stop:
+                logger.info("Found existing article, stopping feed crawl")
                 break
 
         return created_news
@@ -98,16 +133,31 @@ class NewsMerger:
         content: dict,
         team_short_name_map: dict[str, str],
     ) -> NewsEntity | None:
+        async with self._semaphore:
+            return await self._process_one_content(content, team_short_name_map)
+
+    async def _process_one_content(
+        self,
+        content: dict,
+        team_short_name_map: dict[str, str],
+    ) -> NewsEntity | None:
         permalink = content.get("permalink")
         consumable_id = content.get("consumable_id")
         if not permalink or not consumable_id:
             return None
 
+        logger.info("Scraping article %s", consumable_id)
         article = await self._scrape_article(permalink)
-        if article is None or not article.articleBody:
+        if article is None:
+            return None
+        if not article.articleBody:
+            logger.warning("Article %s: no body content found", consumable_id)
             return None
 
-        translated = await self._translate_article(article, team_short_name_map)
+        logger.info("Translating article %s", consumable_id)
+        translated = await self._translate_article(
+            article, team_short_name_map, int(consumable_id),
+        )
         if translated is None:
             return None
 
@@ -134,13 +184,16 @@ class NewsMerger:
         news = await self._news_repo.append_teams(news, teams)
 
         created = await self._news_repo.create(news)
+        if created is not None:
+            logger.info("Created news: %s", translated.title.get("en", "")[:80])
         return created
 
     async def _scrape_article(self, permalink: str) -> ArticleResponse | None:
         try:
             response = await self._http_client.get(permalink)
             response.raise_for_status()
-        except httpx.HTTPError:
+        except httpx.HTTPError as exc:
+            logger.warning("Scrape failed for %s: %s", permalink, exc)
             return None
 
         soup = BeautifulSoup(response.text, "html.parser")
@@ -201,11 +254,13 @@ class NewsMerger:
         self,
         article: ArticleResponse,
         team_short_name_map: dict[str, str],
+        consumable_id: int,
     ) -> NewsTranslateResponse | None:
         if not article.articleBody:
             return None
 
         body = {
+            "consumable_id": consumable_id,
             "authors": [author["name"] for author in article.author],
             "title": article.headline,
             "article": article.articleBody[:45000],
@@ -214,11 +269,11 @@ class NewsMerger:
         instruction = self._build_translation_instruction(team_short_name_map)
         user_prompt = dumps(body, ensure_ascii=False)
 
-        retry = 0
-        while retry < 5:
+        last_error: Exception | None = None
+        for attempt in range(1, 4):
             try:
                 response = await self._anthropic_client.messages.create(
-                    model="claude-3-5-haiku-latest",
+                    model="claude-haiku-4-5-20251001",
                     max_tokens=2000,
                     temperature=0.0,
                     system=instruction,
@@ -228,23 +283,49 @@ class NewsMerger:
                     block.text for block in response.content if hasattr(block, "text")
                 )
                 return self._parse_translation_response(text)
-            except (anthropic.AnthropicError, ValidationError, JSONDecodeError, ValueError):
-                retry += 1
-                await sleep(1)
+            except (
+                anthropic.AnthropicError,
+                ValidationError,
+                JSONDecodeError,
+                ValueError,
+            ) as exc:
+                last_error = exc
+                logger.debug("Translation attempt %d/3: %s", attempt, exc)
+                await asyncio.sleep(1)
 
+        logger.warning(
+            "Translation failed after 3 attempts: %s: %s",
+            type(last_error).__name__, last_error,
+        )
         return None
 
     @staticmethod
     def _build_translation_instruction(team_short_name_map: dict[str, str]) -> str:
+        example = dumps(
+            {
+                "article": 12345,
+                "authors": [{"en": "John Smith", "ko": "존 스미스"}],
+                "title": {"en": "Original Title", "ko": "번역된 제목"},
+                "summary": {
+                    "en": ["bullet 1", "bullet 2"],
+                    "ko": ["요약 1", "요약 2"],
+                },
+                "teams": ["ARS", "TOT"],
+            },
+            ensure_ascii=False,
+        )
         return (
             "You are a sports-news translator and summarizer. "
-            "Given JSON with authors/title/article in English, return one JSON object with keys: "
-            "article, authors, title, summary, teams.\n"
-            "Rules:\n"
-            "- Translate title and author names to Korean.\n"
-            "- Summarize article into 3-5 bullets for both English and Korean.\n"
-            "- Detect only closely related teams and return team abbreviations.\n"
-            "- Leave football acronyms in English.\n"
+            "Given JSON with authors/title/article in English, "
+            "return ONLY one JSON object matching this exact schema:\n"
+            f"{example}\n\n"
+            "Field rules:\n"
+            "- article: copy the consumable_id number from input as integer.\n"
+            "- authors: list of objects, each with 'en' (original) and 'ko' (Korean) keys.\n"
+            "- title: object with 'en' (original) and 'ko' (Korean translated) keys.\n"
+            "- summary: object with 'en' (3-5 English bullets) and 'ko' (3-5 Korean bullets) keys.\n"
+            "- teams: list of team abbreviations closely related to the article.\n"
+            "- Leave football acronyms (e.g. VAR, XG) in English.\n\n"
             "Team short-name to abbreviation map:\n"
             f"{dumps(team_short_name_map, ensure_ascii=False)}"
         )

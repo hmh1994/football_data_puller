@@ -22,13 +22,16 @@ class CamelCaseModel(BaseModel):
 
 
 class RawResponseModel(BaseModel):
-    """Base model for receiving external API responses as-is.
+    """Base model for receiving external API responses.
 
-    Uses API JSON key names directly as field names without alias_generator.
+    Uses snake_case field names with camelCase alias generation.
+    Accepts both camelCase and snake_case JSON keys via populate_by_name.
     All external API response models in puller/interfaces inherit from this class.
     """
 
     model_config = ConfigDict(
+        alias_generator=to_camel,
         extra="ignore",
+        populate_by_name=True,
         str_strip_whitespace=True,
     )

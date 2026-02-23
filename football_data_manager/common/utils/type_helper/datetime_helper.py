@@ -1,4 +1,4 @@
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from enum import Enum
 from zoneinfo import ZoneInfo
 
@@ -130,18 +130,20 @@ def parse_timezone_abbreviation(timezone_abbr: str) -> ZoneInfo:
     return timezone_obj
 
 
-def parse_date_string_to_utc(date_string: str, date_format: str = "%Y-%m-%d") -> datetime:
+def parse_date_string_to_utc(
+    date_string: str, date_format: str = "%Y-%m-%d"
+) -> datetime:
     """
     Parse date string to UTC datetime object.
-    
+
     Parses a date string (without time component) and converts it to a UTC datetime
     object with time set to midnight UTC. Commonly used for birth dates and other
     date-only fields that need to be stored as datetime objects.
-    
+
     :param date_string: Date string to parse (e.g., "1995-09-15")
     :param date_format: Date format string (default: "%Y-%m-%d")
     :returns: Naive datetime object in UTC (midnight)
-    
+
     Example:
         >>> parse_date_string_to_utc("1995-09-15")
         datetime.datetime(1995, 9, 15, 0, 0)

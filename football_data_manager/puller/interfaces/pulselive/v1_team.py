@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from football_data_manager.puller.interfaces.base import RawResponseModel
 from football_data_manager.puller.interfaces.pulselive._types import (
@@ -12,7 +12,7 @@ class TeamItemDict(TypedDict):
 
     id: str
     name: str
-    shortName: str | None
+    short_name: NotRequired[str]
     abbr: str
     stadium: StadiumDict
 

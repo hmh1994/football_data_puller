@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from football_data_manager.puller.interfaces.base import RawResponseModel
 
@@ -8,7 +8,7 @@ class ArticleAuthorDict(TypedDict):
 
     name: str
     url: str
-    sameAs: str | list[str] | None
+    sameAs: NotRequired[str | list[str]]
 
 
 class ArticleResponse(RawResponseModel):

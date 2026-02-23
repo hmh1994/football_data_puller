@@ -117,7 +117,7 @@ class MatchMerger:
             home_captain,
             home_players,
         ) = await self._extract_players(
-            lineup_response.homeTeam["players"], competition, season
+            lineup_response.home_team["players"], competition, season
         )
         (
             away_lineup,
@@ -125,11 +125,11 @@ class MatchMerger:
             away_captain,
             away_players,
         ) = await self._extract_players(
-            lineup_response.awayTeam["players"], competition, season
+            lineup_response.away_team["players"], competition, season
         )
 
-        home_manager = await self._get_manager(lineup_response.homeTeam.get("managers", []))
-        away_manager = await self._get_manager(lineup_response.awayTeam.get("managers", []))
+        home_manager = await self._get_manager(lineup_response.home_team.get("managers", []))
+        away_manager = await self._get_manager(lineup_response.away_team.get("managers", []))
 
         (
             referee,
@@ -138,22 +138,22 @@ class MatchMerger:
             fourth,
             var,
             assistant_var,
-        ) = await self._get_officials(official_response.matchOfficials)
+        ) = await self._get_officials(official_response.match_officials)
 
         base_match = MatchEntity(
             attendance=match_response.attendance or 0,
             away_team_captain=away_captain,
             away_team_manager=away_manager,
-            away_team_formation=self._parse_formation(lineup_response.awayTeam.get("formation")),
-            away_team_score=match_response.awayTeam.get("score") or 0,
-            away_team_half_time_score=match_response.awayTeam.get("halfTimeScore"),
+            away_team_formation=self._parse_formation(lineup_response.away_team.get("formation")),
+            away_team_score=match_response.away_team.get("score") or 0,
+            away_team_half_time_score=match_response.away_team.get("half_time_score"),
             clock=self._to_int(match_response.clock),
             fixture=fixture,
             home_team_captain=home_captain,
             home_team_manager=home_manager,
-            home_team_formation=self._parse_formation(lineup_response.homeTeam.get("formation")),
-            home_team_score=match_response.homeTeam.get("score") or 0,
-            home_team_half_time_score=match_response.homeTeam.get("halfTimeScore"),
+            home_team_formation=self._parse_formation(lineup_response.home_team.get("formation")),
+            home_team_score=match_response.home_team.get("score") or 0,
+            home_team_half_time_score=match_response.home_team.get("half_time_score"),
             official_main_referee=referee,
             official_assistant_1_referee=assistant_1,
             official_assistant_2_referee=assistant_2,
@@ -172,7 +172,7 @@ class MatchMerger:
         # Lineup and bench
         for player_info in home_lineup:
             row_col = self._find_formation_position(
-                lineup_response.homeTeam.get("formation", {}).get("lineup"),
+                lineup_response.home_team.get("formation", {}).get("lineup"),
                 player_info.player.source_id,
             )
             if row_col is None:
@@ -190,7 +190,7 @@ class MatchMerger:
 
         for player_info in away_lineup:
             row_col = self._find_formation_position(
-                lineup_response.awayTeam.get("formation", {}).get("lineup"),
+                lineup_response.away_team.get("formation", {}).get("lineup"),
                 player_info.player.source_id,
             )
             if row_col is None:
@@ -227,39 +227,39 @@ class MatchMerger:
         # Events
         match = await self._append_cards(
             match,
-            event_response.homeTeam.get("cards", []),
+            event_response.home_team.get("cards", []),
             is_home=True,
             player_map=all_players,
         )
         match = await self._append_cards(
             match,
-            event_response.awayTeam.get("cards", []),
+            event_response.away_team.get("cards", []),
             is_home=False,
             player_map=all_players,
         )
 
         match = await self._append_goals(
             match,
-            event_response.homeTeam.get("goals", []),
+            event_response.home_team.get("goals", []),
             is_home=True,
             player_map=all_players,
         )
         match = await self._append_goals(
             match,
-            event_response.awayTeam.get("goals", []),
+            event_response.away_team.get("goals", []),
             is_home=False,
             player_map=all_players,
         )
 
         match = await self._append_substitutions(
             match,
-            event_response.homeTeam.get("subs", []),
+            event_response.home_team.get("subs", []),
             is_home=True,
             player_map=all_players,
         )
         match = await self._append_substitutions(
             match,
-            event_response.awayTeam.get("subs", []),
+            event_response.away_team.get("subs", []),
             is_home=False,
             player_map=all_players,
         )
@@ -302,9 +302,9 @@ class MatchMerger:
                         if is_substitute
                         else PositionEnum.from_string(position_raw)
                     ),
-                    shirt_number=self._to_int(item.get("shirtNum")) or 0,
+                    shirt_number=self._to_int(item.get("shirt_num")) or 0,
                     is_substitute=is_substitute,
-                    is_captain=bool(item.get("isCaptain")),
+                    is_captain=bool(item.get("is_captain")),
                 )
             )
 
@@ -345,8 +345,8 @@ class MatchMerger:
         season_source_id: str,
     ) -> PlayerDetailResponse | None:
         for detail in details:
-            competition_id = detail.id.get("competitionId")
-            season_id = detail.id.get("seasonId")
+            competition_id = detail.id.get("competition_id")
+            season_id = detail.id.get("season_id")
             if competition_id == competition_source_id and season_id == season_source_id:
                 return detail
         return None
@@ -358,8 +358,8 @@ class MatchMerger:
 
         display_name = (manager.get("display") or "").strip()
         if not display_name:
-            first_name = manager.get("firstName") or ""
-            last_name = manager.get("lastName") or ""
+            first_name = manager.get("first_name") or ""
+            last_name = manager.get("last_name") or ""
             display_name = f"{first_name} {last_name}".strip()
         if not display_name:
             return None
@@ -417,7 +417,7 @@ class MatchMerger:
         if not official:
             return None
 
-        display_name = official.get("simpleName", "").strip()
+        display_name = official.get("display", "").strip()
         if not display_name:
             return None
 
@@ -428,7 +428,7 @@ class MatchMerger:
         created = OfficialEntity(
             display_name_en=display_name,
             display_name_kr=await self._translator.translate_word(display_name),
-            full_name=official.get("fullName", display_name),
+            full_name=f"{official.get('first', '')} {official.get('last', '')}".strip() or display_name,
         )
         result = await self._official_repo.create(created)
         return result or await self._official_repo.get_by_display_name_en(display_name)
@@ -441,7 +441,7 @@ class MatchMerger:
         player_map: dict[str, PlayerEntity],
     ) -> MatchEntity:
         for index, card in enumerate(cards):
-            player_source_id = card.get("playerId")
+            player_source_id = card.get("player_id")
             clock = self._to_int(card.get("time"))
             if not player_source_id or clock is None:
                 continue
@@ -478,7 +478,7 @@ class MatchMerger:
         player_map: dict[str, PlayerEntity],
     ) -> MatchEntity:
         for index, goal in enumerate(goals):
-            player_source_id = goal.get("playerId")
+            player_source_id = goal.get("player_id")
             clock = self._to_int(goal.get("time"))
             if not player_source_id or clock is None:
                 continue
@@ -488,11 +488,11 @@ class MatchMerger:
                 continue
 
             assist_player = None
-            assist_source_id = goal.get("assistPlayerId")
+            assist_source_id = goal.get("assist_player_id")
             if assist_source_id:
                 assist_player = player_map.get(assist_source_id)
 
-            goal_type = (goal.get("goalType") or "").lower()
+            goal_type = (goal.get("goal_type") or "").lower()
             match = await self._match_repo.append_goal(
                 match=match,
                 is_home=is_home,
@@ -514,8 +514,8 @@ class MatchMerger:
         player_map: dict[str, PlayerEntity],
     ) -> MatchEntity:
         for sub in substitutions:
-            in_source_id = sub.get("playerOnId")
-            out_source_id = sub.get("playerOffId")
+            in_source_id = sub.get("player_on_id")
+            out_source_id = sub.get("player_off_id")
             clock = self._to_int(sub.get("time"))
             if not in_source_id or not out_source_id or clock is None:
                 continue

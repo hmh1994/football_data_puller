@@ -9,6 +9,7 @@ from football_data_manager.repository.entities.seasons import SeasonEntity
 from football_data_manager.repository.entities.teams import TeamEntity
 from football_data_manager.repository.repositories.grounds import GroundRepository
 from football_data_manager.repository.repositories.teams import TeamRepository
+from football_data_manager.merger.utils import is_updated_within
 
 
 class GroundMerger:
@@ -97,6 +98,9 @@ class TeamMerger:
         source_id = str(item["id"])
         existing = await self._team_repo.get_by_pulselive_id(source_id)
         if existing is not None:
+            if is_updated_within(existing):
+                return existing
+
             if not existing.icon_url:
                 icon_url = await self._validate_team_icon_url(source_id)
                 if icon_url:
@@ -107,7 +111,7 @@ class TeamMerger:
             return await self._team_repo.update(existing)
 
         name_en = item["name"]
-        short_name_en = item.get("shortName") or name_en
+        short_name_en = item.get("short_name") or name_en
         icon_url = await self._validate_team_icon_url(source_id)
 
         team = TeamEntity(

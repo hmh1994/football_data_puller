@@ -28,8 +28,8 @@ class MatchStatMerger:
         """Create/update two team match-stat entities for one match."""
         home_team_stat, away_team_stat = self._split_home_away(response)
 
-        home_team = await self._team_repo.get_by_pulselive_id(home_team_stat.teamId)
-        away_team = await self._team_repo.get_by_pulselive_id(away_team_stat.teamId)
+        home_team = await self._team_repo.get_by_pulselive_id(home_team_stat.team_id)
+        away_team = await self._team_repo.get_by_pulselive_id(away_team_stat.team_id)
         if home_team is None or away_team is None:
             return []
 

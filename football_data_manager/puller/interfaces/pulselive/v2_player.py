@@ -23,50 +23,50 @@ class PlayerStatsDict(TypedDict, total=False):
     """Player statistics. All fields optional."""
 
     appearances: float | None
-    blockedShots: float | None
-    aerialDuels: float | None
-    aerialDuelsWon: float | None
-    groundDuels: float | None
-    groundDuelsWon: float | None
+    blocked_shots: float | None
+    aerial_duels: float | None
+    aerial_duels_won: float | None
+    ground_duels: float | None
+    ground_duels_won: float | None
     duels: float | None
-    duelsWon: float | None
-    totalFoulsConceded: float | None
+    duels_won: float | None
+    total_fouls_conceded: float | None
     interceptions: float | None
-    possessionWonFinalThird: float | None
+    possession_won_final_third: float | None
     recoveries: float | None
-    totalTackles: float | None
-    tacklesWon: float | None
-    totalRedCards: float | None
-    straightRedCards: float | None
-    yellowCards: float | None
-    cleanSheets: float | None
-    goalsConceded: float | None
-    expectedGoalsOnTargetConceded: float | None
+    total_tackles: float | None
+    tackles_won: float | None
+    total_red_cards: float | None
+    straight_red_cards: float | None
+    yellow_cards: float | None
+    clean_sheets: float | None
+    goals_conceded: float | None
+    expected_goals_on_target_conceded: float | None
     catches: float | None
-    penaltiesFaced: float | None
-    penaltyGoalsConceded: float | None
-    savesMade: float | None
-    successfulLongPasses: float | None
-    unsuccessfulLongPasses: float | None
-    goalAssists: float | None
-    keyPassesAttemptAssists: float | None
-    expectedAssists: float | None
-    successfulShortPasses: float | None
-    totalPasses: float | None
-    successfulCrossesAndCorners: float | None
-    unsuccessfulCrossesAndCorners: float | None
-    successfulDribbles: float | None
-    unsuccessfulDribbles: float | None
-    totalFoulsWon: float | None
+    penalties_faced: float | None
+    penalty_goals_conceded: float | None
+    saves_made: float | None
+    successful_long_passes: float | None
+    unsuccessful_long_passes: float | None
+    goal_assists: float | None
+    key_passes_attempt_assists: float | None
+    expected_assists: float | None
+    successful_short_passes: float | None
+    total_passes: float | None
+    successful_crosses_and_corners: float | None
+    unsuccessful_crosses_and_corners: float | None
+    successful_dribbles: float | None
+    unsuccessful_dribbles: float | None
+    total_fouls_won: float | None
     touches: float | None
-    totalTouchesInOppositionBox: float | None
-    expectedGoals: float | None
-    penaltiesTaken: float | None
-    expectedGoalsOnTarget: float | None
+    total_touches_in_opposition_box: float | None
+    expected_goals: float | None
+    penalties_taken: float | None
+    expected_goals_on_target: float | None
     goals: float | None
-    penaltyGoals: float | None
-    totalShots: float | None
-    shotsOnTargetIncGoals: float | None
+    penalty_goals: float | None
+    total_shots: float | None
+    shots_on_target_inc_goals: float | None
 
 
 class V2PlayerStatResponse(RawResponseModel):

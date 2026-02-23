@@ -11,6 +11,7 @@ gql==3.5.2
 greenlet==3.1.1
 httpx==0.28.1
 openai==1.76.0
+psutil==6.1.1
 pydantic==2.10.6
 python-dotenv==1.0.1
 regex==2024.11.6

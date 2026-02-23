@@ -1,12 +1,11 @@
 from datetime import datetime
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from pydantic import field_validator
 
 from football_data_manager.puller.interfaces.base import RawResponseModel
 from football_data_manager.puller.interfaces.pulselive._types import (
     MatchTeamDict,
-    PersonDict,
 )
 
 
@@ -23,21 +22,21 @@ class SeasonInfoDict(TypedDict):
 class V2MatchResponse(RawResponseModel):
     """GET v2/matches/{match_id}"""
 
-    kickoffTimezone: str
-    competitionId: str
+    kickoff_timezone: str
+    competition_id: str
     period: str
-    matchWeek: int
+    match_week: int
     kickoff: datetime
-    awayTeam: MatchTeamDict
-    seasonInfo: SeasonInfoDict
+    away_team: MatchTeamDict
+    season_info: SeasonInfoDict
     competition: str
     clock: str | None = None
-    kickoffTimezoneString: str
-    seasonId: str
-    homeTeam: MatchTeamDict
+    kickoff_timezone_string: str
+    season_id: str
+    home_team: MatchTeamDict
     ground: str
-    resultType: str | None = None
-    matchId: str
+    result_type: str | None = None
+    match_id: str
     attendance: int | None = None
 
     @field_validator("kickoff", mode="before")
@@ -53,21 +52,21 @@ class V2MatchResponse(RawResponseModel):
 class PlayerSimpleDict(TypedDict):
     """Simple player info used in lineups."""
 
-    firstName: str | None
-    lastName: str | None
-    display: str | None
-    shirtNum: str
-    isCaptain: bool
+    first_name: NotRequired[str]
+    last_name: NotRequired[str]
+    display: NotRequired[str]
+    shirt_num: str
+    is_captain: bool
     id: str
     position: str
-    subPosition: str | None
+    sub_position: NotRequired[str]
 
 
 class ManagerDict(TypedDict, total=False):
     """Manager info within lineup."""
 
-    firstName: str | None
-    lastName: str | None
+    first_name: str | None
+    last_name: str | None
     display: str | None
     id: str | None
     type: str | None
@@ -77,7 +76,7 @@ class FormationDict(TypedDict, total=False):
     """Formation info within lineup."""
 
     subs: list[str] | None
-    teamId: str | None
+    team_id: str | None
     lineup: list[list[str]] | None
     formation: str | None
 
@@ -93,5 +92,5 @@ class TeamLineupDict(TypedDict):
 class V3MatchLineupResponse(RawResponseModel):
     """GET v3/matches/{match_id}/lineups"""
 
-    awayTeam: TeamLineupDict
-    homeTeam: TeamLineupDict
+    away_team: TeamLineupDict
+    home_team: TeamLineupDict

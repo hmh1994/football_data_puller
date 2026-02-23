@@ -15,7 +15,6 @@ class ApiListConfig(BaseModel):
     anthropic: ApiConfig
     open_ai: ApiConfig
     pulselive: ApiConfig
-    pulselive_new: ApiConfig
     the_athletic_graphql: ApiConfig
 
     def __init__(self, **data):
@@ -23,7 +22,6 @@ class ApiListConfig(BaseModel):
             anthropic=ApiConfig(**extract_without_key("ANTHROPIC", data)),
             open_ai=ApiConfig(**extract_without_key("OPEN_AI", data)),
             pulselive=ApiConfig(**extract_without_key("PULSELIVE", data)),
-            pulselive_new=ApiConfig(**extract_without_key("PULSELIVE_NEW", data)),
             the_athletic_graphql=ApiConfig(
                 **extract_without_key("THE_ATHLETIC_GRAPHQL", data)
             ),

@@ -39,33 +39,45 @@ class PulseliveClient(AbstractWebClient):
 
     def __init__(self, config: ApiConfig | dict):
         parsed_config = (
-            config if isinstance(config, ApiConfig) else ApiConfig.model_validate(config)
+            config
+            if isinstance(config, ApiConfig)
+            else ApiConfig.model_validate(config)
         )
         super().__init__(base_url=parsed_config.url.unicode_string())
 
     # --- v1 endpoints ---
 
     async def get_v1_awards(
-        self, competition_id: str, season_id: str,
+        self,
+        competition_id: str,
+        season_id: str,
     ) -> V1AwardResponse:
         path = f"v1/competitions/{competition_id}/seasons/{season_id}/awards"
+        url = self._build_url(path)
         response = await self.get(path=path)
-        return V1AwardResponse.model_validate(response)
+        return self._validate_response(V1AwardResponse, response, url)
 
     async def get_v1_competitions(
-        self, limit: int = 10, _next: str | None = None,
+        self,
+        limit: int = 10,
+        _next: str | None = None,
     ) -> V1CompetitionResponse:
         params = {"_limit": str(limit)}
         if _next:
             params["_next"] = _next
-        response = await self.get(path="v1/competitions", params=params)
-        return V1CompetitionResponse.model_validate(response)
+        path = "v1/competitions"
+        url = self._build_url(path, params)
+        response = await self.get(path=path, params=params)
+        return self._validate_response(V1CompetitionResponse, response, url)
 
     async def get_v1_competition_details(
-        self, competition_id: str,
+        self,
+        competition_id: str,
     ) -> V1CompetitionDetailResponse:
-        response = await self.get(path=f"v1/competitions/{competition_id}/details")
-        return V1CompetitionDetailResponse.model_validate(response)
+        path = f"v1/competitions/{competition_id}/details"
+        url = self._build_url(path)
+        response = await self.get(path=path)
+        return self._validate_response(V1CompetitionDetailResponse, response, url)
 
     async def get_v1_matchweek_matches(
         self,
@@ -79,24 +91,35 @@ class PulseliveClient(AbstractWebClient):
         if _next:
             params["_next"] = _next
         path = f"v1/competitions/{competition_id}/seasons/{season_id}/matchweeks/{matchweek_number}/matches"
+        url = self._build_url(path, params)
         response = await self.get(path=path, params=params)
-        return V1MatchweekMatchesResponse.model_validate(response)
+        return self._validate_response(V1MatchweekMatchesResponse, response, url)
 
     async def get_v1_match_event(self, match_id: str) -> V1EventResponse:
-        response = await self.get(path=f"v1/matches/{match_id}/events")
-        return V1EventResponse.model_validate(response)
+        path = f"v1/matches/{match_id}/events"
+        url = self._build_url(path)
+        response = await self.get(path=path)
+        return self._validate_response(V1EventResponse, response, url)
 
     async def get_v1_match_official(
-        self, match_id: str,
+        self,
+        match_id: str,
     ) -> V1MatchOfficialsResponse:
-        response = await self.get(path=f"v1/matches/{match_id}/officials")
-        return V1MatchOfficialsResponse.model_validate(response)
+        path = f"v1/matches/{match_id}/officials"
+        url = self._build_url(path)
+        response = await self.get(path=path)
+        return self._validate_response(V1MatchOfficialsResponse, response, url)
 
     async def get_v1_match_stat(
-        self, match_id: str,
+        self,
+        match_id: str,
     ) -> list[V1MatchTeamStatResponse]:
-        response = await self.get(path=f"v1/matches/{match_id}/stats")
-        return RootModel[list[V1MatchTeamStatResponse]].model_validate(response).root
+        path = f"v1/matches/{match_id}/stats"
+        url = self._build_url(path)
+        response = await self.get(path=path)
+        return self._validate_response(
+            RootModel[list[V1MatchTeamStatResponse]], response, url
+        ).root
 
     async def get_v1_teams(
         self,
@@ -109,49 +132,74 @@ class PulseliveClient(AbstractWebClient):
         if _next:
             params["_next"] = _next
         path = f"v1/competitions/{competition_id}/seasons/{season_id}/teams"
+        url = self._build_url(path, params)
         response = await self.get(path=path, params=params)
-        return V1TeamsResponse.model_validate(response)
+        return self._validate_response(V1TeamsResponse, response, url)
 
     async def get_v1_player(self, player_id: str) -> V1PlayerResponse:
-        response = await self.get(path=f"v1/players/{player_id}")
-        return V1PlayerResponse.model_validate(response)
+        path = f"v1/players/{player_id}"
+        url = self._build_url(path)
+        response = await self.get(path=path)
+        return self._validate_response(V1PlayerResponse, response, url)
 
     async def get_v1_player_details(
-        self, competition_id: str, season_id: str, player_id: str,
+        self,
+        competition_id: str,
+        season_id: str,
+        player_id: str,
     ) -> V1PlayerDetailsResponse:
-        path = f"v1/competitions/{competition_id}/seasons/{season_id}/players/{player_id}"
+        path = (
+            f"v1/competitions/{competition_id}/seasons/{season_id}/players/{player_id}"
+        )
+        url = self._build_url(path)
         response = await self.get(path=path)
-        return V1PlayerDetailsResponse.model_validate(response)
+        return self._validate_response(V1PlayerDetailsResponse, response, url)
 
     # --- v2 endpoints ---
 
     async def get_v2_player_stats(
-        self, competition_id: str, season_id: str, player_id: str,
+        self,
+        competition_id: str,
+        season_id: str,
+        player_id: str,
     ) -> V2PlayerStatResponse:
         path = f"v2/competitions/{competition_id}/seasons/{season_id}/players/{player_id}/stats"
+        url = self._build_url(path)
         response = await self.get(path=path)
-        return V2PlayerStatResponse.model_validate(response)
+        return self._validate_response(V2PlayerStatResponse, response, url)
 
     async def get_v2_match(self, match_id: str) -> V2MatchResponse:
-        response = await self.get(path=f"v2/matches/{match_id}")
-        return V2MatchResponse.model_validate(response)
+        path = f"v2/matches/{match_id}"
+        url = self._build_url(path)
+        response = await self.get(path=path)
+        return self._validate_response(V2MatchResponse, response, url)
 
     async def get_v2_squad(
-        self, competition_id: str, season_id: str, team_id: str,
+        self,
+        competition_id: str,
+        season_id: str,
+        team_id: str,
     ) -> V2SquadResponse:
         path = f"v2/competitions/{competition_id}/seasons/{season_id}/teams/{team_id}/squad"
+        url = self._build_url(path)
         response = await self.get(path=path)
-        return V2SquadResponse.model_validate(response)
+        return self._validate_response(V2SquadResponse, response, url)
 
     async def get_v2_team_stats(
-        self, competition_id: str, season_id: str, team_id: str,
+        self,
+        competition_id: str,
+        season_id: str,
+        team_id: str,
     ) -> V2TeamStatsResponse:
         path = f"v2/competitions/{competition_id}/seasons/{season_id}/teams/{team_id}/stats"
+        url = self._build_url(path)
         response = await self.get(path=path)
-        return V2TeamStatsResponse.model_validate(response)
+        return self._validate_response(V2TeamStatsResponse, response, url)
 
     # --- v3 endpoints ---
 
     async def get_v3_match_lineup(self, match_id: str) -> V3MatchLineupResponse:
-        response = await self.get(path=f"v3/matches/{match_id}/lineups")
-        return V3MatchLineupResponse.model_validate(response)
+        path = f"v3/matches/{match_id}/lineups"
+        url = self._build_url(path)
+        response = await self.get(path=path)
+        return self._validate_response(V3MatchLineupResponse, response, url)

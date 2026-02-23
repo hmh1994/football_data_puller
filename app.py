@@ -3,11 +3,14 @@
 Football Data Puller - Main CLI Entry Point
 
 Usage:
-    python app.py health                  # Health check
-    python app.py run                     # Start master process (cron scheduler)
-    python app.py pull-data {entity}      # Pull specific entity data
+    python app.py health                        # Health check
+    python app.py run                           # Start master process (cron scheduler)
+    python app.py pull-data {entity}            # Legacy pull command
+    python app.py sync {entity} [OPTIONS]       # Sync entity with dependency resolution
 """
+import asyncio
 import argparse
+import logging
 import sys
 
 
@@ -103,6 +106,59 @@ def pull_data(entity: str):
     return 0
 
 
+def _validate_sync_args(
+    entity: str,
+    competition_id: str | None,
+    season_id: str | None,
+) -> None:
+    if entity == "competition":
+        return
+    if entity == "news":
+        return
+    if entity == "season":
+        if not competition_id:
+            raise ValueError("--competition-id is required for 'season'")
+        return
+
+    if not competition_id:
+        raise ValueError(f"--competition-id is required for '{entity}'")
+    if not season_id:
+        raise ValueError(f"--season-id is required for '{entity}'")
+
+
+async def sync_data(
+    entity: str,
+    competition_id: str | None,
+    season_id: str | None,
+    league_abbr: str,
+) -> int:
+    from football_data_manager.syncer.container import create_sync_container
+    from football_data_manager.syncer.dependency import SyncEntity
+    from football_data_manager.syncer.orchestrator import SyncOrchestrator
+
+    _validate_sync_args(entity, competition_id, season_id)
+
+    container = await create_sync_container(validate_connection=False)
+    orchestrator = SyncOrchestrator(container)
+
+    if entity == "all":
+        results = await orchestrator.sync_all(
+            competition_source_id=competition_id,
+            season_source_id=season_id,
+            league_abbr=league_abbr,
+        )
+    else:
+        results = await orchestrator.sync(
+            target=SyncEntity(entity),
+            competition_source_id=competition_id,
+            season_source_id=season_id,
+            league_abbr=league_abbr,
+        )
+
+    orchestrator.print_summary(results)
+    return 0 if all(result.success for result in results) else 1
+
+
 def main():
     """Main CLI entry point"""
     parser = argparse.ArgumentParser(
@@ -114,6 +170,8 @@ Examples:
   python app.py run                       # Start master process
   python app.py pull-data competition     # Pull competition data
   python app.py pull-data player          # Pull player data
+  python app.py sync team --competition-id 1 --season-id 578
+  python app.py sync all --competition-id 1 --season-id 578
         """,
     )
 
@@ -126,11 +184,46 @@ Examples:
     subparsers.add_parser("run", help="Start master process with scheduler")
 
     # Pull-data command
-    pull_parser = subparsers.add_parser(
-        "pull-data", help="Pull specific entity data"
-    )
+    pull_parser = subparsers.add_parser("pull-data", help="Pull specific entity data")
     pull_parser.add_argument(
         "entity", help="Entity name (competition, season, team, player, match)"
+    )
+
+    # Sync command
+    sync_parser = subparsers.add_parser(
+        "sync",
+        help="Sync entity data with dependency resolution (Pull -> Merge -> DB)",
+    )
+    sync_parser.add_argument(
+        "entity",
+        choices=[
+            "competition",
+            "season",
+            "team",
+            "player",
+            "fixture",
+            "match",
+            "match-stat",
+            "player-stat",
+            "team-stat",
+            "award",
+            "news",
+            "all",
+        ],
+        help="Target entity to sync",
+    )
+    sync_parser.add_argument(
+        "--competition-id",
+        help="Pulselive competition source ID (e.g. 1)",
+    )
+    sync_parser.add_argument(
+        "--season-id",
+        help="Pulselive season source ID (e.g. 578)",
+    )
+    sync_parser.add_argument(
+        "--league-abbr",
+        default="EN_PR",
+        help="League abbreviation for news sync (default: EN_PR)",
     )
 
     args = parser.parse_args()
@@ -139,6 +232,16 @@ Examples:
         parser.print_help()
         return 1
 
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)-7s] %(name)s - %(message)s",
+        datefmt="%H:%M:%S",
+    )
+    logging.getLogger("gql").setLevel(logging.WARNING)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+    logging.getLogger("anthropic").setLevel(logging.WARNING)
+
     # Route to appropriate handler
     if args.command == "health":
         return health()
@@ -146,6 +249,19 @@ Examples:
         return run()
     elif args.command == "pull-data":
         return pull_data(args.entity)
+    elif args.command == "sync":
+        try:
+            return asyncio.run(
+                sync_data(
+                    entity=args.entity,
+                    competition_id=args.competition_id,
+                    season_id=args.season_id,
+                    league_abbr=args.league_abbr,
+                )
+            )
+        except ValueError as error:
+            print(f"Error: {error}")
+            return 1
     else:
         parser.print_help()
         return 1

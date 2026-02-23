@@ -98,7 +98,7 @@ class SeasonMerger:
             raise ValueError("No matches found for matchweek 1")
 
         return min(
-            create_utc_from_string(match["kickoff"], match["kickoffTimezone"])
+            create_utc_from_string(match["kickoff"], match["kickoff_timezone"])
             for match in matches
         )
 
@@ -112,7 +112,7 @@ class SeasonMerger:
             raise ValueError("No matches found for season end date")
 
         return max(
-            create_utc_from_string(match["kickoff"], match["kickoffTimezone"])
+            create_utc_from_string(match["kickoff"], match["kickoff_timezone"])
             for match in matches
         )
 

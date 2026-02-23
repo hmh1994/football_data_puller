@@ -1,13 +1,17 @@
+import logging
 from typing import Any
 
 from gql import Client, gql
 from gql.transport.aiohttp import AIOHTTPTransport
+from pydantic import ValidationError
 
 from football_data_manager.common.services.config.models.api_config import ApiConfig
 from football_data_manager.puller.interfaces.the_athletic.league_feed import (
     LeagueFeedResponse,
     QueryVariables,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class TheAthleticClient:
@@ -57,9 +61,11 @@ class TheAthleticClient:
         parsed_config = (
             config if isinstance(config, ApiConfig) else ApiConfig.model_validate(config)
         )
+        self._url = parsed_config.url.unicode_string()
         self._transport = AIOHTTPTransport(
-            url=parsed_config.url.unicode_string(),
+            url=self._url,
             timeout=10,
+            ssl=False,
         )
         self._client = Client(
             transport=self._transport,
@@ -78,7 +84,11 @@ class TheAthleticClient:
             variables=variables.model_dump(),
             operation_name="LeagueFeedQuery",
         )
-        return LeagueFeedResponse.model_validate(result)
+        try:
+            return LeagueFeedResponse.model_validate(result)
+        except ValidationError as exc:
+            logger.error("Validation error for %s", self._url, exc_info=exc)
+            raise
 
     async def _execute(
         self,

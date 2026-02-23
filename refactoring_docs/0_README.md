@@ -20,7 +20,7 @@
 
 **내용**:
 
-- 4개 컴포넌트 구조 (Repository, Puller, Merger, Scheduler)
+- 6개 컴포넌트 구조 (Repository, Puller, Merger, Data Syncer, Data Validator, Scheduler)
 - 목표 아키텍처 및 디렉토리 구조
 - 기술 스택 결정 (모두 확정됨)
 - Phase별 마이그레이션 전략
@@ -302,6 +302,35 @@
 
 ---
 
+### 12. **`12_phase_4_data_syncer.md`** (Phase 4 실행 가이드 - 🚧 진행 중)
+
+**목적**: Data Syncer 컴포넌트 구현 실행 가이드
+
+**내용**:
+
+- 데이터 종속성 DAG (Directed Acyclic Graph) 설계
+- DependencyResolver (위상 정렬 기반 자동 종속성 해결)
+- 11개 SyncTask 구현 (Competition → Season → Team → Player → Fixture → Match → MatchStat → PlayerStat → TeamStat → Award → News)
+- SyncOrchestrator (종속성 순서 실행 + 에러 핸들링)
+- SyncContainer (DI) 구현
+- `app.py` sync 명령어 추가 가이드
+- 실행 결과 요약 출력 형식
+- 검증 체크리스트
+
+**언제 읽나요**:
+
+- Phase 4 시작 시
+- Sync 파이프라인 구조 이해 필요 시
+
+**특징**:
+
+- 종속성 그래프 및 위상 정렬 알고리즘 설명
+- 11개 entity별 종속성 자동 해결 체인 테이블
+- CLI 명령어 인터페이스 설계
+- 전체 코드 예제 포함
+
+---
+
 ## 🚀 빠른 시작
 
 ### **Phase 0 전 필수 작업** (Combined Migration)
@@ -339,7 +368,7 @@ cat refactoring_docs/1_master_plan.md
 
 **핵심 확인사항**:
 
-- [ ] 4개 컴포넌트 이해 (Repository, Puller, Merger, Scheduler)
+- [ ] 6개 컴포넌트 이해 (Repository, Puller, Merger, Data Syncer, Data Validator, Scheduler)
 - [ ] 목표 디렉토리 구조 확인
 - [ ] Phase별 일정 확인 (총 6-8주 예상)
 
@@ -423,7 +452,441 @@ cat refactoring_docs/2_current_state_analysis.md
 - [x] archive 필드 매핑 parity 검증 완료 (`tests/merger/test_phase3_archive_parity.py`)
 - [ ] 통합 테스트 (단위 테스트/pytest 검증 완료)
 
-### Phase 4: Scheduler 구현 (1주) - **대기 중**
+### Phase 4: Data Syncer 구현 - 🚧 **핵심 구현 완료, 통합 검증 대기** (2026-02-23) → `12_phase_4_data_syncer.md`
+
+> 📖 상세 실행 가이드: [`12_phase_4_data_syncer.md`](12_phase_4_data_syncer.md)
+
+`app.py`에 데이터 동기화 명령어를 추가합니다. 입력된 파라미터(competition ID, season ID 등)에 해당하는 데이터만 선택적으로 Pull → Merge하여 DB를 갱신합니다.
+
+- [x] `app.py`에 `sync` 명령어 추가 (argparse subcommand)
+- [x] 대상별 sync 하위 명령어 구현 (competition, season, team, player, fixture, match, match-stat, player-stat, team-stat, award, news)
+- [x] 입력 파라미터 설계 (`--competition-id`, `--season-id`, `--team-id` 등 필수/선택 조합)
+- [x] 의존성 순서 자동 해결 (예: team sync 시 competition, season이 먼저 존재해야 함)
+- [x] DI Container 초기화 → Puller pull → Merger merge 파이프라인 연결
+- [x] async 진입점 (`asyncio.run`) 처리
+- [x] 실행 결과 요약 출력 (생성/갱신/스킵 건수)
+- [x] 에러 핸들링 (종속 실패 skip + 독립 task 계속 진행)
+- [ ] 세션 롤백 전략 실증 (통합 시나리오 검증)
+- [ ] 통합 테스트 (실제 API 호출 → DB 반영 확인)
+
+### Phase 5: Data Validator 구현 - **대기 중**
+
+`app.py`에 데이터 교차 검증 명령어를 추가합니다. 특정 데이터셋을 선택하면 관련 데이터셋 간의 정합성을 검증합니다.
+
+- [ ] `app.py`에 `validate` 명령어 추가 (argparse subcommand)
+- [ ] 대상별 validate 하위 명령어 구현 (team-stat, player-stat, match, match-stat, fixture, season, competition, player, analytics, news, award)
+- [ ] 검증 결과 리포트 출력 (PASS/FAIL/WARNING 항목별, 요약 + 상세)
+- [ ] 통합 테스트
+
+#### 5-1. TeamStat 검증
+
+**자체 정합성 (단일 entity 내 필드 간 관계)**
+
+- [ ] `overall_matches` == `overall_matches_won` + `overall_matches_drawn` + `overall_matches_lost`
+- [ ] `home_matches` == `home_matches_won` + `home_matches_drawn` + `home_matches_lost`
+- [ ] `away_matches` == `away_matches_won` + `away_matches_drawn` + `away_matches_lost`
+- [ ] `overall_matches` == `home_matches` + `away_matches`
+- [ ] `overall_matches_won` == `home_matches_won` + `away_matches_won`
+- [ ] `overall_matches_drawn` == `home_matches_drawn` + `away_matches_drawn`
+- [ ] `overall_matches_lost` == `home_matches_lost` + `away_matches_lost`
+- [ ] `overall_goals_for` == `home_goals_for` + `away_goals_for`
+- [ ] `overall_goals_against` == `home_goals_against` + `away_goals_against`
+- [ ] `overall_goals_difference` == `overall_goals_for` - `overall_goals_against`
+- [ ] `home_goals_difference` == `home_goals_for` - `home_goals_against`
+- [ ] `away_goals_difference` == `away_goals_for` - `away_goals_against`
+- [ ] `overall_goals_difference` == `home_goals_difference` + `away_goals_difference`
+- [ ] `overall_points` == 3 × `overall_matches_won` + 1 × `overall_matches_drawn`
+- [ ] `home_points` == 3 × `home_matches_won` + 1 × `home_matches_drawn`
+- [ ] `away_points` == 3 × `away_matches_won` + 1 × `away_matches_drawn`
+- [ ] `overall_points` == `home_points` + `away_points`
+- [ ] `len(overall_cumulative_points)` == `overall_matches`
+- [ ] `len(home_cumulative_points)` == `home_matches`
+- [ ] `len(away_cumulative_points)` == `away_matches`
+- [ ] `overall_cumulative_points[-1]` == `overall_points` (if `overall_matches` > 0)
+- [ ] `home_cumulative_points[-1]` == `home_points` (if `home_matches` > 0)
+- [ ] `away_cumulative_points[-1]` == `away_points` (if `away_matches` > 0)
+- [ ] `overall_cumulative_points` 연속 원소 차이 ∈ {0, 1, 3} (각 경기 결과에 해당)
+- [ ] `home_cumulative_points` 연속 원소 차이 ∈ {0, 1, 3}
+- [ ] `away_cumulative_points` 연속 원소 차이 ∈ {0, 1, 3}
+- [ ] `overall_position` >= 1 (if not None)
+- [ ] `home_position` >= 1 (if not None)
+- [ ] `away_position` >= 1 (if not None)
+
+**공격/수비/규율 통계 필드 정합성**
+
+- [ ] `overall_stat_attack_passes_successful` <= `overall_stat_attack_passes`
+- [ ] `overall_stat_attack_crosses_successful` <= `overall_stat_attack_crosses`
+- [ ] `overall_stat_attack_long_balls_successful` <= `overall_stat_attack_long_balls`
+- [ ] `overall_stat_defense_tackles_successful` <= `overall_stat_defense_tackles`
+- [ ] `overall_stat_defense_duels_won` <= `overall_stat_defense_duels_total`
+- [ ] `overall_stat_defense_duels_aerial_won` <= `overall_stat_defense_duels_aerial_total`
+- [ ] `overall_stat_defense_duels_ground_won` <= `overall_stat_defense_duels_ground_total`
+- [ ] `overall_stat_defense_duels_total` == `overall_stat_defense_duels_aerial_total` + `overall_stat_defense_duels_ground_total`
+- [ ] `overall_stat_defense_duels_won` == `overall_stat_defense_duels_aerial_won` + `overall_stat_defense_duels_ground_won`
+- [ ] `overall_stat_discipline_red_cards_direct` <= `overall_stat_discipline_red_cards`
+- [ ] `overall_stat_average_possession`: 0.0 <= x <= 100.0
+- [ ] `overall_stat_attack_shots_on_target` <= `overall_stat_attack_total_shots`
+- [ ] 모든 integer stat 필드 >= 0
+- [ ] `overall_stat_attack_expected_goals` >= 0.0
+- [ ] `overall_stat_attack_expected_assists` >= 0.0
+
+**교차 검증 (TeamStat ↔ Match/MatchStat)**
+
+- [ ] `overall_goals_for` == Σ(해당 팀이 득점한 match별 골 수: 홈일 때 `home_team_score`, 어웨이일 때 `away_team_score`)
+- [ ] `overall_goals_against` == Σ(해당 팀이 실점한 match별 골 수)
+- [ ] `overall_matches` == `len(team_stat.match_associations)`
+- [ ] `overall_stat_discipline_yellow_cards` == Σ(`MatchStat.discipline_yellow_cards` for 해당 팀 경기들)
+- [ ] `overall_stat_discipline_red_cards` == Σ(`MatchStat.discipline_red_cards` for 해당 팀 경기들)
+- [ ] `overall_stat_attack_corners` == Σ(`MatchStat.corners` for 해당 팀 경기들)
+- [ ] `overall_stat_attack_total_shots` == Σ(`MatchStat.shots_total` for 해당 팀 경기들)
+- [ ] `overall_stat_attack_shots_on_target` == Σ(`MatchStat.shots_on_target` for 해당 팀 경기들)
+- [ ] `overall_stat_defense_clean_sheets` == count(해당 팀이 무실점한 경기 수)
+- [ ] `overall_stat_defense_blocks` == Σ(`MatchStat.defense_blocks`)
+- [ ] `overall_stat_defense_interceptions` == Σ(`MatchStat.defense_interceptions`)
+- [ ] `overall_stat_defense_tackles` == Σ(`MatchStat.defense_tackles_total`)
+- [ ] `overall_stat_defense_tackles_successful` == Σ(`MatchStat.defense_tackles_won`)
+
+**교차 검증 (TeamStat ↔ PlayerStat)**
+
+- [ ] `overall_goals_for` ≈ Σ(`PlayerStat.shooting_goals` for 해당 팀+시즌 소속 선수들) — own goal로 인해 약간의 차이 허용
+
+**FK 존재 검증**
+
+- [ ] `team_id` → teams 테이블에 존재
+- [ ] `season_id` → seasons 테이블에 존재
+- [ ] `ground_id` → grounds 테이블에 존재 (if not None)
+- [ ] `manager_id` → staffs 테이블에 존재 (if not None)
+
+#### 5-2. PlayerStat 검증
+
+**자체 정합성 (단일 entity 내 필드 간 관계)**
+
+- [ ] `appearances` >= 0
+- [ ] `minutes_played` >= 0
+- [ ] `number` >= 1
+- [ ] `score_shooting`: 0.0 <= x <= 100.0
+- [ ] `score_passing`: 0.0 <= x <= 100.0
+- [ ] `score_defending`: 0.0 <= x <= 100.0
+- [ ] `score_dribbling`: 0.0 <= x <= 100.0
+- [ ] `score_discipline`: 0.0 <= x <= 100.0
+- [ ] `score_overall`: 0.0 <= x <= 100.0
+
+**슈팅 필드**
+
+- [ ] `shooting_goals_penalty` <= `shooting_penalties_taken` (if both not None)
+- [ ] `shooting_shots_on_target` <= `shooting_shots` (if both not None)
+- [ ] `shooting_expected_goals` >= 0.0 (if not None)
+- [ ] `shooting_expected_goals_non_penalty` <= `shooting_expected_goals` (if both not None)
+- [ ] `shooting_expected_goals_non_penalty` ≈ `shooting_expected_goals` - 0.79 × `shooting_penalties_taken` (파생 필드 재계산)
+- [ ] `shooting_goals` >= 0 (if not None)
+
+**패스 필드**
+
+- [ ] `passing_passes_successful` <= `passing_passes_total` (if both not None)
+- [ ] `passing_crosses_successful` <= `passing_crosses_total` (if both not None)
+- [ ] `passing_long_balls_accurate` <= `passing_long_balls_total` (if both not None)
+- [ ] `passing_assists` >= 0 (if not None)
+- [ ] `passing_chances_created` >= `passing_assists` (if both not None; chances_created = assists + key_passes)
+- [ ] `passing_expected_assists` >= 0.0 (if not None)
+
+**수비 필드**
+
+- [ ] `defending_tackles_won` <= `defending_tackles_total` (if both not None)
+- [ ] `defending_duels_won` <= `defending_duels_total` (if both not None)
+- [ ] `defending_duels_aerial_won` <= `defending_duels_aerial_total` (if both not None)
+- [ ] `defending_duels_ground_won` <= `defending_duels_ground_total` (if both not None)
+- [ ] `defending_duels_total` == `defending_duels_aerial_total` + `defending_duels_ground_total` (if all not None)
+- [ ] `defending_duels_won` == `defending_duels_aerial_won` + `defending_duels_ground_won` (if all not None)
+- [ ] `defending_interceptions` >= 0 (if not None)
+- [ ] `defending_recoveries` >= 0 (if not None)
+- [ ] `defending_blocked` >= 0 (if not None)
+
+**골키퍼 필드**
+
+- [ ] `goalkeeping_penalty_saved` <= `goalkeeping_penalties_faced` (if both not None)
+- [ ] `goalkeeping_penalty_goals_conceded` <= `goalkeeping_penalties_faced` (if both not None)
+- [ ] `goalkeeping_penalty_saved` + `goalkeeping_penalty_goals_conceded` <= `goalkeeping_penalties_faced` (if all not None)
+- [ ] `goalkeeping_saves` >= 0 (if not None)
+- [ ] `goalkeeping_goals_prevented` ≈ xGoT_conceded - `goalkeeping_goals_conceded` (파생 필드 재계산)
+- [ ] `goalkeeping_clean_sheets` <= `appearances` (if both not None)
+
+**소유/드리블 필드**
+
+- [ ] `possession_dribble_successful` <= `possession_dribble_total` (if both not None)
+- [ ] `possession_touches` >= 0 (if not None)
+- [ ] `possession_touches_in_opposition_box` <= `possession_touches` (if both not None)
+
+**규율 필드**
+
+- [ ] `discipline_yellow_cards` >= 0 (if not None)
+- [ ] `discipline_red_cards` >= 0 (if not None)
+- [ ] `discipline_red_cards_direct` <= `discipline_red_cards` (if both not None)
+- [ ] `discipline_red_cards` <= `appearances` (if both not None; 경기당 최대 1장)
+
+**교차 검증 (PlayerStat ↔ Match/Season)**
+
+- [ ] `appearances` <= 해당 시즌 해당 팀의 총 경기 수
+- [ ] 선수가 해당 시즌에 `PlayerChampionshipAssociation`으로 등록되어 있는지
+- [ ] 선수가 해당 팀의 `TeamChampionshipAssociation`으로 등록된 시즌인지
+
+**FK 존재 검증**
+
+- [ ] `player_id` → players 테이블에 존재
+- [ ] `team_id` → teams 테이블에 존재
+- [ ] `season_id` → seasons 테이블에 존재
+
+#### 5-3. Match 검증
+
+**자체 정합성 (단일 entity 내 필드 간 관계)**
+
+- [ ] `home_team_score` >= 0
+- [ ] `away_team_score` >= 0
+- [ ] `home_team_half_time_score` <= `home_team_score` (if not None)
+- [ ] `away_team_half_time_score` <= `away_team_score` (if not None)
+- [ ] `clock` >= 0
+- [ ] `home_team_id` != `away_team_id`
+- [ ] `attendance` >= 0 (if not None)
+- [ ] `home_team_formation` 원소 합 == 10 (골키퍼 제외 outfield 선수 수)
+- [ ] `away_team_formation` 원소 합 == 10
+- [ ] `period` == FULLTIME인 경우에만 완전한 데이터 검증 수행
+
+**교차 검증 (Match ↔ Lineup Association)**
+
+- [ ] `lineup_associations`에서 `is_home=True`인 선수 수 == 11 (FULLTIME 경기)
+- [ ] `lineup_associations`에서 `is_home=False`인 선수 수 == 11 (FULLTIME 경기)
+- [ ] 라인업 선수의 `shirt_number`가 중복 없음 (같은 side 내)
+- [ ] 라인업 선수의 `position`이 유효한 PositionEnum 값
+
+**교차 검증 (Match ↔ Goal Association)**
+
+- [ ] Σ(`goal_associations` where `is_home=True` and `is_own_goal=False`) + Σ(`goal_associations` where `is_home=False` and `is_own_goal=True`) == `home_team_score`
+- [ ] Σ(`goal_associations` where `is_home=False` and `is_own_goal=False`) + Σ(`goal_associations` where `is_home=True` and `is_own_goal=True`) == `away_team_score`
+- [ ] 골 scorer(`player_id`)가 해당 side의 lineup 또는 substitute에 포함
+- [ ] 골 `clock` >= 0 and <= `match.clock`
+
+**교차 검증 (Match ↔ Card Association)**
+
+- [ ] 카드 받은 선수(`player_id`)가 해당 side의 lineup 또는 substitute에 포함
+- [ ] 카드 `clock` >= 0 and <= `match.clock`
+- [ ] `card_type`이 유효한 CardTypeEnum 값
+
+**교차 검증 (Match ↔ Substitution Association)**
+
+- [ ] 교체 횟수 <= 5 (현행 규정, side별)
+- [ ] `in_player_id`가 `substitute_associations`(벤치)에 포함
+- [ ] `out_player_id`가 `lineup_associations` 또는 이전 교체 `in_player`에 포함
+- [ ] 교체 `clock` >= 0 and <= `match.clock`
+- [ ] 교체 `clock`가 시간순으로 정렬되어 있는지
+
+**교차 검증 (Match ↔ Fixture)**
+
+- [ ] `Match.home_team_id` == `Fixture.home_team_id`
+- [ ] `Match.away_team_id` == `Fixture.away_team_id`
+- [ ] `fixture_id` → fixtures 테이블에 존재
+
+**FK 존재 검증**
+
+- [ ] `home_team_id` → teams 테이블에 존재
+- [ ] `away_team_id` → teams 테이블에 존재
+- [ ] `home_team_captain_id` → players 테이블에 존재 (if not None)
+- [ ] `away_team_captain_id` → players 테이블에 존재 (if not None)
+- [ ] `home_team_manager` → staffs 테이블에 존재 (if not None)
+- [ ] `away_team_manager` → staffs 테이블에 존재 (if not None)
+- [ ] `official_main_referee_id` → officials 테이블에 존재 (if not None)
+- [ ] `official_assistant_1_referee_id` → officials 테이블에 존재 (if not None)
+- [ ] `official_assistant_2_referee_id` → officials 테이블에 존재 (if not None)
+- [ ] `official_fourth_referee_id` → officials 테이블에 존재 (if not None)
+- [ ] `official_var_id` → officials 테이블에 존재 (if not None)
+- [ ] `official_assistant_var_id` → officials 테이블에 존재 (if not None)
+
+#### 5-4. MatchStat 검증
+
+**자체 정합성 (단일 entity 내 필드 간 관계)**
+
+- [ ] `shots_total` == `shots_inside_box` + `shots_outside_box`
+- [ ] `shots_on_target` <= `shots_total`
+- [ ] `shots_off_target` <= `shots_total`
+- [ ] `shots_blocked` <= `shots_total`
+- [ ] `duels_total` == `duels_aerial_total` + `duels_ground_total`
+- [ ] `duels_won` == `duels_aerial_won` + `duels_ground_won`
+- [ ] `duels_aerial_won` <= `duels_aerial_total`
+- [ ] `duels_ground_won` <= `duels_ground_total`
+- [ ] `duels_won` <= `duels_total`
+- [ ] `duels_dribbles_successful` <= `duels_dribbles_total`
+- [ ] `passes_accurate` <= `passes_total`
+- [ ] `passes_accurate_crosses` <= `passes_total_crosses`
+- [ ] `passes_accurate_long_balls` <= `passes_total_long_balls`
+- [ ] `defense_tackles_won` <= `defense_tackles_total`
+- [ ] `big_chances` >= `big_chances_missed` (big_chances = scored + missed)
+- [ ] `possession`: 0.0 <= x <= 100.0
+- [ ] `expected_goals` >= 0.0
+- [ ] `expected_goals_non_penalty` <= `expected_goals`
+- [ ] `expected_goals_on_target` >= 0.0
+- [ ] `expected_goals_on_target` <= `expected_goals`
+- [ ] 모든 Integer 필드 >= 0
+
+**교차 검증 (MatchStat ↔ Match)**
+
+- [ ] 각 Match에 정확히 2개의 MatchStat 존재 (home + away, FULLTIME 경기)
+- [ ] MatchStat.`team_id` ∈ {Match.`home_team_id`, Match.`away_team_id`}
+- [ ] 홈 MatchStat.`possession` + 어웨이 MatchStat.`possession` ≈ 100.0 (±1.0 오차 허용)
+
+**FK 존재 검증**
+
+- [ ] `match_id` → matches 테이블에 존재
+- [ ] `team_id` → teams 테이블에 존재
+
+#### 5-5. Fixture 검증
+
+**자체 정합성 (단일 entity 내 필드 간 관계)**
+
+- [ ] `home_team_id` != `away_team_id`
+- [ ] `game_week` >= 1
+- [ ] `kickoff_time`이 유효한 날짜/시간 값
+
+**교차 검증 (Fixture ↔ Season)**
+
+- [ ] `kickoff_time`이 시즌 기간(`date_start` ~ `date_end`) 범위 이내 (±1개월 허용)
+- [ ] 시즌 내 동일 `home_team_id` + `away_team_id` + `game_week` 조합 중복 없음
+- [ ] `home_team_id`가 해당 시즌에 `TeamChampionshipAssociation`으로 등록
+- [ ] `away_team_id`가 해당 시즌에 `TeamChampionshipAssociation`으로 등록
+
+**교차 검증 (Fixture ↔ Match)**
+
+- [ ] FULLTIME 경기 기준, 각 Fixture에 정확히 1개의 Match 존재
+
+**FK 존재 검증**
+
+- [ ] `home_team_id` → teams 테이블에 존재
+- [ ] `away_team_id` → teams 테이블에 존재
+- [ ] `season_id` → seasons 테이블에 존재
+- [ ] `ground_id` → grounds 테이블에 존재 (if not None)
+
+#### 5-6. Season 검증
+
+**자체 정합성 (단일 entity 내 필드 간 관계)**
+
+- [ ] `date_start` < `date_end`
+- [ ] `year_start` < `year_end` 또는 `year_start` == `year_end`
+- [ ] `year_end` - `year_start` <= 1
+- [ ] `abbreviation`이 비어 있지 않음
+
+**교차 검증 (Season ↔ Fixture/Team)**
+
+- [ ] 시즌에 최소 1개의 Fixture 존재
+- [ ] 시즌에 등록된 팀(`TeamChampionshipAssociation`) 수가 합리적 범위 (예: 10~30)
+- [ ] 시즌에 등록된 팀 수와 Fixture에 등장하는 고유 팀 수 일치
+
+**FK 존재 검증**
+
+- [ ] `competition_id` → competitions 테이블에 존재
+
+#### 5-7. Competition 검증
+
+**자체 정합성**
+
+- [ ] `name_en` 비어 있지 않음
+- [ ] `abbreviation` 비어 있지 않음
+- [ ] `source_id` ∈ 허용 목록 ("1", "2", "5", "6", "8", "1007", "1125")
+
+**교차 검증 (Competition ↔ Season)**
+
+- [ ] 각 Competition에 최소 1개의 Season 존재
+
+#### 5-8. Player 검증
+
+**자체 정합성**
+
+- [ ] `display_name_en` 비어 있지 않음
+- [ ] `full_name` 비어 있지 않음
+- [ ] `position`이 유효한 PositionEnum 값
+- [ ] `preferred_foot`이 유효한 SideEnum 값
+- [ ] `height` > 0 (if not None)
+- [ ] `weight` > 0 (if not None)
+- [ ] `birth_date` < 현재 날짜 (if not None)
+
+**교차 검증 (Player ↔ Season/PlayerStat)**
+
+- [ ] 최소 1개의 `PlayerChampionshipAssociation` 존재
+- [ ] `PlayerChampionshipAssociation`에 등록된 시즌마다 대응하는 `PlayerStat` 존재 여부 (WARNING)
+
+#### 5-9. Analytics 검증
+
+**자체 정합성**
+
+- [ ] `key`가 유효한 AnalyticsKeyEnum 값
+- [ ] `value`가 유한한 수 (not NaN, not Inf)
+- [ ] `delta`가 None이거나 유한한 수
+
+**파생 필드 재계산 (Analytics ↔ Match/MatchStat)**
+
+- [ ] `PER_MATCH_GOALS`: `value` ≈ Σ(match별 `home_team_score` + `away_team_score`) / 완료 경기 수
+- [ ] `TOTAL_GOALS`: `value` == Σ(match별 `home_team_score` + `away_team_score`)
+- [ ] `PER_MATCH_YELLOW_CARDS`: `value` ≈ Σ(`MatchStat.discipline_yellow_cards`) / 완료 경기 수
+- [ ] `TOTAL_RED_CARDS`: `value` == Σ(`MatchStat.discipline_red_cards`)
+- [ ] `PER_MATCH_XG`: `value` ≈ Σ(`MatchStat.expected_goals`) / 완료 경기 수
+- [ ] `PER_MATCH_SUBSTITUTIONS`: `value` ≈ Σ(`Match.substitution_associations` 수) / 완료 경기 수
+- [ ] `PER_MATCH_PASS_ACCURACY`: `value` ≈ avg(경기별 패스 정확도 %)
+- [ ] `delta` 재계산: `delta` ≈ ((`current_value` - `prev_season_value`) / `prev_season_value`) × 100 (이전 시즌 존재 시)
+
+**FK 존재 검증**
+
+- [ ] `season_id` → seasons 테이블에 존재
+
+#### 5-10. News 검증
+
+**자체 정합성**
+
+- [ ] `title_en` 비어 있지 않음
+- [ ] `title_kr` 비어 있지 않음
+- [ ] `content_en` 비어 있지 않음
+- [ ] `content_kr` 비어 있지 않음
+- [ ] `author_en` 비어 있지 않은 배열
+- [ ] `author_kr` 비어 있지 않은 배열
+- [ ] `len(author_en)` == `len(author_kr)` (번역 쌍 일치)
+- [ ] `url` 비어 있지 않음
+- [ ] `thumbnail_url` 비어 있지 않음
+- [ ] `publish_date` <= 현재 날짜
+- [ ] `type`이 유효한 NewsTypeEnum 값
+- [ ] `source`가 유효한 SourceEnum 값
+
+**교차 검증 (News ↔ Team)**
+
+- [ ] `team_associations`의 모든 `team_id` → teams 테이블에 존재
+
+#### 5-11. Award 검증
+
+**자체 정합성**
+
+- [ ] `type`이 유효한 AwardTypeEnum 값
+
+**교차 검증 (Award ↔ PlayerStat/Staff)**
+
+- [ ] `PlayerStatAwardAssociation`의 `player_stat_id` → player_stats 테이블에 존재
+- [ ] `StaffAwardAssociation`의 `staff_id` → staffs 테이블에 존재
+- [ ] 수상 `date`가 유효한 날짜 값
+
+#### 5-12. 전체 데이터셋 교차 검증 (Cross-Dataset)
+
+**시즌 단위 통계 일관성**
+
+- [ ] 시즌 내 모든 TeamStat의 `overall_goals_for` 합 == 모든 TeamStat의 `overall_goals_against` 합 (리그 내 총 득실점 대칭)
+- [ ] 시즌 내 모든 TeamStat의 `overall_matches_won` 합 == 모든 TeamStat의 `overall_matches_lost` 합 (승패 대칭)
+- [ ] 시즌 내 `overall_matches_drawn` 합이 짝수 (무승부는 항상 2팀)
+- [ ] 시즌 내 모든 TeamStat의 `overall_matches` 합 == 시즌 전체 경기 수 × 2 (각 경기에 2팀 참여)
+- [ ] Fixture 수 == 팀 수 × (팀 수 - 1) (더블 라운드 로빈 기준, 홈/어웨이 각 1회)
+
+**source_id 유일성**
+
+- [ ] 각 entity 타입별 `source_id` 중복 없음
+
+**고아 레코드 검증**
+
+- [ ] FK가 참조하는 모든 parent 레코드가 실제 존재
+- [ ] Match 없는 Fixture가 합리적 수준인지 (미완료 경기 등)
+- [ ] TeamStat 없는 팀+시즌 조합이 없는지 (WARNING)
+
+### Phase 6: Scheduler 구현 (1주) - **대기 중**
 
 - [ ] APScheduler 설정
 - [ ] Job 클래스 구현
@@ -496,7 +959,7 @@ cat refactoring_docs/2_current_state_analysis.md
 
 ### Q: 각 Phase별 상세 가이드는 어디 있나요?
 
-**A**: Phase 0(`5`), Phase 1(`7`), Schema Diff(`8`), Phase 2(`9`), Phase 3(`11`) 작성 완료. Phase 4는 필요 시 작성 예정.
+**A**: Phase 0(`5`), Phase 1(`7`), Schema Diff(`8`), Phase 2(`9`), Phase 3(`11`), Phase 4(`12`) 작성 완료. Phase 5~6은 필요 시 작성 예정.
 
 ### Q: 6_ai_agnostic_migration_plan.md는 뭔가요?
 
@@ -512,6 +975,11 @@ cat refactoring_docs/2_current_state_analysis.md
 
 ### 2026-02-23
 
+- `12_phase_4_data_syncer.md`: OOM 방지 전략 보강 (메모리 관리 전략 섹션 추가, SyncContext ID 기반 경량화, 배치 처리, 세션 스코핑, 메모리 모니터링)
+- `12_phase_4_data_syncer.md`: 신규 작성 (Data Syncer 구현 실행 가이드, 종속성 DAG, 11개 SyncTask, DependencyResolver, SyncOrchestrator)
+- `0_README.md`: Phase 4 문서(#12) 목록 추가, Phase 4 섹션에 상세 가이드 링크 추가, FAQ 갱신
+- `0_README.md`: Phase 5 Data Validator 검증 규칙 대폭 확장 (12개 섹션, entity별 필드 단위 검증 + 교차 검증 + FK 검증)
+- `0_README.md`: Phase 4 (Data Syncer), Phase 5 (Data Validator) 추가, 기존 Phase 4 (Scheduler) → Phase 6으로 이동
 - `11_phase_3_merger.md`: 신규 작성 (Merger 구현 실행 가이드, Step 1-16, 11개 Merger + Scorer + Container)
 - `0_README.md`: Phase 2 완료 반영, Phase 3 문서 추가, 진행 상황 업데이트
 - `0_README.md`: Phase 3 핵심 구현 완료 상태 반영 (테스트/통합 검증 진행 중)
@@ -520,6 +988,11 @@ cat refactoring_docs/2_current_state_analysis.md
 - `11_phase_3_merger.md`: MatchMerger/NewsMerger/품질 기준 체크리스트 추가 갱신 (통합 테스트 제외)
 - `11_phase_3_merger.md`: archive 필드 매핑 보존 체크 완료 (통합 테스트 항목만 미완료)
 - `0_README.md`: Phase 3 상태를 `pytest 30 passed` + archive parity 검증 기준으로 갱신
+- `12_phase_4_data_syncer.md`: SyncContainer/DependencyResolver/11개 SyncTask/SyncOrchestrator/app.py sync 구현 반영
+- `12_phase_4_data_syncer.md`: Phase 4 체크리스트 대거 갱신 (통합 테스트/메모리 피크 실측 제외)
+- `0_README.md`: Phase 4 상태를 `핵심 구현 완료, 통합 검증 대기`로 갱신
+- `tests/syncer/*`: dependency/context/orchestrator 단위 테스트 추가
+- `requirements/essential.txt`: `psutil` 추가
 
 ### 2026-02-02
 

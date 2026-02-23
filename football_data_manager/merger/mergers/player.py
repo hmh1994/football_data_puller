@@ -4,6 +4,7 @@ from football_data_manager.merger.services.resource_validator import (
     ResourceValidationClient,
 )
 from football_data_manager.merger.services.translator import TranslatorService
+from football_data_manager.merger.utils import is_updated_within
 from football_data_manager.puller.interfaces.pulselive.v1_player import PlayerDetailResponse
 from football_data_manager.puller.interfaces.pulselive.v2_player import V2SquadResponse
 from football_data_manager.repository.entities.competitions import CompetitionEntity
@@ -57,9 +58,12 @@ class PlayerMerger:
         season: SeasonEntity | None = None,
     ) -> PlayerEntity | None:
         """Merge one player detail payload. Reused for lineup fallback creation."""
-        source_id = player_item.id["playerId"]
+        source_id = player_item.id["player_id"]
         existing = await self._player_repo.get_by_pulselive_id(source_id)
         if existing is not None:
+            if is_updated_within(existing):
+                return existing
+
             if not existing.photo_url:
                 photo_url = await self._validate_player_photo(source_id)
                 if photo_url:
@@ -74,7 +78,7 @@ class PlayerMerger:
 
             return existing
 
-        display_name_en = player_item.name["simpleName"].strip()
+        display_name_en = player_item.name["display"].strip()
         if not display_name_en:
             return None
 
@@ -82,18 +86,18 @@ class PlayerMerger:
         nationality_kr = await self._get_translated_country(nationality_en)
 
         position = PositionEnum.from_string(player_item.position)
-        preferred_foot = SideEnum.from_string(player_item.preferredFoot)
+        preferred_foot = SideEnum.from_string(player_item.preferred_foot)
 
         player = PlayerEntity(
-            birth_country=player_item.countryOfBirth,
+            birth_country=player_item.country_of_birth,
             birth_date=player_item.dates.birth,
             display_name_en=display_name_en,
             display_name_kr=await self._translator.translate_word(display_name_en),
-            full_name=player_item.name["fullName"],
+            full_name=f"{player_item.name['first']} {player_item.name['last']}",
             nationality_en=nationality_en,
             nationality_kr=nationality_kr,
             nationality_flag_icon_url=await self._validate_flag_url(
-                player_item.country.get("isoCode")
+                player_item.country.get("iso_code")
             ),
             position=position,
             preferred_foot=preferred_foot,

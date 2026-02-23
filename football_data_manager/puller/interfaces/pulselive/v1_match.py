@@ -1,6 +1,6 @@
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 
 from football_data_manager.common.utils.pydantic_helper.string_to_float_validator import (
     convert_string_to_float,
@@ -19,17 +19,17 @@ from football_data_manager.puller.interfaces.pulselive._types import (
 class MatchDict(TypedDict):
     """Individual match/fixture within matchweek response."""
 
-    kickoffTimezone: str
+    kickoff_timezone: str
     period: str
     kickoff: str
-    awayTeam: MatchTeamDict
-    homeTeam: MatchTeamDict
+    away_team: MatchTeamDict
+    home_team: MatchTeamDict
     competition: str
-    ground: str | None
-    clock: str | None
-    resultType: str | None
-    matchId: str
-    attendance: int | None
+    match_id: str
+    ground: NotRequired[str]
+    attendance: NotRequired[int]
+    clock: NotRequired[str]
+    result_type: NotRequired[str]
 
 
 class V1MatchweekMatchesResponse(RawResponseModel):
@@ -49,7 +49,7 @@ class EventCardDict(TypedDict, total=False):
     time: str | None
     timestamp: str | None
     type: str
-    playerId: str | None
+    player_id: str | None
 
 
 class EventGoalDict(TypedDict, total=False):
@@ -58,9 +58,9 @@ class EventGoalDict(TypedDict, total=False):
     period: str | None
     time: str | None
     timestamp: str | None
-    goalType: str
-    assistPlayerId: str | None
-    playerId: str
+    goal_type: str
+    assist_player_id: str | None
+    player_id: str
 
 
 class EventSubDict(TypedDict, total=False):
@@ -69,8 +69,8 @@ class EventSubDict(TypedDict, total=False):
     period: str | None
     time: str | None
     timestamp: str | None
-    playerOnId: str | None
-    playerOffId: str | None
+    player_on_id: str | None
+    player_off_id: str | None
 
 
 class EventTeamDict(TypedDict):
@@ -80,15 +80,15 @@ class EventTeamDict(TypedDict):
     subs: list[EventSubDict]
     name: str
     id: str
-    shortName: str
+    short_name: str
     goals: list[EventGoalDict]
 
 
 class V1EventResponse(RawResponseModel):
     """GET v1/matches/{match_id}/events"""
 
-    awayTeam: EventTeamDict
-    homeTeam: EventTeamDict
+    away_team: EventTeamDict
+    home_team: EventTeamDict
 
 
 # --- v1/matches/{id}/officials ---
@@ -104,8 +104,23 @@ class OfficialDict(TypedDict):
 class V1MatchOfficialsResponse(RawResponseModel):
     """GET v1/matches/{match_id}/officials"""
 
-    matchId: str
-    matchOfficials: list[OfficialDict]
+    match_id: str
+    match_officials: list[OfficialDict]
+
+    @model_validator(mode="before")
+    @classmethod
+    def remap_official_names(cls, data: dict) -> dict:
+        for item in data.get("match_officials", data.get("matchOfficials", [])):
+            person = item.get("official")
+            if not isinstance(person, dict):
+                continue
+            if "first" not in person and "firstName" in person:
+                person["first"] = person.pop("firstName", "")
+            if "last" not in person and "lastName" in person:
+                person["last"] = person.pop("lastName", "")
+            if "display" not in person and "name" in person:
+                person["display"] = person.pop("name", "")
+        return data
 
 
 # --- v1/matches/{id}/stats ---
@@ -339,4 +354,4 @@ class V1MatchTeamStatResponse(RawResponseModel):
 
     side: str
     stats: MatchStatInfoResponse
-    teamId: str
+    team_id: str

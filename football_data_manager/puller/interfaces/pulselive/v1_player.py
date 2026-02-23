@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from pydantic import RootModel, field_validator
 
@@ -18,22 +18,22 @@ class PlayerTeamDict(TypedDict):
 
     name: str
     id: str
-    shortName: str | None
+    short_name: NotRequired[str]
 
 
 class PlayerIdDict(TypedDict, total=False):
     """Player ID info."""
 
-    competitionId: str | None
-    seasonId: str | None
-    playerId: str
+    competition_id: str | None
+    season_id: str | None
+    player_id: str
 
 
 class PlayerResponse(RawResponseModel):
     """Base player response. Requires id parsing validator."""
 
-    country: CountryDict
-    currentTeam: PlayerTeamDict | None = None
+    country: CountryDict | None = None
+    current_team: PlayerTeamDict | None = None
     id: PlayerIdDict
     name: PersonDict
     position: str
@@ -41,7 +41,18 @@ class PlayerResponse(RawResponseModel):
     @field_validator("id", mode="before")
     def parse_id(cls, v) -> dict:
         if isinstance(v, str):
-            return {"playerId": v}
+            return {"player_id": v}
+        return v
+
+    @field_validator("name", mode="before")
+    def parse_name(cls, v) -> dict:
+        if isinstance(v, str):
+            parts = v.split(" ", 1)
+            return {
+                "first": parts[0],
+                "last": parts[1] if len(parts) > 1 else "",
+                "display": v,
+            }
         return v
 
 
@@ -49,7 +60,7 @@ class PlayerDatesResponse(RawResponseModel):
     """Player dates. Requires birth date parsing validator."""
 
     birth: datetime | None = None
-    joinedClub: str | None = None
+    joined_club: str | None = None
 
     @field_validator("birth", mode="before")
     def parse_birth_date(cls, v) -> datetime | None:
@@ -65,11 +76,11 @@ class PlayerDetailResponse(PlayerResponse):
     """Detailed player information."""
 
     loan: int | None = None
-    countryOfBirth: str | None = None
-    shirtNum: int | None = None
+    country_of_birth: str | None = None
+    shirt_num: int | None = None
     weight: int | None = None
     dates: PlayerDatesResponse
-    preferredFoot: str | None = None
+    preferred_foot: str | None = None
     height: int | None = None
 
 

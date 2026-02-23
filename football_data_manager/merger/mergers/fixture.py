@@ -38,7 +38,7 @@ class FixtureMerger:
         candidates: list[FixtureEntity] = []
 
         for match in response.data:
-            source_id = str(match["matchId"])
+            source_id = str(match["match_id"])
             existing = await self._fixture_repo.get_by_pulselive_id(source_id)
             if existing is not None:
                 results.append(existing)
@@ -60,12 +60,12 @@ class FixtureMerger:
         matchweek_number: int,
         match: MatchDict,
     ) -> FixtureEntity | None:
-        home_team = await self._team_repo.get_by_pulselive_id(str(match["homeTeam"]["id"]))
-        away_team = await self._team_repo.get_by_pulselive_id(str(match["awayTeam"]["id"]))
+        home_team = await self._team_repo.get_by_pulselive_id(str(match["home_team"]["id"]))
+        away_team = await self._team_repo.get_by_pulselive_id(str(match["away_team"]["id"]))
         if home_team is None or away_team is None:
             return None
 
-        kickoff_time = create_utc_from_string(match["kickoff"], match["kickoffTimezone"])
+        kickoff_time = create_utc_from_string(match["kickoff"], match["kickoff_timezone"])
 
         ground = await self._get_ground(match.get("ground"))
 
@@ -75,7 +75,7 @@ class FixtureMerger:
             home_team=home_team,
             kickoff_time=kickoff_time,
             season=season,
-            source_id=str(match["matchId"]),
+            source_id=str(match["match_id"]),
             ground=ground,
         )
 

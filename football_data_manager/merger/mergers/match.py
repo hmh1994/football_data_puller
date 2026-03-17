@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from hashlib import md5
 
@@ -38,6 +39,9 @@ from football_data_manager.repository.repositories.players import PlayerReposito
 from football_data_manager.repository.repositories.staffs import StaffRepository
 
 
+logger = logging.getLogger(__name__)
+
+
 @dataclass
 class _LineupPlayerInfo:
     player: PlayerEntity
@@ -49,6 +53,10 @@ class _LineupPlayerInfo:
 
 class MatchMerger:
     """Merge match detail/event/lineup/official responses into match entities."""
+
+    _MATCH_REQUEST_PATH = "GET v2/matches/{match_id}"
+    _EVENT_REQUEST_PATH = "GET v1/matches/{match_id}/events"
+    _LINEUP_REQUEST_PATH = "GET v3/matches/{match_id}/lineups"
 
     def __init__(
         self,
@@ -168,6 +176,17 @@ class MatchMerger:
         all_players = {
             player.source_id: player for player in (home_players + away_players)
         }
+
+        self._log_goal_count_mismatch(
+            match_source_id=fixture.source_id,
+            match_response=match_response,
+            event_response=event_response,
+        )
+        self._log_goal_scorer_lineup_mismatches(
+            match_source_id=fixture.source_id,
+            event_response=event_response,
+            lineup_response=lineup_response,
+        )
 
         # Lineup and bench
         for player_info in home_lineup:
@@ -588,3 +607,82 @@ class MatchMerger:
         target.official_var_id = source.official_var_id
         target.official_assistant_var_id = source.official_assistant_var_id
         target.period = source.period
+
+    @classmethod
+    def _format_request_path(cls, template: str, match_source_id: str) -> str:
+        return template.format(match_id=match_source_id)
+
+    @classmethod
+    def _log_goal_count_mismatch(
+        cls,
+        match_source_id: str,
+        match_response: V2MatchResponse,
+        event_response: V1EventResponse,
+    ) -> None:
+        home_goal_count = 0
+        away_goal_count = 0
+
+        for goal in event_response.home_team.get("goals", []):
+            if (goal.get("goal_type") or "").lower() == "own":
+                away_goal_count += 1
+            else:
+                home_goal_count += 1
+
+        for goal in event_response.away_team.get("goals", []):
+            if (goal.get("goal_type") or "").lower() == "own":
+                home_goal_count += 1
+            else:
+                away_goal_count += 1
+
+        home_score = match_response.home_team.get("score") or 0
+        away_score = match_response.away_team.get("score") or 0
+        if home_goal_count == home_score and away_goal_count == away_score:
+            return
+
+        logger.error(
+            "Unfixable source data issue [issue=1] goal events and match score differ: "
+            "match_source_id=%s home_goal_events=%s away_goal_events=%s "
+            "home_team_score=%s away_team_score=%s match_request=%s event_request=%s",
+            match_source_id,
+            home_goal_count,
+            away_goal_count,
+            home_score,
+            away_score,
+            cls._format_request_path(cls._MATCH_REQUEST_PATH, match_source_id),
+            cls._format_request_path(cls._EVENT_REQUEST_PATH, match_source_id),
+        )
+
+    @classmethod
+    def _log_goal_scorer_lineup_mismatches(
+        cls,
+        match_source_id: str,
+        event_response: V1EventResponse,
+        lineup_response: V3MatchLineupResponse,
+    ) -> None:
+        home_player_ids = {
+            str(player["id"]) for player in lineup_response.home_team.get("players", [])
+        }
+        away_player_ids = {
+            str(player["id"]) for player in lineup_response.away_team.get("players", [])
+        }
+
+        for side, goals, valid_player_ids in (
+            ("home", event_response.home_team.get("goals", []), home_player_ids),
+            ("away", event_response.away_team.get("goals", []), away_player_ids),
+        ):
+            for index, goal in enumerate(goals):
+                player_source_id = goal.get("player_id")
+                if not player_source_id or player_source_id in valid_player_ids:
+                    continue
+
+                logger.error(
+                    "Unfixable source data issue [issue=2] goal scorer missing from lineup/bench: "
+                    "match_source_id=%s side=%s goal_index=%s goal_player_source_id=%s "
+                    "event_request=%s lineup_request=%s",
+                    match_source_id,
+                    side,
+                    index,
+                    player_source_id,
+                    cls._format_request_path(cls._EVENT_REQUEST_PATH, match_source_id),
+                    cls._format_request_path(cls._LINEUP_REQUEST_PATH, match_source_id),
+                )

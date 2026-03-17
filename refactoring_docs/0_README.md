@@ -331,6 +331,35 @@
 
 ---
 
+### 13. **`13_phase_5_data_validator.md`** (Phase 5 실행 가이드 - ⏳ 대기 중)
+
+**목적**: Data Validator 컴포넌트 구현 실행 가이드
+
+**내용**:
+
+- Step 1-8: 단계별 실행 가이드
+- 디렉토리 구조 생성 (`validator/validators/`)
+- 검증 결과 모델 (CheckLevel, ValidationCheck, ValidationResult)
+- AbstractValidator + 11개 개별 Validator + CrossDatasetValidator 구현
+- ValidationOrchestrator (전체/개별 검증 실행 + 리포트 출력)
+- ValidatorContainer (팩토리 패턴)
+- `app.py validate` 명령어 추가 가이드
+- 검증 체크리스트
+
+**언제 읽나요**:
+
+- Phase 5 시작 시
+- Validation 구조 이해 필요 시
+
+**특징**:
+
+- `0_README.md` Phase 5 섹션(5-1 ~ 5-12)의 검증 규칙 전체 참조
+- 코드 예제 포함 (TeamStatValidator, MatchValidator 패턴)
+- CLI 사용 예시
+- 약 214개 검증 규칙 요약 테이블
+
+---
+
 ## 🚀 빠른 시작
 
 ### **Phase 0 전 필수 작업** (Combined Migration)
@@ -469,7 +498,9 @@ cat refactoring_docs/2_current_state_analysis.md
 - [ ] 세션 롤백 전략 실증 (통합 시나리오 검증)
 - [ ] 통합 테스트 (실제 API 호출 → DB 반영 확인)
 
-### Phase 5: Data Validator 구현 - **대기 중**
+### Phase 5: Data Validator 구현 - **대기 중** → `13_phase_5_data_validator.md`
+
+> 📖 상세 실행 가이드: [`13_phase_5_data_validator.md`](13_phase_5_data_validator.md)
 
 `app.py`에 데이터 교차 검증 명령어를 추가합니다. 특정 데이터셋을 선택하면 관련 데이터셋 간의 정합성을 검증합니다.
 
@@ -959,7 +990,7 @@ cat refactoring_docs/2_current_state_analysis.md
 
 ### Q: 각 Phase별 상세 가이드는 어디 있나요?
 
-**A**: Phase 0(`5`), Phase 1(`7`), Schema Diff(`8`), Phase 2(`9`), Phase 3(`11`), Phase 4(`12`) 작성 완료. Phase 5~6은 필요 시 작성 예정.
+**A**: Phase 0(`5`), Phase 1(`7`), Schema Diff(`8`), Phase 2(`9`), Phase 3(`11`), Phase 4(`12`), Phase 5(`13`) 작성 완료. Phase 6은 필요 시 작성 예정.
 
 ### Q: 6_ai_agnostic_migration_plan.md는 뭔가요?
 
@@ -972,6 +1003,11 @@ cat refactoring_docs/2_current_state_analysis.md
 ---
 
 ## 📝 문서 업데이트 이력
+
+### 2026-03-17
+
+- `13_phase_5_data_validator.md`: 신규 작성 (Data Validator 구현 실행 가이드, Step 1-8, 12개 Validator + Orchestrator + Container)
+- `0_README.md`: Phase 5 문서(#13) 목록 추가, Phase 5 섹션에 상세 가이드 링크 추가, FAQ 갱신
 
 ### 2026-02-23
 
@@ -1024,5 +1060,5 @@ cat refactoring_docs/2_current_state_analysis.md
 
 ---
 
-**Last Updated**: 2026-02-23
+**Last Updated**: 2026-03-17
 **Maintained By**: @jormal

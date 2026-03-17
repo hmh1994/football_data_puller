@@ -1,3 +1,4 @@
+import logging
 from asyncio import gather
 
 import httpx
@@ -13,8 +14,15 @@ from football_data_manager.repository.repositories.player_stats import PlayerSta
 from football_data_manager.repository.repositories.teams import TeamRepository
 
 
+logger = logging.getLogger(__name__)
+
+
 class PlayerStatMerger:
     """Merge player stat API responses into player-stat entities."""
+
+    _PLAYER_STAT_REQUEST_PATH = (
+        "GET v2/competitions/{competition_id}/seasons/{season_id}/players/{player_id}/stats"
+    )
 
     _STAT_FIELDS = [
         "number",
@@ -121,6 +129,12 @@ class PlayerStatMerger:
             team=team,
             shirt_number=player_details.shirt_num or 0,
             stats=player_stats.stats,
+        )
+        self._log_defending_duel_mismatch(
+            player=player,
+            competition=competition,
+            season=season,
+            player_stat=mapped,
         )
 
         existing = await self._player_stat_repo.get_by_pulselive_id(mapped.source_id)
@@ -260,6 +274,53 @@ class PlayerStatMerger:
     def _copy_fields(self, target: PlayerStatEntity, source: PlayerStatEntity) -> None:
         for field_name in self._STAT_FIELDS:
             setattr(target, field_name, getattr(source, field_name))
+
+    @classmethod
+    def _format_player_stat_request_path(
+        cls,
+        competition_source_id: str,
+        season_source_id: str,
+        player_source_id: str,
+    ) -> str:
+        return cls._PLAYER_STAT_REQUEST_PATH.format(
+            competition_id=competition_source_id,
+            season_id=season_source_id,
+            player_id=player_source_id,
+        )
+
+    @classmethod
+    def _log_defending_duel_mismatch(
+        cls,
+        player: PlayerEntity,
+        competition: CompetitionEntity,
+        season: SeasonEntity,
+        player_stat: PlayerStatEntity,
+    ) -> None:
+        duels_won = player_stat.defending_duels_won
+        aerial_won = player_stat.defending_duels_aerial_won
+        ground_won = player_stat.defending_duels_ground_won
+
+        if duels_won is None or aerial_won is None or ground_won is None:
+            return
+        if duels_won == aerial_won + ground_won:
+            return
+
+        logger.error(
+            "Unfixable source data issue [issue=4] defending duels do not add up: "
+            "player_source_id=%s competition_source_id=%s season_source_id=%s "
+            "defending_duels_won=%s aerial_won=%s ground_won=%s stats_request=%s",
+            player.source_id,
+            competition.source_id,
+            season.source_id,
+            duels_won,
+            aerial_won,
+            ground_won,
+            cls._format_player_stat_request_path(
+                competition.source_id,
+                season.source_id.split("_")[-1],
+                player.source_id,
+            ),
+        )
 
     @staticmethod
     def _to_int(value: int | float | None) -> int | None:

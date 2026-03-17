@@ -100,5 +100,4 @@ class PlayerRepository(PulseliveRepository[PlayerEntity]):
 
         if session:
             return await _do(session)
-        async with self._session_factory.session() as s:
-            return await _do(s)
+        return await self._execute_with_retry(_do)

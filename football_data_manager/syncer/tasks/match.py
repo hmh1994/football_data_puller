@@ -90,7 +90,25 @@ class MatchSyncTask(AbstractSyncTask):
                     result.skipped += 1
                     continue
 
-                merged = await self._merger.merge_from_api(fixture, competition, season)
+                try:
+                    merged = await self._merger.merge_from_api(
+                        fixture,
+                        competition,
+                        season,
+                    )
+                except Exception as error:
+                    logger.exception(
+                        "Match sync failed for fixture_id=%s match_source_id=%s",
+                        fixture.id,
+                        fixture.source_id,
+                    )
+                    result.errors += 1
+                    result.messages.append(
+                        "Match sync failed for "
+                        f"fixture_id='{fixture.id}' match_source_id='{fixture.source_id}': "
+                        f"{error}"
+                    )
+                    continue
                 if merged is None:
                     result.skipped += 1
                     continue

@@ -97,7 +97,21 @@ class PlayerStatSyncTask(AbstractSyncTask):
                     result.skipped += 1
                     continue
 
-                merged = await self._merger.merge(player, competition, season)
+                try:
+                    merged = await self._merger.merge(player, competition, season)
+                except Exception as error:
+                    logger.exception(
+                        "Player-stat sync failed for player_id=%s player_source_id=%s",
+                        player.id,
+                        player.source_id,
+                    )
+                    result.errors += 1
+                    result.messages.append(
+                        "Player-stat sync failed for "
+                        f"player_id='{player.id}' player_source_id='{player.source_id}': "
+                        f"{error}"
+                    )
+                    continue
                 if merged is None:
                     result.skipped += 1
                     continue

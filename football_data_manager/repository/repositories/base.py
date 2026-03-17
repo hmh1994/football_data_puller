@@ -1,11 +1,17 @@
-from typing import TypeVar, Generic, Sequence
+import logging
+from typing import TypeVar, Generic, Sequence, Callable, Awaitable
 
 from sqlalchemy import select, func
+from sqlalchemy.exc import DBAPIError, OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from football_data_manager.common.enums.source_enum import SourceEnum
 from football_data_manager.repository.entities.base import BaseEntity
-from football_data_manager.repository.session import SessionFactory
+from football_data_manager.repository.session import (
+    SessionFactory,
+    MAX_RETRIES,
+    is_transient,
+)
 from football_data_manager.common.utils.type_helper.datetime_helper import (
     create_utc_now,
 )
@@ -13,7 +19,10 @@ from football_data_manager.common.utils.type_helper.list_helper import (
     remove_duplicates,
 )
 
+logger = logging.getLogger(__name__)
+
 TEntity = TypeVar("TEntity", bound=BaseEntity)
+T = TypeVar("T")
 
 
 class AsyncBaseRepository(Generic[TEntity]):
@@ -31,6 +40,30 @@ class AsyncBaseRepository(Generic[TEntity]):
     def __init__(self, session_factory: SessionFactory, model: type[TEntity]):
         self._session_factory = session_factory
         self._model = model
+
+    async def _execute_with_retry(
+        self, operation: Callable[[AsyncSession], Awaitable[T]]
+    ) -> T:
+        """
+        Execute a session operation with retry on transient connection errors.
+
+        :param operation: Async callable that takes a session and returns a result
+        :return: Result from the operation
+        """
+        last_exc: Exception | None = None
+        for attempt in range(MAX_RETRIES):
+            try:
+                async with self._session_factory.session() as s:
+                    return await operation(s)
+            except (DBAPIError, OperationalError, OSError) as exc:
+                if not is_transient(exc) or attempt == MAX_RETRIES - 1:
+                    raise
+                last_exc = exc
+                logger.warning(
+                    "Transient DB error (attempt %d/%d): %s",
+                    attempt + 1, MAX_RETRIES, exc,
+                )
+        raise last_exc  # type: ignore[misc]
 
     # ── Create ──────────────────────────────────────────────
 
@@ -54,8 +87,7 @@ class AsyncBaseRepository(Generic[TEntity]):
 
         if session:
             return await _do(session)
-        async with self._session_factory.session() as s:
-            return await _do(s)
+        return await self._execute_with_retry(_do)
 
     async def create_many(
         self, entities: Sequence[TEntity], session: AsyncSession | None = None
@@ -81,8 +113,7 @@ class AsyncBaseRepository(Generic[TEntity]):
 
         if session:
             return await _do(session)
-        async with self._session_factory.session() as s:
-            return await _do(s)
+        return await self._execute_with_retry(_do)
 
     # ── Read ────────────────────────────────────────────────
 
@@ -101,8 +132,7 @@ class AsyncBaseRepository(Generic[TEntity]):
 
         if session:
             return await _do(session)
-        async with self._session_factory.session() as s:
-            return await _do(s)
+        return await self._execute_with_retry(_do)
 
     async def get_by_source(
         self,
@@ -135,8 +165,7 @@ class AsyncBaseRepository(Generic[TEntity]):
 
         if session:
             return await _do(session)
-        async with self._session_factory.session() as s:
-            return await _do(s)
+        return await self._execute_with_retry(_do)
 
     async def get_all(
         self,
@@ -162,8 +191,7 @@ class AsyncBaseRepository(Generic[TEntity]):
 
         if session:
             return await _do(session)
-        async with self._session_factory.session() as s:
-            return await _do(s)
+        return await self._execute_with_retry(_do)
 
     async def count(
         self, *filters, session: AsyncSession | None = None
@@ -184,8 +212,7 @@ class AsyncBaseRepository(Generic[TEntity]):
 
         if session:
             return await _do(session)
-        async with self._session_factory.session() as s:
-            return await _do(s)
+        return await self._execute_with_retry(_do)
 
     async def exists(
         self, entity_id: str, session: AsyncSession | None = None
@@ -236,8 +263,7 @@ class AsyncBaseRepository(Generic[TEntity]):
 
         if session:
             return await _do(session)
-        async with self._session_factory.session() as s:
-            return await _do(s)
+        return await self._execute_with_retry(_do)
 
     # ── Delete ──────────────────────────────────────────────
 
@@ -258,8 +284,7 @@ class AsyncBaseRepository(Generic[TEntity]):
 
         if session:
             return await _do(session)
-        async with self._session_factory.session() as s:
-            return await _do(s)
+        return await self._execute_with_retry(_do)
 
     async def delete_by_id(
         self, entity_id: str, session: AsyncSession | None = None
@@ -281,8 +306,7 @@ class AsyncBaseRepository(Generic[TEntity]):
 
         if session:
             return await _do(session)
-        async with self._session_factory.session() as s:
-            return await _do(s)
+        return await self._execute_with_retry(_do)
 
     # ── Protected Helpers ───────────────────────────────────
 
@@ -307,9 +331,11 @@ class AsyncBaseRepository(Generic[TEntity]):
         :param kwargs: Field name-value pairs
         :return: Entity or None
         """
-        async with self._session_factory.session() as s:
+        async def _do(s: AsyncSession) -> TEntity | None:
             results = await self._get_by_field(s, **kwargs)
             return results[0] if results else None
+
+        return await self._execute_with_retry(_do)
 
     async def _load_lazy_fields(
         self,
@@ -334,8 +360,7 @@ class AsyncBaseRepository(Generic[TEntity]):
 
         if session:
             return await _do(session)
-        async with self._session_factory.session() as s:
-            return await _do(s)
+        return await self._execute_with_retry(_do)
 
     async def _sieve_duplication(
         self, session: AsyncSession, entity: TEntity

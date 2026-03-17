@@ -140,11 +140,14 @@ class TeamStatMerger:
 
     @staticmethod
     def _apply_api_stats(team_stat: TeamStatEntity, stats: dict) -> None:
+        blocked_shots = TeamStatMerger._to_int(stats.get("blocked_shots"))
         successful_crosses = TeamStatMerger._to_int(stats.get("successful_crosses_and_corners"))
         unsuccessful_crosses = TeamStatMerger._to_int(stats.get("unsuccessful_crosses_and_corners"))
         successful_long_passes = TeamStatMerger._to_int(stats.get("successful_long_passes"))
         unsuccessful_long_passes = TeamStatMerger._to_int(stats.get("unsuccessful_long_passes"))
         successful_short_passes = TeamStatMerger._to_int(stats.get("successful_short_passes"))
+        tackles_won = TeamStatMerger._to_int(stats.get("tackles_won"))
+        tackles_lost = TeamStatMerger._to_int(stats.get("tackles_lost"))
 
         team_stat.overall_stat_attack_corners = TeamStatMerger._to_int(
             stats.get("corners_taken_incl_short_corners")
@@ -152,8 +155,9 @@ class TeamStatMerger:
         team_stat.overall_stat_attack_shots_on_target = TeamStatMerger._to_int(
             stats.get("shots_on_target_incl_goals")
         )
-        team_stat.overall_stat_attack_total_shots = TeamStatMerger._to_int(
-            stats.get("total_shots")
+        team_stat.overall_stat_attack_total_shots = TeamStatMerger._sum_optional(
+            TeamStatMerger._to_int(stats.get("total_shots")),
+            blocked_shots,
         )
         team_stat.overall_stat_attack_touches_in_opposition_box = TeamStatMerger._to_int(
             stats.get("touches_in_opp_box")
@@ -168,7 +172,7 @@ class TeamStatMerger:
             stats.get("possession_percentage")
         )
 
-        team_stat.overall_stat_defense_blocks = TeamStatMerger._to_int(stats.get("blocked_shots"))
+        team_stat.overall_stat_defense_blocks = TeamStatMerger._to_int(stats.get("blocks"))
         team_stat.overall_stat_defense_clean_sheets = TeamStatMerger._to_int(
             stats.get("clean_sheets")
         )
@@ -181,12 +185,11 @@ class TeamStatMerger:
         team_stat.overall_stat_defense_saves_penalty = TeamStatMerger._to_int(
             stats.get("penalties_saved")
         )
-        team_stat.overall_stat_defense_tackles = TeamStatMerger._to_int(
-            stats.get("times_tackled")
+        team_stat.overall_stat_defense_tackles = TeamStatMerger._sum_optional(
+            tackles_won,
+            tackles_lost,
         )
-        team_stat.overall_stat_defense_tackles_successful = TeamStatMerger._to_int(
-            stats.get("tackles_won")
-        )
+        team_stat.overall_stat_defense_tackles_successful = tackles_won
 
         team_stat.overall_stat_discipline_fouls = TeamStatMerger._to_int(
             stats.get("total_fouls_conceded")

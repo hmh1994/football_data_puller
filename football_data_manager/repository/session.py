@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
@@ -10,6 +11,24 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from football_data_manager.common.services.config.config_service import ConfigService
+
+logger = logging.getLogger(__name__)
+
+MAX_RETRIES = 3
+TRANSIENT_MESSAGES = (
+    "connection was closed",
+    "Connection reset by peer",
+    "ConnectionDoesNotExistError",
+    "server closed the connection unexpectedly",
+    "connection is closed",
+    "SSL connection has been closed unexpectedly",
+)
+
+
+def is_transient(exc: Exception) -> bool:
+    """Check if an exception is a transient connection error."""
+    msg = str(exc)
+    return any(pattern in msg for pattern in TRANSIENT_MESSAGES)
 
 
 class SessionFactory:
@@ -32,6 +51,7 @@ class SessionFactory:
         self.engine = create_async_engine(
             config_service.db.sqlalchemy_url,
             pool_pre_ping=True,
+            pool_recycle=300,
         )
         self._session_maker = async_sessionmaker(
             bind=self.engine,

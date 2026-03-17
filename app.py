@@ -7,6 +7,7 @@ Usage:
     python app.py run                           # Start master process (cron scheduler)
     python app.py pull-data {entity}            # Legacy pull command
     python app.py sync {entity} [OPTIONS]       # Sync entity with dependency resolution
+    python app.py validate {entity} [OPTIONS]   # Validate stored data integrity
 """
 import asyncio
 import argparse
@@ -159,6 +160,44 @@ async def sync_data(
     return 0 if all(result.success for result in results) else 1
 
 
+async def validate_data(
+    entity: str,
+    season_id: str | None,
+    competition_id: str | None,
+    show_detail: bool,
+    detail_level: str | None,
+) -> int:
+    from football_data_manager.validator.container import create_validator_container
+    from football_data_manager.validator.orchestrator import (
+        ValidateEntity,
+        ValidationOrchestrator,
+    )
+    from football_data_manager.validator.validators.base import CheckLevel
+
+    container = await create_validator_container()
+    orchestrator = ValidationOrchestrator(container)
+
+    if entity == "all":
+        results = await orchestrator.validate_all(
+            season_id=season_id,
+            competition_id=competition_id,
+        )
+    else:
+        results = await orchestrator.validate(
+            target=ValidateEntity(entity),
+            season_id=season_id,
+            competition_id=competition_id,
+        )
+
+    orchestrator.print_summary(results)
+
+    if show_detail:
+        level = CheckLevel(detail_level) if detail_level else None
+        orchestrator.print_detail(results, level=level)
+
+    return 0 if all(result.success for result in results) else 1
+
+
 def main():
     """Main CLI entry point"""
     parser = argparse.ArgumentParser(
@@ -172,6 +211,7 @@ Examples:
   python app.py pull-data player          # Pull player data
   python app.py sync team --competition-id 1 --season-id 578
   python app.py sync all --competition-id 1 --season-id 578
+  python app.py validate all --detail
         """,
     )
 
@@ -226,6 +266,48 @@ Examples:
         help="League abbreviation for news sync (default: EN_PR)",
     )
 
+    validate_parser = subparsers.add_parser(
+        "validate",
+        help="Validate data integrity across entities",
+    )
+    validate_parser.add_argument(
+        "entity",
+        choices=[
+            "competition",
+            "season",
+            "team-stat",
+            "player-stat",
+            "match",
+            "match-stat",
+            "fixture",
+            "player",
+            "analytics",
+            "news",
+            "award",
+            "cross-dataset",
+            "all",
+        ],
+        help="Target entity to validate",
+    )
+    validate_parser.add_argument(
+        "--season-id",
+        help="Limit validation to a specific season",
+    )
+    validate_parser.add_argument(
+        "--competition-id",
+        help="Limit validation to a specific competition",
+    )
+    validate_parser.add_argument(
+        "--detail",
+        action="store_true",
+        help="Show detailed validation checks",
+    )
+    validate_parser.add_argument(
+        "--detail-level",
+        choices=["PASS", "FAIL", "WARNING"],
+        help="Filter detailed checks by result level",
+    )
+
     args = parser.parse_args()
 
     if not args.command:
@@ -257,6 +339,20 @@ Examples:
                     competition_id=args.competition_id,
                     season_id=args.season_id,
                     league_abbr=args.league_abbr,
+                )
+            )
+        except ValueError as error:
+            print(f"Error: {error}")
+            return 1
+    elif args.command == "validate":
+        try:
+            return asyncio.run(
+                validate_data(
+                    entity=args.entity,
+                    season_id=args.season_id,
+                    competition_id=args.competition_id,
+                    show_detail=args.detail,
+                    detail_level=args.detail_level,
                 )
             )
         except ValueError as error:

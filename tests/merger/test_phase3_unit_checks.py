@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -22,10 +23,15 @@ from football_data_manager.merger.mergers.team_stat import TeamStatMerger
 from football_data_manager.merger.scorer import PlayerStatScorer
 from football_data_manager.puller.interfaces.pulselive.v1_match import (
     MatchStatInfoResponse,
+    V1EventResponse,
     V1MatchTeamStatResponse,
 )
 from football_data_manager.puller.interfaces.pulselive.v1_player import (
     PlayerDetailResponse,
+)
+from football_data_manager.puller.interfaces.pulselive.v2_match import (
+    V2MatchResponse,
+    V3MatchLineupResponse,
 )
 from football_data_manager.repository.entities.competitions import CompetitionEntity
 from football_data_manager.repository.entities.fixtures import FixtureEntity
@@ -651,6 +657,89 @@ async def test_match_merger_full_flow_with_4_apis_and_5_associations() -> None:
     assert merged.period == PeriodEnum.FULLTIME
 
 
+def test_match_merger_logs_unfixable_source_issues(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.ERROR, logger="football_data_manager.merger.mergers.match")
+
+    match_response = V2MatchResponse.model_validate(
+        {
+            "kickoffTimezone": "BST",
+            "competitionId": "8",
+            "period": "fulltime",
+            "matchWeek": 1,
+            "kickoff": "2024-08-16 19:00:00",
+            "awayTeam": {"id": "20", "name": "Liverpool", "score": 0},
+            "seasonInfo": {"id": "2024", "name": "2024/25"},
+            "competition": "Premier League",
+            "kickoffTimezoneString": "BST",
+            "seasonId": "2024",
+            "homeTeam": {"id": "10", "name": "Arsenal", "score": 0},
+            "ground": "Emirates Stadium",
+            "matchId": "m-3",
+        }
+    )
+    event_response = V1EventResponse.model_validate(
+        {
+            "homeTeam": {
+                "cards": [],
+                "subs": [],
+                "name": "Arsenal",
+                "id": "10",
+                "shortName": "ARS",
+                "goals": [{"playerId": "missing-home", "goalType": "Goal", "time": "20"}],
+            },
+            "awayTeam": {
+                "cards": [],
+                "subs": [],
+                "name": "Liverpool",
+                "id": "20",
+                "shortName": "LIV",
+                "goals": [],
+            },
+        }
+    )
+    lineup_response = V3MatchLineupResponse.model_validate(
+        {
+            "homeTeam": {
+                "players": [
+                    {
+                        "id": "h1",
+                        "position": "defender",
+                        "shirtNum": "4",
+                        "isCaptain": True,
+                    }
+                ],
+                "formation": {"formation": "4-3-3", "lineup": [["h1"]]},
+                "managers": [],
+            },
+            "awayTeam": {
+                "players": [
+                    {
+                        "id": "a1",
+                        "position": "midfielder",
+                        "shirtNum": "8",
+                        "isCaptain": True,
+                    }
+                ],
+                "formation": {"formation": "4-4-2", "lineup": [["a1"]]},
+                "managers": [],
+            },
+        }
+    )
+
+    MatchMerger._log_goal_count_mismatch("m-3", match_response, event_response)
+    MatchMerger._log_goal_scorer_lineup_mismatches(
+        "m-3",
+        event_response,
+        lineup_response,
+    )
+
+    assert "issue=1" in caplog.text
+    assert "issue=2" in caplog.text
+    assert "GET v2/matches/m-3" in caplog.text
+    assert "GET v1/matches/m-3/events" in caplog.text
+    assert "GET v3/matches/m-3/lineups" in caplog.text
+
+
 @pytest.mark.asyncio
 async def test_match_stat_merger_creates_home_away_entities() -> None:
     competition = _build_competition()
@@ -800,6 +889,67 @@ async def test_player_stat_merger_maps_derived_fields() -> None:
     assert merged.passing_chances_created == 5
     assert merged.shooting_shots == 35
     assert merged.shooting_expected_goals_non_penalty == pytest.approx(3.42)
+
+
+@pytest.mark.asyncio
+async def test_player_stat_merger_logs_unfixable_duel_mismatch(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    competition = _build_competition()
+    season = _build_season(competition)
+    team = _build_team("10", "ARS", "Arsenal")
+    player = _build_player(team, season, source_id="100")
+
+    class _TeamRepo:
+        async def get_by_pulselive_id(self, source_id: str):
+            return team if source_id == "10" else None
+
+    class _PlayerStatRepo:
+        async def get_by_pulselive_id(self, source_id: str):
+            _ = source_id
+            return None
+
+        async def create(self, entity: PlayerStatEntity):
+            return entity
+
+        async def update(self, entity: PlayerStatEntity):
+            return entity
+
+    class _PlayerPuller:
+        async def pull_player_details(self, *args):
+            _ = args
+            return SimpleNamespace(current_team={"id": "10"}, shirt_num=7)
+
+    class _PlayerStatPuller:
+        async def pull_player_stats(self, *args):
+            _ = args
+            return SimpleNamespace(
+                stats={
+                    "duels_won": 10,
+                    "aerial_duels_won": 4,
+                    "ground_duels_won": 5,
+                }
+            )
+
+    caplog.set_level(
+        logging.ERROR,
+        logger="football_data_manager.merger.mergers.player_stat",
+    )
+    merger = PlayerStatMerger(
+        player_stat_repo=_PlayerStatRepo(),
+        team_repo=_TeamRepo(),
+        player_puller=_PlayerPuller(),
+        player_stat_puller=_PlayerStatPuller(),
+    )
+
+    merged = await merger.merge(player, competition, season)
+
+    assert merged is not None
+    assert "issue=4" in caplog.text
+    assert (
+        "GET v2/competitions/8/seasons/2024/players/100/stats"
+        in caplog.text
+    )
 
 
 @pytest.mark.asyncio
